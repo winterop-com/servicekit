@@ -132,6 +132,7 @@ app = (
     .with_jobs(max_concurrency=5)
     .with_logging()
     .with_monitoring()
+    .with_landing_page()
     .include_router(user_router)
     .on_startup(seed_users)
     .build()
