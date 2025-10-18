@@ -1,21 +1,11 @@
 """Example API with API key authentication."""
 
-from servicekit import BaseConfig
 from servicekit.api import BaseServiceBuilder, ServiceInfo
-
-
-class AppConfig(BaseConfig):
-    """Application configuration."""
-
-    environment: str
-    debug: bool = False
-
 
 app = (
     BaseServiceBuilder(info=ServiceInfo(display_name="Authenticated API Example"))
     .with_logging()
     .with_health()
-    .with_config(AppConfig)
     .with_auth(
         # For this example, using direct keys (NOT recommended for production!)
         # In production, use one of these instead:

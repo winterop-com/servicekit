@@ -1,17 +1,6 @@
 """Example API with environment variable authentication for production deployments."""
 
-from servicekit import BaseConfig
 from servicekit.api import BaseServiceBuilder, ServiceInfo
-
-
-class ProductionConfig(BaseConfig):
-    """Production configuration with validation."""
-
-    environment: str
-    region: str = "us-east-1"
-    enable_analytics: bool = True
-    max_requests_per_minute: int = 1000
-
 
 app = (
     BaseServiceBuilder(
@@ -30,7 +19,6 @@ app = (
     )
     .with_logging()
     .with_health()
-    .with_config(ProductionConfig)
     .with_auth()  # Reads from SERVICEKIT_API_KEYS environment variable (recommended!)
     .build()
 )

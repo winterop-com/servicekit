@@ -1,16 +1,6 @@
 """Example API with Docker secrets file authentication for container deployments."""
 
-from servicekit import BaseConfig
 from servicekit.api import BaseServiceBuilder, ServiceInfo
-
-
-class SecureConfig(BaseConfig):
-    """Configuration for secure services."""
-
-    service_name: str
-    security_level: str = "high"
-    audit_enabled: bool = True
-
 
 app = (
     BaseServiceBuilder(
@@ -29,7 +19,6 @@ app = (
     )
     .with_logging()
     .with_health()
-    .with_config(SecureConfig)
     .with_auth(
         # In production with Docker/K8s, this would be:
         # api_key_file="/run/secrets/api_keys"

@@ -1,15 +1,6 @@
 """Example API with custom authentication header for legacy system integration."""
 
-from servicekit import BaseConfig
 from servicekit.api import BaseServiceBuilder, ServiceInfo
-
-
-class CustomAuthConfig(BaseConfig):
-    """Configuration for service with custom auth header."""
-
-    api_version: str = "v1"
-    custom_feature_enabled: bool = True
-
 
 app = (
     BaseServiceBuilder(
@@ -28,7 +19,6 @@ app = (
     )
     .with_logging()
     .with_health()
-    .with_config(CustomAuthConfig)
     .with_auth(
         header_name="X-Custom-Auth-Token",  # Custom header name instead of "X-API-Key"
         # Keys still from SERVICEKIT_API_KEYS environment variable
