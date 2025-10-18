@@ -1,4 +1,4 @@
-"""Custom types for chapkit - SQLAlchemy and Pydantic types."""
+"""Custom types for servicekit - SQLAlchemy and Pydantic types."""
 
 from __future__ import annotations
 

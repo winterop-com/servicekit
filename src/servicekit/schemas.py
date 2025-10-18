@@ -87,7 +87,7 @@ class ProblemDetail(BaseModel):
         "json_schema_extra": {
             "examples": [
                 {
-                    "type": "urn:chapkit:error:not-found",
+                    "type": "urn:servicekit:error:not-found",
                     "title": "Resource Not Found",
                     "status": 404,
                     "detail": "Config with id 01ABC... not found",

@@ -166,7 +166,7 @@ class BaseServiceBuilder:
 
     def with_landing_page(self) -> Self:
         """Enable landing page at root path."""
-        return self.with_app(("chapkit.core.api", "apps/landing"))
+        return self.with_app(("servicekit.api", "apps/landing"))
 
     def with_logging(self, enabled: bool = True) -> Self:
         """Enable structured logging with request tracing."""
