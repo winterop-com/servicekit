@@ -2,7 +2,7 @@
   "name": "Sample Dashboard",
   "version": "1.0.0",
   "prefix": "/dashboard",
-  "description": "Sample dashboard application demonstrating chapkit app system",
-  "author": "Chapkit Team",
+  "description": "Sample dashboard application demonstrating servicekit app system",
+  "author": "Servicekit Team",
   "entry": "index.html"
 }
