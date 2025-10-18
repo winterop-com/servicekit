@@ -120,11 +120,54 @@ router = CrudRouter.create(
 )
 ```
 
+### Artifact Storage
+
+Hierarchical storage for models, datasets, and results:
+
+```python
+from servicekit.artifact import ArtifactHierarchy, ArtifactManager, ArtifactIn
+
+# Define hierarchy
+hierarchy = ArtifactHierarchy(
+    name="ml_pipeline",
+    level_labels={0: "experiment", 1: "model", 2: "predictions"}
+)
+
+# Store artifacts with parent-child relationships
+manager = ArtifactManager(repository, hierarchy=hierarchy)
+experiment = await manager.save(ArtifactIn(data={"config": "v1.0"}))
+model = await manager.save(ArtifactIn(data=trained_model, parent_id=experiment.id))
+
+# Query tree structure
+tree = await manager.build_tree(experiment.id)
+```
+
+### Task Execution
+
+Execute Python functions and shell commands with dependency injection:
+
+```python
+from servicekit.task import TaskManager, TaskIn, TaskRegistry
+
+# Register Python task
+@TaskRegistry.register("process_data")
+async def process_data(database, artifact_manager):
+    # Injected dependencies available automatically
+    return {"status": "complete"}
+
+# Execute tasks
+manager = TaskManager(repository, scheduler, database, artifact_manager)
+task = await manager.save(TaskIn(command="process_data"))
+result = await manager.execute_task(task.id)
+```
+
 ## Examples
 
 See the `examples/` directory for complete working examples:
 
 - `core_api.py` - Basic CRUD service
+- `artifact_storage_api.py` - Hierarchical artifact storage
+- `task_execution_api.py` - Python and shell task execution
 - `job_scheduler_api.py` - Background job execution
 - `app_hosting_api.py` - Hosting static web apps
 - `auth_basic.py` - API key authentication
