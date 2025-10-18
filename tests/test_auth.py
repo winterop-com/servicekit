@@ -18,22 +18,22 @@ from servicekit.api.auth import (
 
 def test_load_api_keys_from_env_single_key(monkeypatch: MonkeyPatch) -> None:
     """Test loading a single API key from environment variable."""
-    monkeypatch.setenv("CHAPKIT_API_KEYS", "sk_test_123")
-    keys = load_api_keys_from_env("CHAPKIT_API_KEYS")
+    monkeypatch.setenv("SERVICEKIT_API_KEYS", "sk_test_123")
+    keys = load_api_keys_from_env("SERVICEKIT_API_KEYS")
     assert keys == {"sk_test_123"}
 
 
 def test_load_api_keys_from_env_multiple_keys(monkeypatch: MonkeyPatch) -> None:
     """Test loading multiple comma-separated keys."""
-    monkeypatch.setenv("CHAPKIT_API_KEYS", "sk_test_1,sk_test_2,sk_test_3")
-    keys = load_api_keys_from_env("CHAPKIT_API_KEYS")
+    monkeypatch.setenv("SERVICEKIT_API_KEYS", "sk_test_1,sk_test_2,sk_test_3")
+    keys = load_api_keys_from_env("SERVICEKIT_API_KEYS")
     assert keys == {"sk_test_1", "sk_test_2", "sk_test_3"}
 
 
 def test_load_api_keys_from_env_with_spaces(monkeypatch: MonkeyPatch) -> None:
     """Test that spaces around keys are stripped."""
-    monkeypatch.setenv("CHAPKIT_API_KEYS", "sk_test_1 , sk_test_2 , sk_test_3")
-    keys = load_api_keys_from_env("CHAPKIT_API_KEYS")
+    monkeypatch.setenv("SERVICEKIT_API_KEYS", "sk_test_1 , sk_test_2 , sk_test_3")
+    keys = load_api_keys_from_env("SERVICEKIT_API_KEYS")
     assert keys == {"sk_test_1", "sk_test_2", "sk_test_3"}
 
 
@@ -45,8 +45,8 @@ def test_load_api_keys_from_env_empty() -> None:
 
 def test_load_api_keys_from_env_empty_string(monkeypatch: MonkeyPatch) -> None:
     """Test loading from empty environment variable."""
-    monkeypatch.setenv("CHAPKIT_API_KEYS", "")
-    keys = load_api_keys_from_env("CHAPKIT_API_KEYS")
+    monkeypatch.setenv("SERVICEKIT_API_KEYS", "")
+    keys = load_api_keys_from_env("SERVICEKIT_API_KEYS")
     assert keys == set()
 
 

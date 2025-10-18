@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from ulid import ULID
 
-from servicekit.exceptions import ChapkitException
+from servicekit.exceptions import ServicekitException
 from servicekit.logging import add_request_context, get_logger, reset_request_context
 from servicekit.schemas import ProblemDetail
 
@@ -100,10 +100,10 @@ async def validation_error_handler(request: Request, exc: Exception) -> JSONResp
     )
 
 
-async def chapkit_exception_handler(request: Request, exc: ChapkitException) -> JSONResponse:
-    """Handle ChapkitException and return RFC 9457 Problem Details."""
+async def servicekit_exception_handler(request: Request, exc: ServicekitException) -> JSONResponse:
+    """Handle ServicekitException and return RFC 9457 Problem Details."""
     logger.warning(
-        "chapkit.error",
+        "servicekit.error",
         error_type=exc.type_uri,
         status=exc.status,
         detail=exc.detail,
@@ -131,7 +131,7 @@ def add_error_handlers(app: Any) -> None:
     from pydantic import ValidationError
     from sqlalchemy.exc import SQLAlchemyError
 
-    app.add_exception_handler(ChapkitException, chapkit_exception_handler)
+    app.add_exception_handler(ServicekitException, servicekit_exception_handler)
     app.add_exception_handler(SQLAlchemyError, database_error_handler)
     app.add_exception_handler(ValidationError, validation_error_handler)
 

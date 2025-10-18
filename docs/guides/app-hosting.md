@@ -1,6 +1,6 @@
 # App Hosting
 
-Chapkit enables hosting static web applications (HTML/JS/CSS) alongside your FastAPI service, allowing you to serve dashboards, admin panels, documentation sites, and other web UIs from the same server as your API.
+Servicekit enables hosting static web applications (HTML/JS/CSS) alongside your FastAPI service, allowing you to serve dashboards, admin panels, documentation sites, and other web UIs from the same server as your API.
 
 ## Quick Start
 
@@ -475,7 +475,7 @@ spec:
 
 ### Path Traversal Protection
 
-Chapkit validates all paths and rejects path traversal attempts:
+Servicekit validates all paths and rejects path traversal attempts:
 
 ```python
 # All rejected with ValueError

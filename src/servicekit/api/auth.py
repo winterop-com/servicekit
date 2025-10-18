@@ -56,7 +56,7 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
                 method=request.method,
             )
             problem = ProblemDetail(
-                type="urn:chapkit:error:unauthorized",
+                type="urn:servicekit:error:unauthorized",
                 title="Unauthorized",
                 status=status.HTTP_401_UNAUTHORIZED,
                 detail=f"Missing authentication header: {self.header_name}",
@@ -79,7 +79,7 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
                 method=request.method,
             )
             problem = ProblemDetail(
-                type="urn:chapkit:error:unauthorized",
+                type="urn:servicekit:error:unauthorized",
                 title="Unauthorized",
                 status=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid API key",
@@ -103,7 +103,7 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
-def load_api_keys_from_env(env_var: str = "CHAPKIT_API_KEYS") -> Set[str]:
+def load_api_keys_from_env(env_var: str = "SERVICEKIT_API_KEYS") -> Set[str]:
     """Load API keys from environment variable (comma-separated).
 
     Args:

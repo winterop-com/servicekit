@@ -75,7 +75,7 @@ class ProblemDetail(BaseModel):
 
     type: str = Field(
         default="about:blank",
-        description="URI reference identifying the problem type (URN format for chapkit errors)",
+        description="URI reference identifying the problem type (URN format for servicekit errors)",
     )
     title: str = Field(description="Short, human-readable summary of the problem type")
     status: int = Field(description="HTTP status code", ge=100, le=599)

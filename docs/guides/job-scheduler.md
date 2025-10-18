@@ -1,6 +1,6 @@
 # Job Scheduler
 
-Chapkit provides an async job scheduler for managing long-running tasks with real-time status monitoring via Server-Sent Events (SSE).
+Servicekit provides an async job scheduler for managing long-running tasks with real-time status monitoring via Server-Sent Events (SSE).
 
 ## Quick Start
 

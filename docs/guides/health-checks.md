@@ -1,16 +1,16 @@
 # Health Checks and Monitoring
 
-Chapkit provides comprehensive health check capabilities for service monitoring, including one-time health checks and continuous streaming for real-time monitoring.
+Servicekit provides comprehensive health check capabilities for service monitoring, including one-time health checks and continuous streaming for real-time monitoring.
 
 ## Quick Start
 
 Enable health checks in your service:
 
 ```python
-from servicekit.api import ServiceBuilder, ServiceInfo
+from servicekit.api import BaseServiceBuilder, ServiceInfo
 
 app = (
-    ServiceBuilder(info=ServiceInfo(display_name="My Service"))
+    BaseServiceBuilder(info=ServiceInfo(display_name="My Service"))
     .with_health()  # Enables /health endpoint
     .build()
 )
@@ -83,7 +83,7 @@ data: {"status":"healthy"}
 Add custom health checks to monitor specific subsystems:
 
 ```python
-from servicekit.api import ServiceBuilder, ServiceInfo
+from servicekit.api import BaseServiceBuilder, ServiceInfo
 from servicekit.api.routers.health import HealthState
 
 async def check_database() -> tuple[HealthState, str | None]:
@@ -106,7 +106,7 @@ async def check_redis() -> tuple[HealthState, str | None]:
         return (HealthState.DEGRADED, f"Redis unavailable: {str(e)}")
 
 app = (
-    ServiceBuilder(info=ServiceInfo(display_name="My Service"))
+    BaseServiceBuilder(info=ServiceInfo(display_name="My Service"))
     .with_health(checks={
         "database": check_database,
         "redis": check_redis,
@@ -404,7 +404,7 @@ Health endpoints should remain unauthenticated:
 
 ```python
 app = (
-    ServiceBuilder(info=info)
+    BaseServiceBuilder(info=info)
     .with_health()
     .with_auth(
         unauthenticated_paths=[
@@ -422,7 +422,7 @@ Combine health checks with Prometheus metrics:
 
 ```python
 app = (
-    ServiceBuilder(info=info)
+    BaseServiceBuilder(info=info)
     .with_health(checks={"database": check_database})
     .with_monitoring()  # Prometheus metrics at /metrics
     .build()

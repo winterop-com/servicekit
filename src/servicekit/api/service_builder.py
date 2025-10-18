@@ -227,7 +227,7 @@ class BaseServiceBuilder:
         *,
         api_keys: List[str] | None = None,
         api_key_file: str | None = None,
-        env_var: str = "CHAPKIT_API_KEYS",
+        env_var: str = "SERVICEKIT_API_KEYS",
         header_name: str = "X-API-Key",
         unauthenticated_paths: List[str] | None = None,
     ) -> Self:

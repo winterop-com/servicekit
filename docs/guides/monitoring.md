@@ -1,16 +1,16 @@
 # Monitoring with OpenTelemetry and Prometheus
 
-Chapkit provides built-in monitoring through OpenTelemetry instrumentation with automatic Prometheus metrics export.
+Servicekit provides built-in monitoring through OpenTelemetry instrumentation with automatic Prometheus metrics export.
 
 ## Quick Start
 
 Enable monitoring in your service with a single method call:
 
 ```python
-from servicekit.api import ServiceBuilder, ServiceInfo
+from servicekit.api import BaseServiceBuilder, ServiceInfo
 
 app = (
-    ServiceBuilder(info=ServiceInfo(display_name="My Service"))
+    BaseServiceBuilder(info=ServiceInfo(display_name="My Service"))
     .with_monitoring()  # Enables OpenTelemetry + Prometheus endpoint
     .with_database()
     .with_health()
@@ -36,7 +36,7 @@ Your service now exposes Prometheus metrics at `/metrics`.
 
 ### Zero Configuration
 
-No manual instrumentation needed - Chapkit automatically:
+No manual instrumentation needed - Servicekit automatically:
 
 - Instruments all FastAPI routes
 - Tracks SQLAlchemy database operations
@@ -332,7 +332,7 @@ sum(rate(ml_predict_jobs_total{job="chapkit-services"}[5m]))
 
 ```python
 app = (
-    ServiceBuilder(info=info)
+    BaseServiceBuilder(info=info)
     .with_monitoring()
     .with_auth(
         unauthenticated_paths=[
@@ -349,7 +349,7 @@ app = (
 
 ```python
 app = (
-    ServiceBuilder(info=info)
+    BaseServiceBuilder(info=info)
     .with_health()         # /health - Health check endpoint
     .with_system()         # /api/v1/system - System metadata
     .with_monitoring()     # /metrics - Prometheus metrics
@@ -367,7 +367,7 @@ For detailed health check configuration and usage, see the [Health Checks Guide]
 
 **Problem**: `/metrics` endpoint not found.
 
-**Solution**: Ensure you called `.with_monitoring()` in your ServiceBuilder chain.
+**Solution**: Ensure you called `.with_monitoring()` in your BaseServiceBuilder chain.
 
 ### No Metrics Appear
 

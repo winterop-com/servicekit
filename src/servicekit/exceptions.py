@@ -8,18 +8,18 @@ from typing import Any
 class ErrorType:
     """URN-based error type identifiers for RFC 9457 Problem Details."""
 
-    NOT_FOUND = "urn:chapkit:error:not-found"
-    VALIDATION_FAILED = "urn:chapkit:error:validation-failed"
-    CONFLICT = "urn:chapkit:error:conflict"
-    INVALID_ULID = "urn:chapkit:error:invalid-ulid"
-    INTERNAL_ERROR = "urn:chapkit:error:internal"
-    UNAUTHORIZED = "urn:chapkit:error:unauthorized"
-    FORBIDDEN = "urn:chapkit:error:forbidden"
-    BAD_REQUEST = "urn:chapkit:error:bad-request"
+    NOT_FOUND = "urn:servicekit:error:not-found"
+    VALIDATION_FAILED = "urn:servicekit:error:validation-failed"
+    CONFLICT = "urn:servicekit:error:conflict"
+    INVALID_ULID = "urn:servicekit:error:invalid-ulid"
+    INTERNAL_ERROR = "urn:servicekit:error:internal"
+    UNAUTHORIZED = "urn:servicekit:error:unauthorized"
+    FORBIDDEN = "urn:servicekit:error:forbidden"
+    BAD_REQUEST = "urn:servicekit:error:bad-request"
 
 
-class ChapkitException(Exception):
-    """Base exception for chapkit with RFC 9457 Problem Details support."""
+class ServicekitException(Exception):
+    """Base exception for servicekit with RFC 9457 Problem Details support."""
 
     def __init__(
         self,
@@ -40,7 +40,7 @@ class ChapkitException(Exception):
         self.extensions = extensions
 
 
-class NotFoundError(ChapkitException):
+class NotFoundError(ServicekitException):
     """Resource not found exception (404)."""
 
     def __init__(self, detail: str, *, instance: str | None = None, **extensions: Any) -> None:
@@ -54,7 +54,7 @@ class NotFoundError(ChapkitException):
         )
 
 
-class ValidationError(ChapkitException):
+class ValidationError(ServicekitException):
     """Validation failed exception (400)."""
 
     def __init__(self, detail: str, *, instance: str | None = None, **extensions: Any) -> None:
@@ -68,7 +68,7 @@ class ValidationError(ChapkitException):
         )
 
 
-class ConflictError(ChapkitException):
+class ConflictError(ServicekitException):
     """Resource conflict exception (409)."""
 
     def __init__(self, detail: str, *, instance: str | None = None, **extensions: Any) -> None:
@@ -82,7 +82,7 @@ class ConflictError(ChapkitException):
         )
 
 
-class InvalidULIDError(ChapkitException):
+class InvalidULIDError(ServicekitException):
     """Invalid ULID format exception (400)."""
 
     def __init__(self, detail: str, *, instance: str | None = None, **extensions: Any) -> None:
@@ -96,7 +96,7 @@ class InvalidULIDError(ChapkitException):
         )
 
 
-class BadRequestError(ChapkitException):
+class BadRequestError(ServicekitException):
     """Bad request exception (400)."""
 
     def __init__(self, detail: str, *, instance: str | None = None, **extensions: Any) -> None:
@@ -110,7 +110,7 @@ class BadRequestError(ChapkitException):
         )
 
 
-class UnauthorizedError(ChapkitException):
+class UnauthorizedError(ServicekitException):
     """Unauthorized exception (401)."""
 
     def __init__(self, detail: str, *, instance: str | None = None, **extensions: Any) -> None:
@@ -124,7 +124,7 @@ class UnauthorizedError(ChapkitException):
         )
 
 
-class ForbiddenError(ChapkitException):
+class ForbiddenError(ServicekitException):
     """Forbidden exception (403)."""
 
     def __init__(self, detail: str, *, instance: str | None = None, **extensions: Any) -> None:

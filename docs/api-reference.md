@@ -1,62 +1,62 @@
 # API Reference
 
-Complete API documentation for all chapkit modules, classes, and functions.
+Complete API documentation for all servicekit modules, classes, and functions.
 
-## Core Layer
+## Core Infrastructure
 
 Framework-agnostic infrastructure components.
 
 ### Database
 
-::: chapkit.core.database
+::: servicekit.database
 
 ### Models
 
-::: chapkit.core.models
+::: servicekit.models
 
 ### Repository
 
-::: chapkit.core.repository
+::: servicekit.repository
 
 ### Manager
 
-::: chapkit.core.manager
+::: servicekit.manager
 
 ### Schemas
 
-::: chapkit.core.schemas
+::: servicekit.schemas
 
 ### Exceptions
 
-::: chapkit.core.exceptions
+::: servicekit.exceptions
 
 ### Scheduler
 
-::: chapkit.core.scheduler
+::: servicekit.scheduler
 
 ### Types
 
-::: chapkit.core.types
+::: servicekit.types
 
 ### Logging
 
-::: chapkit.core.logging
+::: servicekit.logging
 
 ## FastAPI Layer
 
 FastAPI-specific components for building web services.
 
-### Service Builders
+### Service Builder
 
-Service builder classes for composing FastAPI applications.
+Service builder class for composing FastAPI applications.
 
 #### BaseServiceBuilder
 
-::: chapkit.core.api.service_builder.BaseServiceBuilder
+::: servicekit.api.service_builder.BaseServiceBuilder
 
 #### ServiceInfo
 
-::: chapkit.core.api.service_builder.ServiceInfo
+::: servicekit.api.service_builder.ServiceInfo
 
 ### Routers
 
@@ -64,27 +64,31 @@ Base router classes and generic routers.
 
 #### Router
 
-::: chapkit.core.api.router.Router
+::: servicekit.api.router.Router
 
 #### CrudRouter
 
-::: chapkit.core.api.crud.CrudRouter
+::: servicekit.api.crud.CrudRouter
 
 #### CrudPermissions
 
-::: chapkit.core.api.crud.CrudPermissions
+::: servicekit.api.crud.CrudPermissions
 
 #### HealthRouter
 
-::: chapkit.core.api.routers.HealthRouter
+::: servicekit.api.routers.health.HealthRouter
 
 #### JobRouter
 
-::: chapkit.core.api.routers.JobRouter
+::: servicekit.api.routers.job.JobRouter
 
 #### SystemRouter
 
-::: chapkit.core.api.routers.SystemRouter
+::: servicekit.api.routers.system.SystemRouter
+
+#### MetricsRouter
+
+::: servicekit.api.routers.metrics.MetricsRouter
 
 ### App System
 
@@ -92,23 +96,23 @@ Static web application hosting system.
 
 #### AppLoader
 
-::: chapkit.core.api.app.AppLoader
+::: servicekit.api.app.AppLoader
 
 #### AppManifest
 
-::: chapkit.core.api.app.AppManifest
+::: servicekit.api.app.AppManifest
 
 #### App
 
-::: chapkit.core.api.app.App
+::: servicekit.api.app.App
 
 #### AppManager
 
-::: chapkit.core.api.app.AppManager
+::: servicekit.api.app.AppManager
 
 #### AppInfo
 
-::: chapkit.core.api.app.AppInfo
+::: servicekit.api.app.AppInfo
 
 ### Authentication
 
@@ -116,78 +120,28 @@ API key authentication middleware and utilities.
 
 #### APIKeyMiddleware
 
-::: chapkit.core.api.auth.APIKeyMiddleware
+::: servicekit.api.auth.APIKeyMiddleware
 
 ### Middleware
 
 Error handling and logging middleware.
 
-::: chapkit.core.api.middleware
+::: servicekit.api.middleware
 
 ### Dependencies
 
 FastAPI dependency injection functions.
 
-::: chapkit.core.api.dependencies
+::: servicekit.api.dependencies
 
 ### Pagination
 
 Pagination helpers for collection endpoints.
 
-::: chapkit.core.api.pagination
+::: servicekit.api.pagination
 
 ### Utilities
 
 Utility functions for FastAPI applications.
 
-::: chapkit.core.api.utilities
-
-## Application Layer
-
-High-level application orchestration.
-
-### ServiceBuilder
-
-Domain-aware service builder with module support.
-
-::: chapkit.api.service_builder.ServiceBuilder
-
-### MLServiceBuilder
-
-Specialized builder for machine learning services.
-
-::: chapkit.api.service_builder.MLServiceBuilder
-
-### Dependencies
-
-Application-level dependency injection functions.
-
-::: chapkit.api.dependencies
-
-## Domain Modules
-
-Vertical slice modules with complete functionality.
-
-### Config Module
-
-Key-value configuration with JSON data support.
-
-::: chapkit.modules.config
-
-### Artifact Module
-
-Hierarchical artifact tree storage.
-
-::: chapkit.modules.artifact
-
-### Task Module
-
-Script execution template system.
-
-::: chapkit.modules.task
-
-### ML Module
-
-Machine learning train and predict operations.
-
-::: chapkit.modules.ml
+::: servicekit.api.utilities

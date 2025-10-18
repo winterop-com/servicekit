@@ -61,17 +61,17 @@ docs: docs-serve
 
 docker-build:
 	@echo ">>> Building Docker image"
-	@docker build -t chapkit-examples .
+	@docker build -t servicekit-examples .
 
 docker-run:
 	@echo ">>> Running Docker container with example: $(EXAMPLE)"
 	@if [ -z "$(EXAMPLE)" ]; then \
-		echo "Error: EXAMPLE not specified. Usage: make docker-run EXAMPLE=config_api"; \
+		echo "Error: EXAMPLE not specified. Usage: make docker-run EXAMPLE=core_api"; \
 		exit 1; \
 	fi
 	@docker run -it --rm -p 8000:8000 \
 		-e EXAMPLE_MODULE=examples.$(EXAMPLE):app \
-		chapkit-examples
+		servicekit-examples
 
 clean:
 	@echo ">>> Cleaning up"

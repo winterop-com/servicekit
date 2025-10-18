@@ -1,6 +1,6 @@
 # Authentication
 
-Chapkit provides simple API key authentication for service-to-service communication in Docker Compose and Kubernetes environments.
+Servicekit provides simple API key authentication for service-to-service communication in Docker Compose and Kubernetes environments.
 
 ## Quick Start
 
@@ -9,12 +9,12 @@ Chapkit provides simple API key authentication for service-to-service communicat
 The simplest and most secure approach for production deployments:
 
 ```python
-from servicekit.api import ServiceBuilder, ServiceInfo
+from servicekit.api import BaseBaseServiceBuilder, ServiceInfo
 
 app = (
-    ServiceBuilder(info=ServiceInfo(display_name="My Service"))
-    .with_auth()  # Reads from CHAPKIT_API_KEYS environment variable
-    .with_config(MyConfig)
+    BaseBaseServiceBuilder(info=ServiceInfo(display_name="My Service"))
+    .with_auth()  # Reads from SERVICEKIT_API_KEYS environment variable
+    .with_database("sqlite+aiosqlite:///./data.db")
     .build()
 )
 ```
@@ -22,7 +22,7 @@ app = (
 Set the environment variable:
 
 ```bash
-export CHAPKIT_API_KEYS="sk_prod_abc123,sk_prod_xyz789"
+export SERVICEKIT_API_KEYS="sk_prod_abc123,sk_prod_xyz789"
 fastapi run your_file.py
 ```
 
@@ -32,7 +32,7 @@ For Docker Swarm or Kubernetes deployments:
 
 ```python
 app = (
-    ServiceBuilder(info=ServiceInfo(display_name="My Service"))
+    BaseServiceBuilder(info=ServiceInfo(display_name="My Service"))
     .with_auth(api_key_file="/run/secrets/api_keys")
     .build()
 )
@@ -65,7 +65,7 @@ sk_prod_xyz789
 
 ```python
 app = (
-    ServiceBuilder(info=ServiceInfo(display_name="My Service"))
+    BaseServiceBuilder(info=ServiceInfo(display_name="My Service"))
     .with_auth(api_keys=["sk_dev_test123"])  # NOT for production
     .build()
 )
@@ -81,7 +81,7 @@ The `.with_auth()` method accepts these parameters:
 .with_auth(
     api_keys=None,                      # Direct list (dev only)
     api_key_file=None,                  # File path (Docker secrets)
-    env_var="CHAPKIT_API_KEYS",         # Environment variable name
+    env_var="SERVICEKIT_API_KEYS",         # Environment variable name
     header_name="X-API-Key",            # HTTP header for API key
     unauthenticated_paths=None,         # Paths without auth
 )
@@ -89,16 +89,16 @@ The `.with_auth()` method accepts these parameters:
 
 ### Priority
 
-Chapkit uses the first non-None value in this order:
+Servicekit uses the first non-None value in this order:
 1. `api_keys` (direct list)
 2. `api_key_file` (file path)
-3. `env_var` (environment variable, default: `CHAPKIT_API_KEYS`)
+3. `env_var` (environment variable, default: `SERVICEKIT_API_KEYS`)
 
 ### Parameters
 
 - **api_keys** (`List[str] | None`): Direct list of API keys. Only for examples and local development.
 - **api_key_file** (`str | None`): Path to file containing keys (one per line). For Docker secrets.
-- **env_var** (`str`): Environment variable name to read keys from. Default: `CHAPKIT_API_KEYS`.
+- **env_var** (`str`): Environment variable name to read keys from. Default: `SERVICEKIT_API_KEYS`.
 - **header_name** (`str`): HTTP header name for API key. Default: `X-API-Key`.
 - **unauthenticated_paths** (`List[str] | None`): Paths that don't require authentication.
 
@@ -122,7 +122,7 @@ sk_dev_test123               # Development
 - **environment**: Know which environment the key belongs to
 - **random**: Unique identifier (16+ characters recommended)
 
-Chapkit logs only the first 7 characters (`sk_prod_****`) for security.
+Servicekit logs only the first 7 characters (`sk_prod_****`) for security.
 
 ---
 
@@ -138,7 +138,7 @@ To rotate API keys without downtime:
 
 ```bash
 # Step 1: Both keys active
-export CHAPKIT_API_KEYS="sk_prod_old123,sk_prod_new456"
+export SERVICEKIT_API_KEYS="sk_prod_old123,sk_prod_new456"
 
 # Deploy and verify service restarts
 fastapi run your_file.py
@@ -147,7 +147,7 @@ fastapi run your_file.py
 # Test that clients work with new key
 
 # Step 3: Remove old key (after confirming all clients updated)
-export CHAPKIT_API_KEYS="sk_prod_new456"
+export SERVICEKIT_API_KEYS="sk_prod_new456"
 
 # Restart service
 fastapi run your_file.py
@@ -251,7 +251,7 @@ services:
       - "8000:8000"
     environment:
       # Option 1: Environment variable
-      CHAPKIT_API_KEYS: sk_prod_abc123,sk_prod_xyz789
+      SERVICEKIT_API_KEYS: sk_prod_abc123,sk_prod_xyz789
 
       # Option 2: Point to secrets file
       # CHAPKIT_API_KEY_FILE: /run/secrets/api_keys
@@ -358,7 +358,7 @@ spec:
 
 ## Logging
 
-Chapkit automatically logs authentication events with **masked keys** for security.
+Servicekit automatically logs authentication events with **masked keys** for security.
 
 ### Successful Authentication
 
@@ -474,7 +474,7 @@ curl -H "X-Custom-API-Key: sk_dev_test123" http://localhost:8000/api/v1/configs
 **Production:**
 ```python
 # prod.py
-.with_auth()  # Reads from CHAPKIT_API_KEYS env var
+.with_auth()  # Reads from SERVICEKIT_API_KEYS env var
 ```
 
 ### Service-to-Service Communication
@@ -491,7 +491,7 @@ async with httpx.AsyncClient() as client:
     )
 
 # Service B (server)
-app = ServiceBuilder(info=info).with_auth().build()
+app = BaseServiceBuilder(info=info).with_auth().build()
 ```
 
 ---
@@ -505,7 +505,7 @@ app = ServiceBuilder(info=info).with_auth().build()
 **Solution:** Ensure you've provided keys via one of these methods:
 ```bash
 # Environment variable
-export CHAPKIT_API_KEYS="sk_dev_test123"
+export SERVICEKIT_API_KEYS="sk_dev_test123"
 
 # Or in Python (dev only)
 .with_auth(api_keys=["sk_dev_test123"])
@@ -541,10 +541,10 @@ export CHAPKIT_API_KEYS="sk_dev_test123"
 
 ### Keys Not Loading from Environment
 
-**Problem:** "No API keys found in CHAPKIT_API_KEYS"
+**Problem:** "No API keys found in SERVICEKIT_API_KEYS"
 
 **Solution:**
-1. Verify env var is set: `echo $CHAPKIT_API_KEYS`
+1. Verify env var is set: `echo $SERVICEKIT_API_KEYS`
 2. Check for typos in variable name
 3. Ensure keys are comma-separated: `key1,key2,key3`
 4. No spaces around commas: `sk_dev_1,sk_dev_2` (not `sk_dev_1, sk_dev_2`)

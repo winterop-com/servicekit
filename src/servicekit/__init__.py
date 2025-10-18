@@ -6,12 +6,12 @@
 from .database import Database, SqliteDatabase, SqliteDatabaseBuilder
 from .exceptions import (
     BadRequestError,
-    ChapkitException,
     ConflictError,
     ErrorType,
     ForbiddenError,
     InvalidULIDError,
     NotFoundError,
+    ServicekitException,
     UnauthorizedError,
     ValidationError,
 )
@@ -61,7 +61,7 @@ __all__ = [
     "AIOJobScheduler",
     # Exceptions
     "ErrorType",
-    "ChapkitException",
+    "ServicekitException",
     "NotFoundError",
     "ValidationError",
     "ConflictError",
