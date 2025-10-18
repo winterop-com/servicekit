@@ -16,6 +16,8 @@ Servicekit is a framework-agnostic core library providing foundational infrastru
 - **Repository Pattern**: Generic repository base classes for data access
 - **Manager Pattern**: Business logic layer with lifecycle hooks
 - **CRUD API**: Auto-generated REST endpoints with full CRUD operations
+- **Artifact System**: Hierarchical storage for models, datasets, and results with pandas DataFrame support
+- **Task Execution**: Python and shell task execution with dependency injection and orphan detection
 - **Authentication**: API key middleware with file and environment variable support
 - **Job Scheduling**: Async job scheduler with concurrency control
 - **App Hosting**: Mount static web applications alongside your API
@@ -56,6 +58,8 @@ servicekit/
 ├── exceptions.py     # Error classes
 ├── logging.py        # Structured logging
 ├── types.py          # ULIDType, JsonSafe
+├── artifact/         # Hierarchical artifact storage
+├── task/             # Python/shell task execution
 └── api/              # FastAPI framework layer
     ├── router.py     # Router base class
     ├── crud.py       # CrudRouter, CrudPermissions
@@ -144,4 +148,4 @@ AGPL-3.0-or-later
 
 ## Related Projects
 
-- **[chapkit](https://github.com/dhis2-chap/chapkit)** - Domain modules (config, artifacts, tasks, ML) built on servicekit ([docs](https://dhis2-chap.github.io/chapkit))
+- **[chapkit](https://github.com/dhis2-chap/chapkit)** - ML modules (config, ML workflows) built on servicekit ([docs](https://dhis2-chap.github.io/chapkit))
