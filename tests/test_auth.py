@@ -150,7 +150,7 @@ def test_api_key_middleware_invalid_key():
     response = client.get("/test", headers={"X-API-Key": "sk_test_invalid"})
 
     assert response.status_code == 401
-    assert response.json()["type"] == "urn:chapkit:error:unauthorized"
+    assert response.json()["type"] == "urn:servicekit:error:unauthorized"
     assert "Invalid API key" in response.json()["detail"]
 
 
@@ -179,7 +179,7 @@ def test_api_key_middleware_missing_key():
     response = client.get("/test")
 
     assert response.status_code == 401
-    assert response.json()["type"] == "urn:chapkit:error:unauthorized"
+    assert response.json()["type"] == "urn:servicekit:error:unauthorized"
     assert "Missing authentication header" in response.json()["detail"]
 
 
