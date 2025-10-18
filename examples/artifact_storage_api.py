@@ -10,10 +10,13 @@ from __future__ import annotations
 
 from typing import NotRequired, TypedDict
 
-from fastapi import FastAPI
-from servicekit import Database
+from fastapi import Depends, FastAPI
+from sqlalchemy.ext.asyncio import AsyncSession
 from ulid import ULID
 
+from servicekit import Database
+from servicekit.api import BaseServiceBuilder, ServiceInfo
+from servicekit.api.dependencies import get_session
 from servicekit.artifact import (
     ArtifactHierarchy,
     ArtifactIn,
@@ -22,7 +25,6 @@ from servicekit.artifact import (
     ArtifactRepository,
     ArtifactRouter,
 )
-from servicekit.api import BaseServiceBuilder, ServiceInfo
 
 
 class ArtifactNodeSeed(TypedDict):
@@ -123,20 +125,11 @@ info = ServiceInfo(
 )
 
 app: FastAPI = (
-    BaseServiceBuilder(info=info)
-    .with_landing_page()
-    .with_health()
-    .with_system()
-    .on_startup(seed_demo_data)
-    .build()
+    BaseServiceBuilder(info=info).with_landing_page().with_health().with_system().on_startup(seed_demo_data).build()
 )
 
+
 # Manually add artifact router (servicekit doesn't have .with_artifacts())
-from fastapi import Depends
-from servicekit.api.dependencies import get_session
-from sqlalchemy.ext.asyncio import AsyncSession
-
-
 async def get_artifact_manager(session: AsyncSession = Depends(get_session)) -> ArtifactManager:
     """Provide artifact manager for dependency injection."""
     return ArtifactManager(ArtifactRepository(session), hierarchy=DOCUMENT_HIERARCHY)

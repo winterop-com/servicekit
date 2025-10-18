@@ -14,14 +14,14 @@ from __future__ import annotations
 import sys
 
 from fastapi import Depends, FastAPI
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from servicekit import Database
 from servicekit.api import BaseServiceBuilder, ServiceInfo
 from servicekit.api.dependencies import get_database, get_scheduler, get_session
 from servicekit.artifact import ArtifactHierarchy, ArtifactIn, ArtifactManager, ArtifactRepository
 from servicekit.scheduler import JobScheduler
 from servicekit.task import TaskIn, TaskManager, TaskOut, TaskRegistry, TaskRepository, TaskRouter
-from sqlalchemy.ext.asyncio import AsyncSession
-
 
 # Define artifact hierarchy for task results
 TASK_HIERARCHY = ArtifactHierarchy(
@@ -55,12 +55,12 @@ async def process_data(database: Database, artifact_manager: ArtifactManager) ->
     return {
         "status": "complete",
         "artifact_id": str(artifact.id),
-        "database_connected": database is not None,
+        "database_url": str(database.url),
     }
 
 
 @TaskRegistry.register("count_files")
-async def count_files(directory: str = ".") -> dict[str, int]:
+async def count_files(directory: str = ".") -> dict[str, object]:
     """Task that counts files in a directory."""
     import os
 
