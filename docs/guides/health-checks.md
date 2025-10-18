@@ -153,14 +153,14 @@ Use health checks for Kubernetes pod lifecycle management:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: chapkit-service
+  name: servicekit-service
 spec:
   replicas: 3
   template:
     spec:
       containers:
       - name: app
-        image: your-chapkit-app
+        image: your-servicekit-app
         ports:
         - containerPort: 8000
 
@@ -199,9 +199,9 @@ For service meshes like Istio or Linkerd, health checks are used for traffic rou
 apiVersion: networking.istio.io/v1beta1
 kind: DestinationRule
 metadata:
-  name: chapkit-service
+  name: servicekit-service
 spec:
-  host: chapkit-service
+  host: servicekit-service
   trafficPolicy:
     outlierDetection:
       consecutiveErrors: 5
@@ -278,7 +278,7 @@ async def health_check_with_timeout(base_url: str, timeout: float = 3.0) -> str:
 ### HAProxy Configuration
 
 ```haproxy
-backend chapkit_servers
+backend servicekit_servers
     balance roundrobin
     option httpchk GET /health
     http-check expect status 200
@@ -292,7 +292,7 @@ backend chapkit_servers
 ### NGINX Configuration
 
 ```nginx
-upstream chapkit_backend {
+upstream servicekit_backend {
     server 10.0.1.10:8000 max_fails=3 fail_timeout=30s;
     server 10.0.1.11:8000 max_fails=3 fail_timeout=30s;
     server 10.0.1.12:8000 max_fails=3 fail_timeout=30s;
@@ -302,13 +302,13 @@ server {
     listen 80;
 
     location /health {
-        proxy_pass http://chapkit_backend;
+        proxy_pass http://servicekit_backend;
         proxy_connect_timeout 2s;
         proxy_read_timeout 5s;
     }
 
     location / {
-        proxy_pass http://chapkit_backend;
+        proxy_pass http://servicekit_backend;
         # Health check performed separately
     }
 }

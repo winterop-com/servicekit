@@ -245,8 +245,8 @@ async with httpx.AsyncClient() as client:
 version: '3.8'
 
 services:
-  chapkit-service:
-    image: your-chapkit-app
+  servicekit-service:
+    image: your-servicekit-app
     ports:
       - "8000:8000"
     environment:
@@ -292,15 +292,15 @@ sk_prod_example2
 ```bash
 # Create secret
 echo -e "sk_prod_abc123\nsk_prod_xyz789" | \
-  docker secret create chapkit_api_keys -
+  docker secret create servicekit_api_keys -
 
 # Deploy service
 docker service create \
-  --name my-chapkit-service \
-  --secret chapkit_api_keys \
-  -e SERVICEKIT_API_KEY_FILE=/run/secrets/chapkit_api_keys \
+  --name my-servicekit-service \
+  --secret servicekit_api_keys \
+  -e SERVICEKIT_API_KEY_FILE=/run/secrets/servicekit_api_keys \
   -p 8000:8000 \
-  your-chapkit-app
+  your-servicekit-app
 ```
 
 ---
@@ -312,7 +312,7 @@ docker service create \
 apiVersion: v1
 kind: Secret
 metadata:
-  name: chapkit-api-keys
+  name: servicekit-api-keys
 type: Opaque
 stringData:
   api_keys.txt: |
@@ -325,20 +325,20 @@ stringData:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: chapkit-service
+  name: servicekit-service
 spec:
   replicas: 3
   selector:
     matchLabels:
-      app: chapkit-service
+      app: servicekit-service
   template:
     metadata:
       labels:
-        app: chapkit-service
+        app: servicekit-service
     spec:
       containers:
       - name: app
-        image: your-chapkit-app
+        image: your-servicekit-app
         ports:
         - containerPort: 8000
         env:
@@ -351,7 +351,7 @@ spec:
       volumes:
       - name: api-keys
         secret:
-          secretName: chapkit-api-keys
+          secretName: servicekit-api-keys
 ```
 
 ---

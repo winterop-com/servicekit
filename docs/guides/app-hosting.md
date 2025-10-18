@@ -428,20 +428,20 @@ data:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: chapkit-service
+  name: servicekit-service
 spec:
   replicas: 3
   selector:
     matchLabels:
-      app: chapkit-service
+      app: servicekit-service
   template:
     metadata:
       labels:
-        app: chapkit-service
+        app: servicekit-service
     spec:
       containers:
       - name: app
-        image: your-chapkit-app:latest
+        image: your-servicekit-app:latest
         ports:
         - containerPort: 8000
         volumeMounts:
@@ -459,14 +459,14 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: chapkit-service
+  name: servicekit-service
 spec:
   type: LoadBalancer
   ports:
   - port: 80
     targetPort: 8000
   selector:
-    app: chapkit-service
+    app: servicekit-service
 ```
 
 ---

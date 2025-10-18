@@ -112,13 +112,13 @@ db_client_connections_usage{pool_name="default",state="used"} 2.0
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: chapkit-service
+  name: servicekit-service
 spec:
   replicas: 3
   template:
     metadata:
       labels:
-        app: chapkit-service
+        app: servicekit-service
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "8000"
@@ -126,7 +126,7 @@ spec:
     spec:
       containers:
       - name: app
-        image: your-chapkit-app
+        image: your-servicekit-app
         ports:
         - containerPort: 8000
           name: http
@@ -137,16 +137,16 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: chapkit-service
+  name: servicekit-service
   labels:
-    app: chapkit-service
+    app: servicekit-service
 spec:
   ports:
   - port: 8000
     targetPort: 8000
     name: http
   selector:
-    app: chapkit-service
+    app: servicekit-service
 ```
 
 **servicemonitor.yaml** (Prometheus Operator):
@@ -154,13 +154,13 @@ spec:
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: chapkit-service
+  name: servicekit-service
   labels:
-    app: chapkit-service
+    app: servicekit-service
 spec:
   selector:
     matchLabels:
-      app: chapkit-service
+      app: servicekit-service
   endpoints:
   - port: http
     path: /metrics
@@ -175,12 +175,12 @@ Add to `prometheus.yml`:
 
 ```yaml
 scrape_configs:
-  - job_name: 'chapkit-services'
+  - job_name: 'servicekit-services'
     scrape_interval: 15s
     static_configs:
       - targets: ['localhost:8000']
         labels:
-          service: 'chapkit-api'
+          service: 'servicekit-api'
           environment: 'production'
 ```
 
@@ -191,7 +191,7 @@ scrape_configs:
 version: '3.8'
 
 services:
-  chapkit-app:
+  servicekit-app:
     build: .
     ports:
       - "8000:8000"
@@ -238,7 +238,7 @@ volumes:
 
 **HTTP Request Rate:**
 ```promql
-rate(http_server_requests_total{job="chapkit-services"}[5m])
+rate(http_server_requests_total{job="servicekit-services"}[5m])
 ```
 
 **Request Duration (p95):**
@@ -261,18 +261,18 @@ rate(http_server_requests_total{http_status_code=~"5.."}[5m])
 
 **ML Training Job Rate:**
 ```promql
-rate(ml_train_jobs_total{job="chapkit-services"}[5m])
+rate(ml_train_jobs_total{job="servicekit-services"}[5m])
 ```
 
 **ML Prediction Job Rate:**
 ```promql
-rate(ml_predict_jobs_total{job="chapkit-services"}[5m])
+rate(ml_predict_jobs_total{job="servicekit-services"}[5m])
 ```
 
 **Total ML Jobs (Train + Predict):**
 ```promql
-sum(rate(ml_train_jobs_total{job="chapkit-services"}[5m])) +
-sum(rate(ml_predict_jobs_total{job="chapkit-services"}[5m]))
+sum(rate(ml_train_jobs_total{job="servicekit-services"}[5m])) +
+sum(rate(ml_predict_jobs_total{job="servicekit-services"}[5m]))
 ```
 
 ## Available Metrics
