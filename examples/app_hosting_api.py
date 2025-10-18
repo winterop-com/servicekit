@@ -8,7 +8,7 @@ app = (
         info=ServiceInfo(
             display_name="App Hosting Demo",
             version="1.0.0",
-            summary="Demonstrates hosting static web apps with chapkit",
+            summary="Demonstrates hosting static web apps with servicekit",
             description="This service hosts a sample dashboard app at /dashboard",
         )
     )
