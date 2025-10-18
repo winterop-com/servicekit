@@ -2,14 +2,18 @@
 
 import json
 
-import pytest
 from pydantic import BaseModel
 from sqlalchemy import select
 from ulid import ULID
 
 from servicekit import SqliteDatabaseBuilder
-from servicekit.types import JsonSafe, ULIDType, _create_serialization_metadata, _is_json_serializable, _serialize_with_metadata
-
+from servicekit.types import (
+    JsonSafe,
+    ULIDType,
+    _create_serialization_metadata,
+    _is_json_serializable,
+    _serialize_with_metadata,
+)
 
 # Tests for _is_json_serializable
 
@@ -27,6 +31,7 @@ def test_is_json_serializable_returns_true_for_basic_types():
 
 def test_is_json_serializable_returns_false_for_complex_objects():
     """Test that non-serializable objects return False."""
+
     # Custom class instance
     class CustomClass:
         pass
@@ -34,7 +39,10 @@ def test_is_json_serializable_returns_false_for_complex_objects():
     assert _is_json_serializable(CustomClass()) is False
 
     # Function
-    assert _is_json_serializable(lambda x: x) is False
+    def test_func(x: int) -> int:
+        return x
+
+    assert _is_json_serializable(test_func) is False
 
     # Set (not JSON serializable)
     assert _is_json_serializable({1, 2, 3}) is False
@@ -45,6 +53,7 @@ def test_is_json_serializable_returns_false_for_complex_objects():
 
 def test_create_serialization_metadata_includes_type_info():
     """Test that metadata includes type information."""
+
     class CustomClass:
         pass
 
@@ -90,6 +99,7 @@ def test_serialize_with_metadata_preserves_json_serializable_values():
 
 def test_serialize_with_metadata_replaces_non_serializable_dict_values():
     """Test that non-serializable values in dicts are replaced with metadata."""
+
     class CustomClass:
         pass
 
@@ -108,6 +118,7 @@ def test_serialize_with_metadata_replaces_non_serializable_dict_values():
 
 def test_serialize_with_metadata_handles_non_dict_non_serializable():
     """Test that non-dict non-serializable values return metadata."""
+
     class CustomClass:
         pass
 
@@ -121,6 +132,7 @@ def test_serialize_with_metadata_handles_non_dict_non_serializable():
 
 def test_serialize_with_metadata_handles_mixed_dict():
     """Test serialization of dict with mixed serializable/non-serializable values."""
+
     class CustomClass:
         pass
 
@@ -199,16 +211,15 @@ def test_json_safe_with_pydantic_mixed_dict():
 
 async def test_ulid_type_stores_and_retrieves_ulid():
     """Test that ULIDType correctly stores and retrieves ULID values."""
-    from sqlalchemy import Column, Integer
-    from sqlalchemy.orm import DeclarativeBase, Mapped
+    from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
     class Base(DeclarativeBase):
         pass
 
     class TestEntity(Base):
         __tablename__ = "test_entities"
-        id: Mapped[int] = Column(Integer, primary_key=True)
-        ulid_field: Mapped[ULID] = Column(ULIDType)
+        id: Mapped[int] = mapped_column(primary_key=True)
+        ulid_field: Mapped[ULID] = mapped_column(ULIDType)
 
     db = SqliteDatabaseBuilder.in_memory().build()
     await db.init()
@@ -235,16 +246,15 @@ async def test_ulid_type_stores_and_retrieves_ulid():
 
 async def test_ulid_type_accepts_string_and_normalizes():
     """Test that ULIDType accepts string input and normalizes it."""
-    from sqlalchemy import Column, Integer
-    from sqlalchemy.orm import DeclarativeBase, Mapped
+    from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
     class Base(DeclarativeBase):
         pass
 
     class TestEntity(Base):
         __tablename__ = "test_entities"
-        id: Mapped[int] = Column(Integer, primary_key=True)
-        ulid_field: Mapped[ULID] = Column(ULIDType)
+        id: Mapped[int] = mapped_column(primary_key=True)
+        ulid_field: Mapped[ULID] = mapped_column(ULIDType)
 
     db = SqliteDatabaseBuilder.in_memory().build()
     await db.init()
@@ -274,16 +284,15 @@ async def test_ulid_type_accepts_string_and_normalizes():
 
 async def test_ulid_type_handles_none():
     """Test that ULIDType correctly handles None values."""
-    from sqlalchemy import Column, Integer
-    from sqlalchemy.orm import DeclarativeBase, Mapped
+    from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
     class Base(DeclarativeBase):
         pass
 
     class TestEntity(Base):
         __tablename__ = "test_entities"
-        id: Mapped[int] = Column(Integer, primary_key=True)
-        ulid_field: Mapped[ULID | None] = Column(ULIDType, nullable=True)
+        id: Mapped[int] = mapped_column(primary_key=True)
+        ulid_field: Mapped[ULID | None] = mapped_column(ULIDType, nullable=True)
 
     db = SqliteDatabaseBuilder.in_memory().build()
     await db.init()

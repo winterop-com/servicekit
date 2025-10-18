@@ -3,6 +3,7 @@
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from pytest import MonkeyPatch
 
 from servicekit import Database
 from servicekit.api.app import AppManager
@@ -19,7 +20,7 @@ from servicekit.scheduler import JobScheduler
 
 
 @pytest.fixture(autouse=True)
-def reset_dependencies(monkeypatch):
+def reset_dependencies(monkeypatch: MonkeyPatch):
     """Reset global dependencies before each test."""
     # Import the module to access private variables
     from servicekit.api import dependencies
