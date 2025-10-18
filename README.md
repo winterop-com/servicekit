@@ -138,4 +138,4 @@ AGPL-3.0-or-later
 
 ## Related Projects
 
-- **chapkit** - Domain modules (config, artifacts, tasks, ML) built on servicekit
+- **[chapkit](https://github.com/dhis2-chap/chapkit)** - Domain modules (config, artifacts, tasks, ML) built on servicekit ([docs](https://dhis2-chap.github.io/chapkit))

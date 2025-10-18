@@ -45,7 +45,7 @@ dependencies = [
 Homepage = "https://github.com/winterop-com/servicekit"
 Repository = "https://github.com/winterop-com/servicekit"
 Issues = "https://github.com/winterop-com/servicekit/issues"
-Documentation = "https://github.com/winterop-com/servicekit#readme"
+Documentation = "https://winterop-com.github.io/servicekit"
 
 [dependency-groups]
 dev = [

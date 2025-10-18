@@ -254,7 +254,7 @@ services:
       SERVICEKIT_API_KEYS: sk_prod_abc123,sk_prod_xyz789
 
       # Option 2: Point to secrets file
-      # CHAPKIT_API_KEY_FILE: /run/secrets/api_keys
+      # SERVICEKIT_API_KEY_FILE: /run/secrets/api_keys
 
     # Option 2 (continued): Mount secrets
     # secrets:
@@ -298,7 +298,7 @@ echo -e "sk_prod_abc123\nsk_prod_xyz789" | \
 docker service create \
   --name my-chapkit-service \
   --secret chapkit_api_keys \
-  -e CHAPKIT_API_KEY_FILE=/run/secrets/chapkit_api_keys \
+  -e SERVICEKIT_API_KEY_FILE=/run/secrets/chapkit_api_keys \
   -p 8000:8000 \
   your-chapkit-app
 ```
@@ -342,7 +342,7 @@ spec:
         ports:
         - containerPort: 8000
         env:
-        - name: CHAPKIT_API_KEY_FILE
+        - name: SERVICEKIT_API_KEY_FILE
           value: /etc/secrets/api_keys.txt
         volumeMounts:
         - name: api-keys
@@ -426,7 +426,7 @@ All authentication errors follow RFC 9457 Problem Details format.
 
 ```json
 {
-  "type": "urn:chapkit:error:unauthorized",
+  "type": "urn:servicekit:error:unauthorized",
   "title": "Unauthorized",
   "status": 401,
   "detail": "Missing authentication header: X-API-Key",
@@ -438,7 +438,7 @@ All authentication errors follow RFC 9457 Problem Details format.
 
 ```json
 {
-  "type": "urn:chapkit:error:unauthorized",
+  "type": "urn:servicekit:error:unauthorized",
   "title": "Unauthorized",
   "status": 401,
   "detail": "Invalid API key",

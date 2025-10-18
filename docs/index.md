@@ -33,6 +33,7 @@ uv add servicekit
 - [Repository](https://github.com/winterop-com/servicekit)
 - [Issues](https://github.com/winterop-com/servicekit/issues)
 - [API Reference](api-reference.md)
+- [Chapkit](https://github.com/dhis2-chap/chapkit) - ML and data service modules built on servicekit ([docs](https://dhis2-chap.github.io/chapkit))
 
 ## License
 
