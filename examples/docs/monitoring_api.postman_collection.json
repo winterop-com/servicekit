@@ -1,0 +1,198 @@
+{
+	"info": {
+		"_postman_id": "servicekit-monitoring-api",
+		"name": "Servicekit - Monitoring API",
+		"description": "Prometheus metrics and OpenTelemetry monitoring endpoints.\n\n## Features\n- Health checks\n- System information endpoint\n- Prometheus metrics endpoint (/metrics)\n- OpenTelemetry instrumentation\n- FastAPI and SQLAlchemy auto-instrumentation\n\n## Quick Start\n1. Start service: `fastapi dev examples/monitoring_api.py`\n2. Run `Check Service Health` to verify service is running\n3. Run `Get Prometheus Metrics` to view metrics\n4. Run `Get System Information` for service metadata\n\n## Metrics Available\n- HTTP request counters (by method, path, status)\n- HTTP request duration histograms\n- Database query metrics\n- System resource metrics",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. Health & System Info",
+			"item": [
+				{
+					"name": "Check Service Health",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Service is healthy\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.status).to.eql(\"healthy\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/health",
+							"host": ["{{baseUrl}}"],
+							"path": ["health"]
+						},
+						"description": "Health check endpoint that verifies the service is running and database connection is healthy."
+					},
+					"response": []
+				},
+				{
+					"name": "Get System Information",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"System info has required fields\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('service_name');",
+									"    pm.expect(jsonData).to.have.property('version');",
+									"    pm.expect(jsonData).to.have.property('description');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/system",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "system"]
+						},
+						"description": "Get service metadata including name, version, and description."
+					},
+					"response": []
+				}
+			],
+			"description": "Basic health and system information endpoints."
+		},
+		{
+			"name": "2. Monitoring",
+			"item": [
+				{
+					"name": "Get Prometheus Metrics",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response is in Prometheus text format\", function () {",
+									"    var body = pm.response.text();",
+									"    pm.expect(body).to.include('# HELP');",
+									"    pm.expect(body).to.include('# TYPE');",
+									"});",
+									"",
+									"pm.test(\"Metrics include HTTP requests\", function () {",
+									"    var body = pm.response.text();",
+									"    pm.expect(body).to.match(/http_request/);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/metrics",
+							"host": ["{{baseUrl}}"],
+							"path": ["metrics"]
+						},
+						"description": "Prometheus metrics endpoint in text exposition format. Includes HTTP request metrics, database metrics, and system metrics from OpenTelemetry instrumentation."
+					},
+					"response": []
+				}
+			],
+			"description": "Prometheus metrics and monitoring endpoints."
+		},
+		{
+			"name": "3. Generate Traffic",
+			"item": [
+				{
+					"name": "Make Multiple Health Checks",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"// Run this request multiple times to generate metrics",
+									"console.log(\"Health check completed. Check /metrics to see updated counters.\");"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/health",
+							"host": ["{{baseUrl}}"],
+							"path": ["health"]
+						},
+						"description": "Run this request multiple times using Collection Runner to generate traffic and observe metrics increase at /metrics endpoint."
+					},
+					"response": []
+				},
+				{
+					"name": "Make System Info Requests",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"console.log(\"System info request completed. Check /metrics for updated counters.\");"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/system",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "system"]
+						},
+						"description": "Make multiple system info requests to generate metrics for different endpoints."
+					},
+					"response": []
+				}
+			],
+			"description": "Generate traffic to observe metrics behavior. Use Collection Runner with iterations to make multiple requests."
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://127.0.0.1:8000",
+			"type": "string"
+		}
+	]
+}
