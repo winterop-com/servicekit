@@ -5,7 +5,7 @@ description = "Async SQLAlchemy framework with FastAPI integration - reusable fo
 readme = "README.md"
 authors = [{ name = "Morten Hansen", email = "morten@winterop.com" }]
 license = { text = "AGPL-3.0-or-later" }
-requires-python = "~=3.13"
+requires-python = ">=3.13,<3.14"
 keywords = [
   "fastapi",
   "sqlalchemy",
