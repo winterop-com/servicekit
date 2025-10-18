@@ -5,13 +5,12 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-from servicekit import AIOJobScheduler, Database, SqliteDatabaseBuilder
-from servicekit.artifact import ArtifactRepository
-from servicekit.task.registry import TaskRegistry
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from servicekit.artifact import ArtifactManager
+from servicekit import AIOJobScheduler, Database, SqliteDatabaseBuilder
+from servicekit.artifact import ArtifactManager, ArtifactRepository
 from servicekit.task import TaskIn, TaskManager, TaskRepository
+from servicekit.task.registry import TaskRegistry
 
 
 @pytest.fixture

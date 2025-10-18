@@ -4,9 +4,9 @@ from datetime import datetime, timezone
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
-from servicekit import Database, JobScheduler
 from ulid import ULID
 
+from servicekit import Database, JobScheduler
 from servicekit.artifact import ArtifactManager
 from servicekit.task import Task, TaskManager, TaskRegistry, TaskRepository
 

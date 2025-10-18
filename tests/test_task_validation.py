@@ -2,9 +2,9 @@
 
 import pytest
 from fastapi import FastAPI
-from servicekit import SqliteDatabaseBuilder
 from ulid import ULID
 
+from servicekit import SqliteDatabaseBuilder
 from servicekit.task import TaskIn, TaskManager, TaskRegistry, TaskRepository, validate_and_disable_orphaned_tasks
 
 

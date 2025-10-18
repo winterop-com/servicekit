@@ -5,10 +5,9 @@ from unittest.mock import AsyncMock, Mock
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from servicekit.task import TaskRouter
 from ulid import ULID
 
-from servicekit.task import TaskIn, TaskManager, TaskOut
+from servicekit.task import TaskIn, TaskManager, TaskOut, TaskRouter
 
 
 def test_execute_task_value_error_returns_400() -> None:

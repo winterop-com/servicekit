@@ -1,9 +1,9 @@
 """Tests for TaskRepository enabled filtering."""
 
 import pytest
-from servicekit import SqliteDatabaseBuilder
 from ulid import ULID
 
+from servicekit import SqliteDatabaseBuilder
 from servicekit.task import TaskIn, TaskManager, TaskRepository
 
 
