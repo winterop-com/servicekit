@@ -209,36 +209,6 @@ class TestAIOJobScheduler:
         assert records[2].id == job_ids[0]
 
     @pytest.mark.asyncio
-    async def test_artifact_id_detection(self) -> None:
-        """Test scheduler detects ULID results as artifact IDs."""
-        scheduler = AIOJobScheduler()
-
-        artifact_id = ULID()
-
-        async def task_returning_ulid():
-            return artifact_id
-
-        job_id = await scheduler.add_job(task_returning_ulid)
-        await scheduler.wait(job_id)
-
-        record = await scheduler.get_record(job_id)
-        assert record.artifact_id == artifact_id
-
-    @pytest.mark.asyncio
-    async def test_non_ulid_result_has_no_artifact_id(self) -> None:
-        """Test non-ULID results don't set artifact_id."""
-        scheduler = AIOJobScheduler()
-
-        async def task():
-            return {"some": "data"}
-
-        job_id = await scheduler.add_job(task)
-        await scheduler.wait(job_id)
-
-        record = await scheduler.get_record(job_id)
-        assert record.artifact_id is None
-
-    @pytest.mark.asyncio
     async def test_max_concurrency_limits_parallel_execution(self) -> None:
         """Test max_concurrency limits concurrent job execution."""
         scheduler = AIOJobScheduler(max_concurrency=2)

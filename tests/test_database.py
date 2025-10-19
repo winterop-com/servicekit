@@ -227,15 +227,12 @@ class TestSqliteDatabase:
                 version = result.scalar()
                 assert version is not None, "Migration version should be recorded"
 
-                # Verify that application tables were created
+                # Verify alembic_version table exists (migration ran)
                 result = await session.execute(
-                    text(
-                        "SELECT name FROM sqlite_master WHERE type='table' "
-                        "AND name IN ('configs', 'artifacts', 'config_artifacts') ORDER BY name"
-                    )
+                    text("SELECT name FROM sqlite_master WHERE type='table' AND name = 'alembic_version'")
                 )
                 tables = [row[0] for row in result.fetchall()]
-                assert tables == ["artifacts", "config_artifacts", "configs"], "All application tables should exist"
+                assert tables == ["alembic_version"], "Alembic version table should exist"
 
             await db.dispose()
 

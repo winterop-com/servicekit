@@ -123,4 +123,3 @@ class JobRecord(BaseModel):
     finished_at: datetime | None = Field(default=None, description="When the job finished")
     error: str | None = Field(default=None, description="User-friendly error message if job failed")
     error_traceback: str | None = Field(default=None, description="Full error traceback for debugging")
-    artifact_id: ULID | None = Field(default=None, description="ID of artifact created by job (if job returns a ULID)")

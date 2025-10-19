@@ -32,8 +32,6 @@ theme:
 nav:
   - Home: index.md
   - Guides:
-      - Artifact Storage: guides/artifact-storage.md
-      - Task Execution: guides/task-execution.md
       - Authentication: guides/authentication.md
       - App Hosting: guides/app-hosting.md
       - Health Checks: guides/health-checks.md

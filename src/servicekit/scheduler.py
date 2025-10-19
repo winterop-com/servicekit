@@ -168,13 +168,10 @@ class AIOJobScheduler(JobScheduler):
         try:
             result = await exec_fn()
 
-            artifact: ULID | None = result if isinstance(result, ULID) else None
-
             async with self._lock:
                 rec = self._records[jid]
                 rec.status = JobStatus.completed
                 rec.finished_at = datetime.now(timezone.utc)
-                rec.artifact_id = artifact
                 self._results[jid] = result
 
             return result

@@ -16,8 +16,6 @@ Servicekit is a framework-agnostic core library providing foundational infrastru
 - **Repository Pattern**: Generic repository base classes for data access
 - **Manager Pattern**: Business logic layer with lifecycle hooks
 - **CRUD API**: Auto-generated REST endpoints with full CRUD operations
-- **Artifact System**: Hierarchical storage for models, datasets, and results with pandas DataFrame support
-- **Task Execution**: Python and shell task execution with dependency injection and orphan detection
 - **Authentication**: API key middleware with file and environment variable support
 - **Job Scheduling**: Async job scheduler with concurrency control
 - **App Hosting**: Mount static web applications alongside your API
@@ -58,8 +56,6 @@ servicekit/
 ├── exceptions.py     # Error classes
 ├── logging.py        # Structured logging
 ├── types.py          # ULIDType, JsonSafe
-├── artifact/         # Hierarchical artifact storage
-├── task/             # Python/shell task execution
 └── api/              # FastAPI framework layer
     ├── router.py     # Router base class
     ├── crud.py       # CrudRouter, CrudPermissions
@@ -120,54 +116,12 @@ router = CrudRouter.create(
 )
 ```
 
-### Artifact Storage
-
-Hierarchical storage for models, datasets, and results:
-
-```python
-from servicekit.artifact import ArtifactHierarchy, ArtifactManager, ArtifactIn
-
-# Define hierarchy
-hierarchy = ArtifactHierarchy(
-    name="ml_pipeline",
-    level_labels={0: "experiment", 1: "model", 2: "predictions"}
-)
-
-# Store artifacts with parent-child relationships
-manager = ArtifactManager(repository, hierarchy=hierarchy)
-experiment = await manager.save(ArtifactIn(data={"config": "v1.0"}))
-model = await manager.save(ArtifactIn(data=trained_model, parent_id=experiment.id))
-
-# Query tree structure
-tree = await manager.build_tree(experiment.id)
-```
-
-### Task Execution
-
-Execute Python functions and shell commands with dependency injection:
-
-```python
-from servicekit.task import TaskManager, TaskIn, TaskRegistry
-
-# Register Python task
-@TaskRegistry.register("process_data")
-async def process_data(database, artifact_manager):
-    # Injected dependencies available automatically
-    return {"status": "complete"}
-
-# Execute tasks
-manager = TaskManager(repository, scheduler, database, artifact_manager)
-task = await manager.save(TaskIn(command="process_data"))
-result = await manager.execute_task(task.id)
-```
 
 ## Examples
 
 See the `examples/` directory for complete working examples:
 
 - `core_api.py` - Basic CRUD service
-- `artifact_storage_api.py` - Hierarchical artifact storage
-- `task_execution_api.py` - Python and shell task execution
 - `job_scheduler_api.py` - Background job execution
 - `app_hosting_api.py` - Hosting static web apps
 - `auth_basic.py` - API key authentication
@@ -191,4 +145,4 @@ AGPL-3.0-or-later
 
 ## Related Projects
 
-- **[chapkit](https://github.com/dhis2-chap/chapkit)** - ML modules (config, ML workflows) built on servicekit ([docs](https://dhis2-chap.github.io/chapkit))
+- **[chapkit](https://github.com/dhis2-chap/chapkit)** - Domain modules (artifacts, configs, tasks, ML workflows) built on servicekit ([docs](https://dhis2-chap.github.io/chapkit))

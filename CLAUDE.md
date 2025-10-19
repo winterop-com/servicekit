@@ -573,4 +573,4 @@ See the `examples/` directory for complete working examples:
 
 ## Related Projects
 
-- **[chapkit](https://github.com/dhis2-chap/chapkit)** - Domain modules (config, artifacts, tasks, ML) built on servicekit
+- **[chapkit](https://github.com/dhis2-chap/chapkit)** - Domain modules (artifacts, configs, tasks, ML workflows) built on servicekit
