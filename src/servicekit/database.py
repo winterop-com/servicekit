@@ -7,7 +7,6 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import AsyncIterator, Self
 
-from alembic import command
 from alembic.config import Config
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import (
@@ -17,6 +16,8 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 from sqlalchemy.pool import ConnectionPoolEntry
+
+from alembic import command
 
 
 def _install_sqlite_connect_pragmas(engine: AsyncEngine) -> None:
@@ -93,9 +94,7 @@ class Database:
             if self.alembic_dir is not None:
                 alembic_cfg.set_main_option("script_location", str(self.alembic_dir))
             else:
-                alembic_cfg.set_main_option(
-                    "script_location", str(Path(__file__).parent.parent.parent.parent / "alembic")
-                )
+                alembic_cfg.set_main_option("script_location", str(Path(__file__).parent.parent.parent / "alembic"))
 
             alembic_cfg.set_main_option("sqlalchemy.url", self.url)
 

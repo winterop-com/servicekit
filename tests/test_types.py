@@ -216,8 +216,8 @@ async def test_ulid_type_stores_and_retrieves_ulid():
     class Base(DeclarativeBase):
         pass
 
-    class TestEntity(Base):
-        __tablename__ = "test_entities"
+    class ULIDTestEntity(Base):
+        __tablename__ = "ulid_test_entities"
         id: Mapped[int] = mapped_column(primary_key=True)
         ulid_field: Mapped[ULID] = mapped_column(ULIDType)
 
@@ -231,12 +231,12 @@ async def test_ulid_type_stores_and_retrieves_ulid():
     # Create and store an entity with ULID
     test_ulid = ULID()
     async with db.session() as session:
-        entity = TestEntity(ulid_field=test_ulid)
+        entity = ULIDTestEntity(ulid_field=test_ulid)
         session.add(entity)
         await session.commit()
 
         # Retrieve and verify
-        result = await session.execute(select(TestEntity))
+        result = await session.execute(select(ULIDTestEntity))
         retrieved = result.scalar_one()
         assert retrieved.ulid_field == test_ulid
         assert isinstance(retrieved.ulid_field, ULID)
@@ -251,8 +251,8 @@ async def test_ulid_type_accepts_string_and_normalizes():
     class Base(DeclarativeBase):
         pass
 
-    class TestEntity(Base):
-        __tablename__ = "test_entities"
+    class ULIDStringTestEntity(Base):
+        __tablename__ = "ulid_string_test_entities"
         id: Mapped[int] = mapped_column(primary_key=True)
         ulid_field: Mapped[ULID] = mapped_column(ULIDType)
 
@@ -268,13 +268,13 @@ async def test_ulid_type_accepts_string_and_normalizes():
 
     # Insert in one session
     async with db.session() as session:
-        entity = TestEntity(ulid_field=ulid_str)  # type: ignore
+        entity = ULIDStringTestEntity(ulid_field=ulid_str)  # type: ignore
         session.add(entity)
         await session.commit()
 
     # Retrieve in a fresh session to ensure process_result_value is called
     async with db.session() as session:
-        result = await session.execute(select(TestEntity))
+        result = await session.execute(select(ULIDStringTestEntity))
         retrieved = result.scalar_one()
         assert isinstance(retrieved.ulid_field, ULID)
         assert str(retrieved.ulid_field) == ulid_str
@@ -289,8 +289,8 @@ async def test_ulid_type_handles_none():
     class Base(DeclarativeBase):
         pass
 
-    class TestEntity(Base):
-        __tablename__ = "test_entities"
+    class ULIDNoneTestEntity(Base):
+        __tablename__ = "ulid_none_test_entities"
         id: Mapped[int] = mapped_column(primary_key=True)
         ulid_field: Mapped[ULID | None] = mapped_column(ULIDType, nullable=True)
 
@@ -301,11 +301,11 @@ async def test_ulid_type_handles_none():
         await conn.run_sync(Base.metadata.create_all)
 
     async with db.session() as session:
-        entity = TestEntity(ulid_field=None)
+        entity = ULIDNoneTestEntity(ulid_field=None)
         session.add(entity)
         await session.commit()
 
-        result = await session.execute(select(TestEntity))
+        result = await session.execute(select(ULIDNoneTestEntity))
         retrieved = result.scalar_one()
         assert retrieved.ulid_field is None
 
