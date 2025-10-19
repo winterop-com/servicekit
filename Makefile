@@ -76,10 +76,10 @@ docker-run:
 clean:
 	@echo ">>> Cleaning up"
 	@find . -type f -name "*.pyc" -delete
-	@find . -type d -name "__pycache__" -delete
-	@find . -type d -name ".pytest_cache" -delete
-	@find . -type d -name ".ruff_cache" -delete
-	@find . -type d -name ".mypy_cache" -delete
+	@find . -type d -name "__pycache__" -exec rm -rf {} +
+	@find . -type d -name ".pytest_cache" -exec rm -rf {} +
+	@find . -type d -name ".ruff_cache" -exec rm -rf {} +
+	@find . -type d -name ".mypy_cache" -exec rm -rf {} +
 	@rm -rf .coverage coverage.xml htmlcov/
 	@rm -rf .pytype/
 	@rm -rf dist/ build/ *.egg-info
