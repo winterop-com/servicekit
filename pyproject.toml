@@ -120,7 +120,6 @@ no_implicit_optional = true
 warn_unused_ignores = true
 strict_equality = true
 mypy_path = ["src", "typings"]
-exclude = ["examples/"]
 
 [[tool.mypy.overrides]]
 module = "tests.*"

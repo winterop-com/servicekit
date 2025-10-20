@@ -268,7 +268,7 @@ async def test_ulid_type_accepts_string_and_normalizes():
 
     # Insert in one session
     async with db.session() as session:
-        entity = ULIDStringTestEntity(ulid_field=ulid_str)  # type: ignore
+        entity = ULIDStringTestEntity(ulid_field=ulid_str)
         session.add(entity)
         await session.commit()
 

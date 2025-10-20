@@ -36,7 +36,7 @@ lint:
 	@$(UV) run ruff format .
 	@$(UV) run ruff check . --fix
 	@echo ">>> Running type checker"
-	@$(UV) run mypy src
+	@$(UV) run mypy --explicit-package-bases src tests examples alembic
 	@$(UV) run pyright
 
 test:
