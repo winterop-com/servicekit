@@ -1,156 +1,328 @@
 {
 	"info": {
-		"_postman_id": "job-scheduler-demo",
-		"name": "Job Scheduler Demo",
-		"description": "Demonstrates async job scheduling with both polling and SSE streaming patterns",
+		"_postman_id": "servicekit-job-scheduler",
+		"name": "Servicekit - Job Scheduler (Async Jobs)",
+		"description": "Async job scheduling with polling and SSE streaming patterns.\n\n## Features\n- Submit long-running computation jobs\n- Poll job status (traditional REST pattern)\n- Stream job status via Server-Sent Events (SSE)\n- Custom result endpoint for detailed job info\n- Job lifecycle management (list, delete)\n\n## Quick Start\n1. Start service: `cd examples/job_scheduler && uv run python main.py`\n2. Run `Check Service Health` to verify\n3. Run `Submit Computation Job` (captures job_id, poll_url, stream_url)\n4. Use either:\n   - `Poll Job Status` (repeatedly check until complete)\n   - `Stream Job Status (SSE)` (real-time updates via SSE)\n5. Run `Get Job Result` for detailed completion info\n\n## Two Monitoring Patterns\n**Polling:** Traditional REST - client repeatedly GETs status\n**SSE Streaming:** Real-time push - server sends updates as they happen\n\n## Auto-Captured Variables\n- `job_id`: Automatically set from submit response\n- `poll_url`: REST endpoint for polling\n- `stream_url`: SSE endpoint for streaming",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
 		{
-			"name": "Health Check",
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "{{base_url}}/health",
-					"host": ["{{base_url}}"],
-					"path": ["health"]
-				},
-				"description": "Check service health status"
-			}
-		},
-		{
-			"name": "System Info",
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "{{base_url}}/api/v1/system",
-					"host": ["{{base_url}}"],
-					"path": ["api", "v1", "system"]
-				},
-				"description": "Get system information"
-			}
-		},
-		{
-			"name": "Submit Computation Job",
-			"event": [
+			"name": "1. Health & System Info",
+			"item": [
 				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"// Save job_id, poll_url, and stream_url for subsequent requests",
-							"const response = pm.response.json();",
-							"pm.collectionVariables.set('job_id', response.job_id);",
-							"pm.collectionVariables.set('poll_url', response.poll_url);",
-							"pm.collectionVariables.set('stream_url', response.stream_url);",
-							"",
-							"pm.test('Status code is 202', function () {",
-							"    pm.response.to.have.status(202);",
-							"});",
-							"",
-							"pm.test('Response has job_id', function () {",
-							"    pm.expect(response).to.have.property('job_id');",
-							"});",
-							"",
-							"pm.test('Response has both poll_url and stream_url', function () {",
-							"    pm.expect(response).to.have.property('poll_url');",
-							"    pm.expect(response).to.have.property('stream_url');",
-							"});"
-						],
-						"type": "text/javascript"
-					}
+					"name": "Check Service Health",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Service is healthy\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.status).to.eql(\"healthy\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/health",
+							"host": ["{{base_url}}"],
+							"path": ["health"]
+						},
+						"description": "Check if the service is running and healthy."
+					},
+					"response": []
+				},
+				{
+					"name": "Get System Info",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has service info\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('name');",
+									"    pm.expect(jsonData).to.have.property('version');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/system",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "system"]
+						},
+						"description": "Get system information including service name, version, and metadata."
+					},
+					"response": []
 				}
 			],
-			"request": {
-				"method": "POST",
-				"header": [
-					{
-						"key": "Content-Type",
-						"value": "application/json"
-					}
-				],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n  \"duration\": 10\n}"
-				},
-				"url": {
-					"raw": "{{base_url}}/api/v1/compute",
-					"host": ["{{base_url}}"],
-					"path": ["api", "v1", "compute"]
-				},
-				"description": "Submit a long-running computation job (10 seconds). Returns URLs for both polling and SSE streaming."
-			}
+			"description": "Health checks and service information endpoints."
 		},
 		{
-			"name": "Poll Job Status",
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "{{base_url}}/api/v1/jobs/{{job_id}}",
-					"host": ["{{base_url}}"],
-					"path": ["api", "v1", "jobs", "{{job_id}}"]
-				},
-				"description": "Poll job status using traditional REST pattern. Run this multiple times to check progress."
-			}
+			"name": "2. Job Submission",
+			"item": [
+				{
+					"name": "Submit Computation Job",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 202\", function () {",
+									"    pm.response.to.have.status(202);",
+									"});",
+									"",
+									"pm.test(\"Response has job_id\", function () {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response).to.have.property('job_id');",
+									"    pm.collectionVariables.set('job_id', response.job_id);",
+									"});",
+									"",
+									"pm.test(\"Response has both poll_url and stream_url\", function () {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response).to.have.property('poll_url');",
+									"    pm.expect(response).to.have.property('stream_url');",
+									"    pm.collectionVariables.set('poll_url', response.poll_url);",
+									"    pm.collectionVariables.set('stream_url', response.stream_url);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"duration\": 10\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/compute",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "compute"]
+						},
+						"description": "Submit a long-running computation job (10 seconds). Returns URLs for both polling and SSE streaming. The job_id is automatically captured for subsequent requests."
+					},
+					"response": []
+				}
+			],
+			"description": "Submit async computation jobs to the scheduler."
 		},
 		{
-			"name": "Stream Job Status (SSE)",
-			"request": {
-				"method": "GET",
-				"header": [
-					{
-						"key": "Accept",
-						"value": "text/event-stream"
-					}
-				],
-				"url": {
-					"raw": "{{base_url}}/api/v1/jobs/{{job_id}}/$stream",
-					"host": ["{{base_url}}"],
-					"path": ["api", "v1", "jobs", "{{job_id}}", "$stream"]
+			"name": "3. Job Monitoring (Polling)",
+			"item": [
+				{
+					"name": "Poll Job Status",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has job status\", function () {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response).to.have.property('status');",
+									"    pm.expect(response).to.have.property('id');",
+									"});",
+									"",
+									"const response = pm.response.json();",
+									"if (response.status === 'completed') {",
+									"    pm.test(\"Completed job has result\", function () {",
+									"        pm.expect(response).to.have.property('result');",
+									"    });",
+									"} else if (response.status === 'failed') {",
+									"    pm.test(\"Failed job has error\", function () {",
+									"        pm.expect(response).to.have.property('error');",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/jobs/{{job_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "jobs", "{{job_id}}"]
+						},
+						"description": "Poll job status using traditional REST pattern. Run this multiple times to check progress until status is 'completed' or 'failed'."
+					},
+					"response": []
 				},
-				"description": "Stream job status updates via Server-Sent Events. Real-time push updates - no need to poll! Note: Postman may not fully support SSE streaming, use curl or a browser for best experience."
-			}
+				{
+					"name": "Get Job Result (Custom Endpoint)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has detailed job info\", function () {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response).to.have.property('job_id');",
+									"    pm.expect(response).to.have.property('status');",
+									"    pm.expect(response).to.have.property('submitted_at');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/compute/{{job_id}}/result",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "compute", "{{job_id}}", "result"]
+						},
+						"description": "Get detailed job result including timestamps (submitted_at, started_at, finished_at). This is a custom endpoint that wraps the scheduler API with additional metadata."
+					},
+					"response": []
+				}
+			],
+			"description": "Traditional polling pattern - repeatedly GET status until job completes."
 		},
 		{
-			"name": "Get Job Result (Custom Endpoint)",
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "{{base_url}}/api/v1/compute/{{job_id}}/result",
-					"host": ["{{base_url}}"],
-					"path": ["api", "v1", "compute", "{{job_id}}", "result"]
-				},
-				"description": "Get detailed job result including timestamps. This is a custom endpoint that wraps the scheduler API."
-			}
+			"name": "4. Job Monitoring (SSE Streaming)",
+			"item": [
+				{
+					"name": "Stream Job Status (SSE)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Content-Type is text/event-stream\", function () {",
+									"    pm.expect(pm.response.headers.get('Content-Type')).to.include('text/event-stream');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "text/event-stream"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/jobs/{{job_id}}/$stream",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "jobs", "{{job_id}}", "$stream"]
+						},
+						"description": "Stream job status updates via Server-Sent Events. Real-time push updates - no need to poll!\n\nNote: Postman may not fully support SSE streaming. For best experience, use:\n- Browser: EventSource API\n- CLI: curl with --no-buffer\n- Python: sseclient-py library"
+					},
+					"response": []
+				}
+			],
+			"description": "Server-Sent Events (SSE) pattern - server pushes updates as they happen."
 		},
 		{
-			"name": "List All Jobs",
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "{{base_url}}/api/v1/jobs",
-					"host": ["{{base_url}}"],
-					"path": ["api", "v1", "jobs"]
+			"name": "5. Job Management",
+			"item": [
+				{
+					"name": "List All Jobs",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response is an array\", function () {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/jobs",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "jobs"]
+						},
+						"description": "List all jobs in the scheduler. Returns an array of job records with their current status."
+					},
+					"response": []
 				},
-				"description": "List all jobs in the scheduler"
-			}
-		},
-		{
-			"name": "Delete Job",
-			"request": {
-				"method": "DELETE",
-				"header": [],
-				"url": {
-					"raw": "{{base_url}}/api/v1/jobs/{{job_id}}",
-					"host": ["{{base_url}}"],
-					"path": ["api", "v1", "jobs", "{{job_id}}"]
-				},
-				"description": "Delete a job from the scheduler"
-			}
+				{
+					"name": "Delete Job",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 204\", function () {",
+									"    pm.response.to.have.status(204);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/jobs/{{job_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "jobs", "{{job_id}}"]
+						},
+						"description": "Delete a job from the scheduler. Returns 204 No Content on success."
+					},
+					"response": []
+				}
+			],
+			"description": "Job lifecycle management - list and delete jobs."
 		}
 	],
 	"variable": [
