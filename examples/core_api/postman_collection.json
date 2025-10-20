@@ -2,7 +2,7 @@
 	"info": {
 		"_postman_id": "servicekit-core-api",
 		"name": "Servicekit - Core API (User CRUD)",
-		"description": "Complete user CRUD operations using Servicekit's core infrastructure.\n\n## Features\n- User management (Create, Read, Update, Delete)\n- Pagination support\n- Schema introspection\n- Auto-seeded data with stable ULIDs\n- RFC 9457 error responses\n\n## Quick Start\n1. Start service: `cd examples/core_api && uv run python main.py`\n2. Run `Check Service Health` to verify\n3. Service auto-seeds two users (Alice and Bob) with stable IDs\n4. Run requests directly - no need to capture IDs!\n\n## Seeded Users (Stable ILIDs)\n- Alice: `01JARKBV9QFY8P7X3Z2E4M6N5Q`\n- Bob: `01JARKBV9R8Y7W6V5U4T3S2R1P`\n\n## Collection Variables\n- `alice_id`: Pre-configured with Alice's stable ULID\n- `user_id`: Can be set to any user ID for testing",
+		"description": "Complete user CRUD operations using Servicekit's core infrastructure.\n\n## Features\n- User management (Create, Read, Update, Delete)\n- Pagination support\n- Schema introspection\n- Auto-seeded data with stable ULIDs\n- RFC 9457 error responses\n\n## Quick Start\n1. Start service: `cd examples/core_api && uv run python main.py`\n2. Run `Check Service Health` to verify\n3. Service auto-seeds two users (Alice and Bob) with stable IDs\n4. Run requests directly - no need to capture IDs!\n\n## Seeded Users (Stable ULIDs)\n- Alice: `01JARKBV9QFY8P7X3Z2E4M6N5Q`\n- Bob: `01JARKBV9R8Y7W6V5T4S3R2P1N`\n\n## Collection Variables\n- `alice_id`: Pre-configured with Alice's stable ULID\n- `user_id`: Can be set to any user ID for testing",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
@@ -342,7 +342,7 @@
 		},
 		{
 			"key": "bob_id",
-			"value": "01JARKBV9R8Y7W6V5U4T3S2R1P",
+			"value": "01JARKBV9R8Y7W6V5T4S3R2P1N",
 			"type": "string"
 		},
 		{

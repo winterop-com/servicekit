@@ -90,7 +90,7 @@ async def seed_users(app: FastAPI) -> None:
             return
 
         # Create example users with stable ULIDs for Postman testing
-        # Alice: 01Jarkbv9QFY8P7X3Z2E4M6N5Q
+        # Alice: 01JARKBV9QFY8P7X3Z2E4M6N5Q
         alice = User(
             id=ULID.from_str("01JARKBV9QFY8P7X3Z2E4M6N5Q"),
             username="alice",
@@ -100,9 +100,9 @@ async def seed_users(app: FastAPI) -> None:
         )
         await repository.save(alice)
 
-        # Bob: 01JARKBV9R8Y7W6V5U4T3S2R1P
+        # Bob: 01JARKBV9R8Y7W6V5T4S3R2P1N
         bob = User(
-            id=ULID.from_str("01JARKBV9R8Y7W6V5U4T3S2R1P"),
+            id=ULID.from_str("01JARKBV9R8Y7W6V5T4S3R2P1N"),
             username="bob",
             email="bob@example.com",
             full_name="Bob Johnson",
