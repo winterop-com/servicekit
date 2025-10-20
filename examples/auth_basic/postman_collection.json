@@ -2,12 +2,12 @@
 	"info": {
 		"_postman_id": "servicekit-auth-basic",
 		"name": "Servicekit - Authentication (Basic)",
-		"description": "API key authentication workflow with file-based key storage.\n\n## Features\n- API key authentication (X-API-Key header)\n- Multiple key support for rotation\n- Authentication failure scenarios\n- Complete CRUD with authentication\n- RFC 9457 error responses\n\n## Quick Start\n1. Create API keys file:\n   ```bash\n   echo \"sk_dev_abc123\" > api_keys.txt\n   echo \"sk_dev_xyz789\" >> api_keys.txt\n   ```\n2. Start service: `fastapi dev examples/auth_basic.py`\n3. Run `Check Service Health` (no auth required)\n4. Test authentication failures\n5. Run `Create User` with valid API key (auto-captured ID)\n\n## Auto-Captured Variables\n- `user_id`: Automatically set from create operations\n- `api_key`: Default key for authenticated requests",
+		"description": "API key authentication workflow demonstration.\n\n## Features\n- API key authentication (X-API-Key header)\n- Multiple key support for rotation\n- Authentication failure scenarios\n- Health check (public endpoint)\n- System info (protected endpoint)\n- RFC 9457 error responses\n\n## Quick Start\n1. Start service: `cd examples/auth_basic && uv run python main.py`\n2. Run `Check Service Health` (no auth required)\n3. Test authentication failures on protected endpoint\n4. Test authentication success with valid API key\n5. Test key rotation with multiple keys\n\n## Available API Keys\n- `sk_dev_abc123` (first key)\n- `sk_dev_xyz789` (second key, for rotation demo)",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
 		{
-			"name": "1. Health & System Info",
+			"name": "1. Public Endpoints",
 			"item": [
 				{
 					"name": "Check Service Health",
@@ -33,8 +33,8 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/health",
-							"host": ["{{baseUrl}}"],
+							"raw": "{{base_url}}/health",
+							"host": ["{{base_url}}"],
 							"path": ["health"]
 						},
 						"description": "Health check endpoint (public, no authentication required)."
@@ -48,7 +48,7 @@
 			"name": "2. Authentication Tests",
 			"item": [
 				{
-					"name": "Access Without Auth (401)",
+					"name": "Access System Without Auth (401)",
 					"event": [
 						{
 							"listen": "test",
@@ -79,16 +79,16 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/v1/users",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "users"]
+							"raw": "{{base_url}}/api/v1/system",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "system"]
 						},
-						"description": "Test accessing protected endpoint without authentication. Should return 401 Unauthorized."
+						"description": "Test accessing protected system endpoint without authentication. Should return 401 Unauthorized."
 					},
 					"response": []
 				},
 				{
-					"name": "Access With Invalid Key (401)",
+					"name": "Access System With Invalid Key (401)",
 					"event": [
 						{
 							"listen": "test",
@@ -116,16 +116,16 @@
 							}
 						],
 						"url": {
-							"raw": "{{baseUrl}}/api/v1/users",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "users"]
+							"raw": "{{base_url}}/api/v1/system",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "system"]
 						},
 						"description": "Test accessing protected endpoint with invalid API key. Should return 401 Unauthorized."
 					},
 					"response": []
 				},
 				{
-					"name": "Access With Valid Key (200)",
+					"name": "Access System With Valid Key (200)",
 					"event": [
 						{
 							"listen": "test",
@@ -135,9 +135,10 @@
 									"    pm.response.to.have.status(200);",
 									"});",
 									"",
-									"pm.test(\"Response is array of users\", function () {",
+									"pm.test(\"Response has service name\", function () {",
 									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData).to.be.an('array');",
+									"    pm.expect(jsonData).to.have.property('name');",
+									"    pm.expect(jsonData).to.have.property('version');",
 									"});"
 								],
 								"type": "text/javascript"
@@ -153,11 +154,11 @@
 							}
 						],
 						"url": {
-							"raw": "{{baseUrl}}/api/v1/users",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "users"]
+							"raw": "{{base_url}}/api/v1/system",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "system"]
 						},
-						"description": "Test accessing protected endpoint with valid API key. Should return 200 OK."
+						"description": "Test accessing protected system endpoint with valid API key. Should return 200 OK with system information."
 					},
 					"response": []
 				}
@@ -165,258 +166,7 @@
 			"description": "Test authentication scenarios (success and failure cases)."
 		},
 		{
-			"name": "3. User Management (Authenticated)",
-			"item": [
-				{
-					"name": "Create User",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
-									"    pm.response.to.have.status(200);",
-									"});",
-									"",
-									"pm.test(\"User created with ID\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData).to.have.property('id');",
-									"    pm.collectionVariables.set('user_id', jsonData.id);",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"auth": {
-							"type": "apikey",
-							"apikey": [
-								{
-									"key": "value",
-									"value": "{{api_key}}",
-									"type": "string"
-								},
-								{
-									"key": "key",
-									"value": "X-API-Key",
-									"type": "string"
-								}
-							]
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"username\": \"alice\",\n  \"email\": \"alice@example.com\",\n  \"full_name\": \"Alice Smith\",\n  \"is_active\": true\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/users",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "users"]
-						},
-						"description": "Create a new user with authentication. Requires valid X-API-Key header."
-					},
-					"response": []
-				},
-				{
-					"name": "List All Users",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
-									"    pm.response.to.have.status(200);",
-									"});",
-									"",
-									"pm.test(\"Response is an array\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData).to.be.an('array');",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"auth": {
-							"type": "apikey",
-							"apikey": [
-								{
-									"key": "value",
-									"value": "{{api_key}}",
-									"type": "string"
-								},
-								{
-									"key": "key",
-									"value": "X-API-Key",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/users",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "users"]
-						},
-						"description": "List all users. Requires authentication."
-					},
-					"response": []
-				},
-				{
-					"name": "Get User by ID",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
-									"    pm.response.to.have.status(200);",
-									"});",
-									"",
-									"pm.test(\"User has expected fields\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData).to.have.property('id');",
-									"    pm.expect(jsonData).to.have.property('username');",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"auth": {
-							"type": "apikey",
-							"apikey": [
-								{
-									"key": "value",
-									"value": "{{api_key}}",
-									"type": "string"
-								},
-								{
-									"key": "key",
-									"value": "X-API-Key",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/users/{{user_id}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "users", "{{user_id}}"]
-						},
-						"description": "Get a specific user by ID. Requires authentication."
-					},
-					"response": []
-				},
-				{
-					"name": "Update User",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
-									"    pm.response.to.have.status(200);",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"auth": {
-							"type": "apikey",
-							"apikey": [
-								{
-									"key": "value",
-									"value": "{{api_key}}",
-									"type": "string"
-								},
-								{
-									"key": "key",
-									"value": "X-API-Key",
-									"type": "string"
-								}
-							]
-						},
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"username\": \"alice\",\n  \"email\": \"alice.smith@example.com\",\n  \"full_name\": \"Alice J. Smith\",\n  \"is_active\": true\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/users/{{user_id}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "users", "{{user_id}}"]
-						},
-						"description": "Update an existing user. Requires authentication."
-					},
-					"response": []
-				},
-				{
-					"name": "Delete User",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 204\", function () {",
-									"    pm.response.to.have.status(204);",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"auth": {
-							"type": "apikey",
-							"apikey": [
-								{
-									"key": "value",
-									"value": "{{api_key}}",
-									"type": "string"
-								},
-								{
-									"key": "key",
-									"value": "X-API-Key",
-									"type": "string"
-								}
-							]
-						},
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/users/{{user_id}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "users", "{{user_id}}"]
-						},
-						"description": "Delete a user by ID. Requires authentication."
-					},
-					"response": []
-				}
-			],
-			"description": "User CRUD operations requiring authentication."
-		},
-		{
-			"name": "4. Key Rotation Test",
+			"name": "3. Key Rotation Test",
 			"item": [
 				{
 					"name": "Access With First Key",
@@ -427,6 +177,11 @@
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has service info\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('name');",
 									"});"
 								],
 								"type": "text/javascript"
@@ -442,11 +197,11 @@
 							}
 						],
 						"url": {
-							"raw": "{{baseUrl}}/api/v1/users",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "users"]
+							"raw": "{{base_url}}/api/v1/system",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "system"]
 						},
-						"description": "Test first API key from api_keys.txt file."
+						"description": "Test first API key (sk_dev_abc123)."
 					},
 					"response": []
 				},
@@ -459,6 +214,11 @@
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has service info\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('name');",
 									"});"
 								],
 								"type": "text/javascript"
@@ -474,11 +234,11 @@
 							}
 						],
 						"url": {
-							"raw": "{{baseUrl}}/api/v1/users",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "users"]
+							"raw": "{{base_url}}/api/v1/system",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "system"]
 						},
-						"description": "Test second API key from api_keys.txt file. Both keys should work for zero-downtime rotation."
+						"description": "Test second API key (sk_dev_xyz789). Both keys should work for zero-downtime rotation."
 					},
 					"response": []
 				}
@@ -488,13 +248,8 @@
 	],
 	"variable": [
 		{
-			"key": "baseUrl",
-			"value": "http://127.0.0.1:8000",
-			"type": "string"
-		},
-		{
-			"key": "user_id",
-			"value": "",
+			"key": "base_url",
+			"value": "http://localhost:8000",
 			"type": "string"
 		},
 		{
