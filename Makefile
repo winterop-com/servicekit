@@ -36,7 +36,7 @@ lint:
 	@$(UV) run ruff format .
 	@$(UV) run ruff check . --fix
 	@echo ">>> Running type checker"
-	@$(UV) run mypy --exclude 'examples/old' src examples
+	@$(UV) run mypy src
 	@$(UV) run pyright
 
 test:

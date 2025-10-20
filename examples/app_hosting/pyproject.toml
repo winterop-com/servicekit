@@ -1,0 +1,17 @@
+[project]
+name = "servicekit-demo-app-hosting"
+version = "0.1.0"
+description = "App hosting demo showcasing static web app mounting"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "servicekit",
+]
+
+[dependency-groups]
+dev = [
+    "uvicorn[standard]>=0.30.0",
+]
+
+[tool.uv.sources]
+servicekit = { path = "../..", editable = true }

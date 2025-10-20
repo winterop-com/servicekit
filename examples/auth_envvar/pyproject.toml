@@ -1,0 +1,17 @@
+[project]
+name = "servicekit-demo-auth_envvar"
+version = "0.1.0"
+description = "auth envvar demo"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "servicekit",
+]
+
+[dependency-groups]
+dev = [
+    "uvicorn[standard]>=0.30.0",
+]
+
+[tool.uv.sources]
+servicekit = { path = "../..", editable = true }

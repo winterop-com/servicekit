@@ -404,6 +404,32 @@ class BaseServiceBuilder:
         if self._app_configs:
             from fastapi.staticfiles import StaticFiles
 
+            # Collect all router prefixes to exclude from redirect middleware
+            # This ensures routes take precedence over app mounts
+            router_prefixes = set()
+            if self._health_options:
+                router_prefixes.add(self._health_options.prefix)
+            if self._system_options:
+                router_prefixes.add(self._system_options.prefix)
+            if self._job_options:
+                router_prefixes.add(self._job_options.prefix)
+            if self._monitoring_options:
+                router_prefixes.add(self._monitoring_options.prefix)
+            for router in self._custom_routers:
+                if hasattr(router, "prefix") and router.prefix:
+                    router_prefixes.add(router.prefix)
+
+            # Add middleware to handle trailing slash redirects for app prefixes
+            # Skip prefixes that are already claimed by routes (routes take precedence)
+            from .middleware import AppPrefixRedirectMiddleware
+
+            app_prefixes = [
+                cfg.prefix for cfg in self._app_configs if cfg.prefix != "/" and cfg.prefix not in router_prefixes
+            ]
+            if app_prefixes:
+                app.add_middleware(AppPrefixRedirectMiddleware, app_prefixes=app_prefixes)
+
+            # Mount all apps
             for app_config in self._app_configs:
                 static_files = StaticFiles(directory=str(app_config.directory), html=True)
                 app.mount(app_config.prefix, static_files, name=f"app_{app_config.manifest.name}")
@@ -470,6 +496,11 @@ class BaseServiceBuilder:
 
             # Keep only the last app for each prefix
             self._app_configs = [self._app_configs[i] for i in sorted(set(seen_prefixes.values()))]
+
+            # Sort so root mounts are last (most specific paths mounted first)
+            # This ensures FastAPI matches more specific routes before catch-all root
+            # Sorting: (is_root, -path_length, path) ensures longer paths before shorter, root last
+            self._app_configs.sort(key=lambda app: (app.prefix == "/", -len(app.prefix), app.prefix))
 
             # Validate that non-root prefixes don't have duplicates (shouldn't happen after dedup, but safety check)
             prefixes = [app.prefix for app in self._app_configs]

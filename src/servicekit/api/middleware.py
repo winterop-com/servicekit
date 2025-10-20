@@ -18,6 +18,28 @@ logger = get_logger(__name__)
 type MiddlewareCallNext = Callable[[Request], Awaitable[Response]]
 
 
+class AppPrefixRedirectMiddleware(BaseHTTPMiddleware):
+    """Middleware to redirect app prefix requests without trailing slash to version with trailing slash."""
+
+    def __init__(self, app: Any, app_prefixes: list[str]) -> None:
+        """Initialize middleware with list of app prefixes to handle."""
+        super().__init__(app)
+        self.app_prefixes = set(app_prefixes)
+
+    async def dispatch(self, request: Request, call_next: MiddlewareCallNext) -> Response:
+        """Redirect requests to app prefixes without trailing slash."""
+        # Check if path matches one of our app prefixes exactly (no trailing slash)
+        if request.url.path in self.app_prefixes and request.method in ("GET", "HEAD"):
+            from fastapi.responses import RedirectResponse
+
+            # Redirect to same path with trailing slash
+            redirect_url = request.url.replace(path=f"{request.url.path}/")
+            return RedirectResponse(url=str(redirect_url), status_code=307)
+
+        # Continue processing
+        return await call_next(request)
+
+
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
     """Middleware for logging HTTP requests with unique request IDs and context binding."""
 

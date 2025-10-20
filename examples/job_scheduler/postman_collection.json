@@ -1,0 +1,178 @@
+{
+	"info": {
+		"_postman_id": "job-scheduler-demo",
+		"name": "Job Scheduler Demo",
+		"description": "Demonstrates async job scheduling with both polling and SSE streaming patterns",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Health Check",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/health",
+					"host": ["{{base_url}}"],
+					"path": ["health"]
+				},
+				"description": "Check service health status"
+			}
+		},
+		{
+			"name": "System Info",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/v1/system",
+					"host": ["{{base_url}}"],
+					"path": ["api", "v1", "system"]
+				},
+				"description": "Get system information"
+			}
+		},
+		{
+			"name": "Submit Computation Job",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Save job_id, poll_url, and stream_url for subsequent requests",
+							"const response = pm.response.json();",
+							"pm.collectionVariables.set('job_id', response.job_id);",
+							"pm.collectionVariables.set('poll_url', response.poll_url);",
+							"pm.collectionVariables.set('stream_url', response.stream_url);",
+							"",
+							"pm.test('Status code is 202', function () {",
+							"    pm.response.to.have.status(202);",
+							"});",
+							"",
+							"pm.test('Response has job_id', function () {",
+							"    pm.expect(response).to.have.property('job_id');",
+							"});",
+							"",
+							"pm.test('Response has both poll_url and stream_url', function () {",
+							"    pm.expect(response).to.have.property('poll_url');",
+							"    pm.expect(response).to.have.property('stream_url');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"duration\": 10\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/v1/compute",
+					"host": ["{{base_url}}"],
+					"path": ["api", "v1", "compute"]
+				},
+				"description": "Submit a long-running computation job (10 seconds). Returns URLs for both polling and SSE streaming."
+			}
+		},
+		{
+			"name": "Poll Job Status",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/v1/jobs/{{job_id}}",
+					"host": ["{{base_url}}"],
+					"path": ["api", "v1", "jobs", "{{job_id}}"]
+				},
+				"description": "Poll job status using traditional REST pattern. Run this multiple times to check progress."
+			}
+		},
+		{
+			"name": "Stream Job Status (SSE)",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "text/event-stream"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/v1/jobs/{{job_id}}/$stream",
+					"host": ["{{base_url}}"],
+					"path": ["api", "v1", "jobs", "{{job_id}}", "$stream"]
+				},
+				"description": "Stream job status updates via Server-Sent Events. Real-time push updates - no need to poll! Note: Postman may not fully support SSE streaming, use curl or a browser for best experience."
+			}
+		},
+		{
+			"name": "Get Job Result (Custom Endpoint)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/v1/compute/{{job_id}}/result",
+					"host": ["{{base_url}}"],
+					"path": ["api", "v1", "compute", "{{job_id}}", "result"]
+				},
+				"description": "Get detailed job result including timestamps. This is a custom endpoint that wraps the scheduler API."
+			}
+		},
+		{
+			"name": "List All Jobs",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/v1/jobs",
+					"host": ["{{base_url}}"],
+					"path": ["api", "v1", "jobs"]
+				},
+				"description": "List all jobs in the scheduler"
+			}
+		},
+		{
+			"name": "Delete Job",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/v1/jobs/{{job_id}}",
+					"host": ["{{base_url}}"],
+					"path": ["api", "v1", "jobs", "{{job_id}}"]
+				},
+				"description": "Delete a job from the scheduler"
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000",
+			"type": "string"
+		},
+		{
+			"key": "job_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "poll_url",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "stream_url",
+			"value": "",
+			"type": "string"
+		}
+	]
+}
