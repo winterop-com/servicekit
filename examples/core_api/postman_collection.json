@@ -2,7 +2,7 @@
 	"info": {
 		"_postman_id": "servicekit-core-api",
 		"name": "Servicekit - Core API (User CRUD)",
-		"description": "Complete user CRUD operations using Servicekit's core infrastructure.\n\n## Features\n- User management (Create, Read, Update, Delete)\n- Pagination support\n- Schema introspection\n- Auto-seeded data on startup\n- RFC 9457 error responses\n\n## Quick Start\n1. Start service: `fastapi dev examples/core_api.py`\n2. Run `Check Service Health` to verify\n3. Run `Create User` to create a user (ID auto-captured)\n4. Run other requests using auto-captured `{{user_id}}`\n\n## Auto-Captured Variables\n- `user_id`: Automatically set from create/list operations",
+		"description": "Complete user CRUD operations using Servicekit's core infrastructure.\n\n## Features\n- User management (Create, Read, Update, Delete)\n- Pagination support\n- Schema introspection\n- Auto-seeded data with stable ULIDs\n- RFC 9457 error responses\n\n## Quick Start\n1. Start service: `cd examples/core_api && uv run python main.py`\n2. Run `Check Service Health` to verify\n3. Service auto-seeds two users (Alice and Bob) with stable IDs\n4. Run requests directly - no need to capture IDs!\n\n## Seeded Users (Stable ILIDs)\n- Alice: `01JARKBV9QFY8P7X3Z2E4M6N5Q`\n- Bob: `01JARKBV9R8Y7W6V5U4T3S2R1P`\n\n## Collection Variables\n- `alice_id`: Pre-configured with Alice's stable ULID\n- `user_id`: Can be set to any user ID for testing",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
@@ -115,9 +115,12 @@
 									"    pm.expect(jsonData).to.be.an('array');",
 									"});",
 									"",
-									"pm.test(\"Users include seeded data\", function () {",
+									"pm.test(\"Users include seeded data (Alice and Bob)\", function () {",
 									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.length).to.be.at.least(3);",
+									"    pm.expect(jsonData.length).to.be.at.least(2);",
+									"    const usernames = jsonData.map(u => u.username);",
+									"    pm.expect(usernames).to.include('alice');",
+									"    pm.expect(usernames).to.include('bob');",
 									"});"
 								],
 								"type": "text/javascript"
@@ -333,8 +336,18 @@
 			"type": "string"
 		},
 		{
+			"key": "alice_id",
+			"value": "01JARKBV9QFY8P7X3Z2E4M6N5Q",
+			"type": "string"
+		},
+		{
+			"key": "bob_id",
+			"value": "01JARKBV9R8Y7W6V5U4T3S2R1P",
+			"type": "string"
+		},
+		{
 			"key": "user_id",
-			"value": "",
+			"value": "01JARKBV9QFY8P7X3Z2E4M6N5Q",
 			"type": "string"
 		}
 	]

@@ -76,35 +76,39 @@ def get_user_manager(session: AsyncSession = Depends(get_session)) -> UserManage
 
 
 async def seed_users(app: FastAPI) -> None:
-    """Seed example users on startup."""
+    """Seed example users on startup with stable ULIDs for testing."""
     from servicekit.api.dependencies import get_database
 
     db = get_database()
     async with db.session() as session:
-        manager = UserManager(UserRepository(session))
+        repository = UserRepository(session)
+        manager = UserManager(repository)
 
         # Check if users already exist
         existing = await manager.find_by_username("alice")
         if existing:
             return
 
-        # Create example users
-        await manager.save(
-            UserIn(
-                username="alice",
-                email="alice@example.com",
-                full_name="Alice Smith",
-                is_active=True,
-            )
+        # Create example users with stable ULIDs for Postman testing
+        # Alice: 01Jarkbv9QFY8P7X3Z2E4M6N5Q
+        alice = User(
+            id=ULID.from_str("01JARKBV9QFY8P7X3Z2E4M6N5Q"),
+            username="alice",
+            email="alice@example.com",
+            full_name="Alice Smith",
+            is_active=True,
         )
-        await manager.save(
-            UserIn(
-                username="bob",
-                email="bob@example.com",
-                full_name="Bob Johnson",
-                is_active=True,
-            )
+        await repository.save(alice)
+
+        # Bob: 01JARKBV9R8Y7W6V5U4T3S2R1P
+        bob = User(
+            id=ULID.from_str("01JARKBV9R8Y7W6V5U4T3S2R1P"),
+            username="bob",
+            email="bob@example.com",
+            full_name="Bob Johnson",
+            is_active=True,
         )
+        await repository.save(bob)
 
 
 user_router = CrudRouter.create(
