@@ -1,0 +1,17 @@
+[project]
+name = "servicekit-demo-vega-visualization"
+version = "0.1.0"
+description = "Vega-Lite visualization service transforming PandasDataFrame to Vega grammar"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "servicekit[data]",
+]
+
+[dependency-groups]
+dev = [
+    "uvicorn[standard]>=0.30.0",
+]
+
+[tool.uv.sources]
+servicekit = { path = "../..", editable = true }
