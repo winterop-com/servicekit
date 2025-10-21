@@ -2,10 +2,12 @@
 
 from datetime import UTC, datetime
 
+from fastapi import Request, Response
 from pydantic import BaseModel
 from ulid import ULID
 
 from servicekit.api import BaseServiceBuilder, Router, ServiceInfo
+from servicekit.api.utilities import build_location_url
 from servicekit.exceptions import NotFoundError
 from servicekit.logging import get_logger
 
@@ -56,8 +58,10 @@ class RegistrationRouter(Router):
     def _register_routes(self) -> None:
         """Register service registration endpoints."""
 
-        @self.router.post("/$register", response_model=RegistrationResponse)
-        async def register_service(payload: RegistrationPayload) -> RegistrationResponse:
+        @self.router.post("/$register", response_model=RegistrationResponse, status_code=201)
+        async def register_service(
+            request: Request, payload: RegistrationPayload, response: Response
+        ) -> RegistrationResponse:
             """Register a service and add it to the in-memory registry."""
             service_url = payload.url
             service_info = payload.info
@@ -90,6 +94,9 @@ class RegistrationRouter(Router):
                 log_context["capabilities"] = service_info["capabilities"]
 
             logger.info("service.registered", **log_context)
+
+            # Set Location header to the created resource
+            response.headers["Location"] = build_location_url(request, f"/services/{service_id}")
 
             return RegistrationResponse(
                 id=service_id,

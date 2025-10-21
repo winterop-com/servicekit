@@ -1,0 +1,198 @@
+# Multi-Level Orchestrator Architecture
+#
+# Level 1 (Global):
+#   - parent-orchestrator (port 9000)
+#
+# Level 2 (Regional/Domain):
+#   - us-orchestrator (port 9001) - US region
+#   - eu-orchestrator (port 9002) - EU region
+#   - ml-orchestrator (port 9003) - ML domain
+#
+# Level 3 (Services):
+#   - us-service-1 (port 8001) -> us-orchestrator
+#   - us-service-2 (port 8002) -> us-orchestrator
+#   - eu-service-1 (port 8003) -> eu-orchestrator
+#   - ml-service-1 (port 8004) -> ml-orchestrator
+
+services:
+  # Level 1: Parent Orchestrator
+  parent-orchestrator:
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+    working_dir: /app/examples/multi_level_orchestrator
+    command: python parent_orchestrator.py
+    ports:
+      - "9000:9000"
+    environment:
+      - LOG_LEVEL=info
+      - HOST=0.0.0.0
+      - PORT=9000
+    networks:
+      - orchestrator-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Level 2: Regional Orchestrators
+  us-orchestrator:
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+    working_dir: /app/examples/multi_level_orchestrator
+    command: python child_orchestrator.py
+    ports:
+      - "9001:9001"
+    environment:
+      - PARENT_ORCHESTRATOR_URL=http://parent-orchestrator:9000
+      - ORCHESTRATOR_REGION=us-east
+      - CHILD_HOST=us-orchestrator
+      - CHILD_PORT=9001
+      - LOG_LEVEL=info
+    networks:
+      - orchestrator-network
+    depends_on:
+      parent-orchestrator:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  eu-orchestrator:
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+    working_dir: /app/examples/multi_level_orchestrator
+    command: python child_orchestrator.py
+    ports:
+      - "9002:9002"
+    environment:
+      - PARENT_ORCHESTRATOR_URL=http://parent-orchestrator:9000
+      - ORCHESTRATOR_REGION=eu-west
+      - CHILD_HOST=eu-orchestrator
+      - CHILD_PORT=9002
+      - LOG_LEVEL=info
+    networks:
+      - orchestrator-network
+    depends_on:
+      parent-orchestrator:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9002/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  ml-orchestrator:
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+    working_dir: /app/examples/multi_level_orchestrator
+    command: python child_orchestrator.py
+    ports:
+      - "9003:9003"
+    environment:
+      - PARENT_ORCHESTRATOR_URL=http://parent-orchestrator:9000
+      - ORCHESTRATOR_DOMAIN=machine-learning
+      - CHILD_HOST=ml-orchestrator
+      - CHILD_PORT=9003
+      - LOG_LEVEL=info
+    networks:
+      - orchestrator-network
+    depends_on:
+      parent-orchestrator:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9003/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Level 3: Example Services
+  us-service-1:
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+    working_dir: /app/examples/multi_level_orchestrator
+    command: python example_service.py
+    ports:
+      - "8001:8001"
+    environment:
+      - SERVICE_NAME=US Payment Service
+      - SERVICE_PORT=8001
+      - SERVICE_HOST=us-service-1
+      - ORCHESTRATOR_URL=http://us-orchestrator:9001/services/$register
+      - LOG_LEVEL=info
+    networks:
+      - orchestrator-network
+    depends_on:
+      us-orchestrator:
+        condition: service_healthy
+
+  us-service-2:
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+    working_dir: /app/examples/multi_level_orchestrator
+    command: python example_service.py
+    ports:
+      - "8002:8002"
+    environment:
+      - SERVICE_NAME=US Inventory Service
+      - SERVICE_PORT=8002
+      - SERVICE_HOST=us-service-2
+      - ORCHESTRATOR_URL=http://us-orchestrator:9001/services/$register
+      - LOG_LEVEL=info
+    networks:
+      - orchestrator-network
+    depends_on:
+      us-orchestrator:
+        condition: service_healthy
+
+  eu-service-1:
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+    working_dir: /app/examples/multi_level_orchestrator
+    command: python example_service.py
+    ports:
+      - "8003:8003"
+    environment:
+      - SERVICE_NAME=EU GDPR Compliance Service
+      - SERVICE_PORT=8003
+      - SERVICE_HOST=eu-service-1
+      - ORCHESTRATOR_URL=http://eu-orchestrator:9002/services/$register
+      - LOG_LEVEL=info
+    networks:
+      - orchestrator-network
+    depends_on:
+      eu-orchestrator:
+        condition: service_healthy
+
+  ml-service-1:
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+    working_dir: /app/examples/multi_level_orchestrator
+    command: python example_service.py
+    ports:
+      - "8004:8004"
+    environment:
+      - SERVICE_NAME=ML Model Training Service
+      - SERVICE_PORT=8004
+      - SERVICE_HOST=ml-service-1
+      - ORCHESTRATOR_URL=http://ml-orchestrator:9003/services/$register
+      - LOG_LEVEL=info
+    networks:
+      - orchestrator-network
+    depends_on:
+      ml-orchestrator:
+        condition: service_healthy
+
+networks:
+  orchestrator-network:
+    driver: bridge
