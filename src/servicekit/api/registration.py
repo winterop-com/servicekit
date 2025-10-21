@@ -27,30 +27,7 @@ async def register_service(
     fail_on_error: bool = False,
     timeout: float = 10.0,
 ) -> None:
-    """Register service with orchestrator for service discovery.
-
-    Resolution strategy:
-    - orchestrator_url: parameter → env var → error
-    - host: parameter → socket.gethostname() → env var → error
-    - port: parameter → env var → 8000 (default)
-
-    The orchestrator should provide a POST endpoint (typically /services/$register)
-    that accepts {"url": "...", "info": {...}} and returns {"id": "...", "status": "..."}.
-    The assigned service ID is logged for reference.
-
-    Args:
-        orchestrator_url: Orchestrator registration URL (e.g., http://orchestrator:9000/services/$register)
-        host: Service hostname (auto-detected if not provided)
-        port: Service port (defaults to 8000)
-        info: ServiceInfo instance (supports subclasses)
-        orchestrator_url_env: Environment variable name for orchestrator URL
-        host_env: Environment variable name for host
-        port_env: Environment variable name for port
-        max_retries: Maximum number of registration attempts
-        retry_delay: Delay in seconds between retries
-        fail_on_error: If True, raise exception on failure; if False, log warning
-        timeout: HTTP request timeout in seconds
-    """
+    """Register service with orchestrator for service discovery."""
     # Resolve orchestrator URL
     resolved_orchestrator_url = orchestrator_url or os.getenv(orchestrator_url_env)
     if not resolved_orchestrator_url:
