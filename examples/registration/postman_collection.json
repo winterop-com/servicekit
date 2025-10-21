@@ -1,0 +1,194 @@
+{
+	"info": {
+		"_postman_id": "registration-demo-001",
+		"name": "Service Registration Demo",
+		"description": "API requests for testing service registration with orchestrator",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Orchestrator",
+			"item": [
+				{
+					"name": "List All Services",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{orchestratorUrl}}/services",
+							"host": ["{{orchestratorUrl}}"],
+							"path": ["services"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Service by URL",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{orchestratorUrl}}/services/http://svca:8000",
+							"host": ["{{orchestratorUrl}}"],
+							"path": ["services", "http:", "", "svca:8000"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Register Service (Manual)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"url\": \"http://test-service:8080\",\n  \"info\": {\n    \"display_name\": \"Test Service\",\n    \"version\": \"1.0.0\",\n    \"summary\": \"Manual registration test\"\n  }\n}"
+						},
+						"url": {
+							"raw": "{{orchestratorUrl}}/register",
+							"host": ["{{orchestratorUrl}}"],
+							"path": ["register"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Deregister Service",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{orchestratorUrl}}/services/http://test-service:8080",
+							"host": ["{{orchestratorUrl}}"],
+							"path": ["services", "http:", "", "test-service:8080"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Orchestrator Health",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{orchestratorUrl}}/health",
+							"host": ["{{orchestratorUrl}}"],
+							"path": ["health"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Service A (svca)",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{svcaUrl}}/health",
+							"host": ["{{svcaUrl}}"],
+							"path": ["health"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "System Info",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{svcaUrl}}/api/v1/system",
+							"host": ["{{svcaUrl}}"],
+							"path": ["api", "v1", "system"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Service Info",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{svcaUrl}}/api/v1/info",
+							"host": ["{{svcaUrl}}"],
+							"path": ["api", "v1", "info"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Service B (svcb)",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{svcbUrl}}/health",
+							"host": ["{{svcbUrl}}"],
+							"path": ["health"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "System Info",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{svcbUrl}}/api/v1/system",
+							"host": ["{{svcbUrl}}"],
+							"path": ["api", "v1", "system"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Service Info",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{svcbUrl}}/api/v1/info",
+							"host": ["{{svcbUrl}}"],
+							"path": ["api", "v1", "info"]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "orchestratorUrl",
+			"value": "http://127.0.0.1:9000",
+			"type": "string"
+		},
+		{
+			"key": "svcaUrl",
+			"value": "http://127.0.0.1:8000",
+			"type": "string"
+		},
+		{
+			"key": "svcbUrl",
+			"value": "http://127.0.0.1:8001",
+			"type": "string"
+		}
+	]
+}

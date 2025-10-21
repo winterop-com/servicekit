@@ -1,0 +1,502 @@
+# Service Registration Demo
+
+Demonstrates automatic service registration with an orchestrator for service discovery in Docker Compose environments.
+
+## Features
+
+- **Automatic Registration**: Services register themselves on startup
+- **Hostname Auto-Detection**: Uses Docker container hostname automatically
+- **Retry Logic**: Configurable retries with delays
+- **Custom Metadata**: Support for ServiceInfo subclasses with additional fields
+- **Mock Orchestrator**: Simple orchestrator for testing and development
+- **Multi-Service Setup**: Example with multiple services (svca, svcb)
+
+## Quick Start
+
+### Local Development
+
+#### Run Orchestrator
+
+```bash
+# Install dependencies
+uv sync
+
+# Run the mock orchestrator
+uv run python orchestrator.py
+```
+
+The orchestrator will be available at http://localhost:9000
+
+#### Run Service
+
+In a separate terminal:
+
+```bash
+# Set orchestrator URL
+export SERVICEKIT_ORCHESTRATOR_URL=http://localhost:9000/register
+
+# Run the service
+uv run uvicorn main:app --reload
+```
+
+The service will automatically register with the orchestrator on startup.
+
+### Docker Deployment
+
+```bash
+# Build and run all services (orchestrator + svca + svcb)
+docker compose up --build
+
+# Run in detached mode
+docker compose up -d
+
+# View logs
+docker compose logs -f
+
+# View orchestrator logs only
+docker compose logs -f orchestrator
+
+# Stop
+docker compose down
+```
+
+## Architecture
+
+```
+┌─────────────┐
+│ Orchestrator│  ← Registration endpoint at :9000/register
+│   (port 9000)│
+└──────▲──────┘
+       │
+       │ HTTP POST on startup
+       │
+   ┌───┴────────────┐
+   │                │
+┌──┴───┐      ┌────┴──┐
+│ svca │      │ svcb  │
+│ :8000│      │ :8001 │
+└──────┘      └───────┘
+```
+
+## Endpoints
+
+### Service Endpoints (svca, svcb)
+
+- `GET /health` - Health check
+- `GET /api/v1/system` - Service information
+- `GET /api/v1/info` - ServiceInfo metadata
+- `GET /` - Landing page
+- `GET /docs` - Swagger UI
+
+### Orchestrator Endpoints
+
+- `POST /register` - Register a service (called by services on startup)
+- `GET /services` - List all registered services
+- `GET /services/{url}` - Get specific service details
+- `DELETE /services/{url}` - Deregister a service
+- `GET /health` - Orchestrator health check
+
+## Registration Flow
+
+1. **Service Starts**: Container starts and FastAPI app initializes
+2. **Hostname Detection**: Auto-detects hostname via `socket.gethostname()` (returns Docker container name/ID)
+3. **Port Resolution**: Uses `SERVICEKIT_PORT` env var or defaults to 8000
+4. **URL Construction**: Builds service URL: `http://<hostname>:<port>`
+5. **Registration Attempt**: Sends POST to orchestrator with payload:
+   ```json
+   {
+     "url": "http://svca:8000",
+     "info": {
+       "display_name": "Registration Example Service",
+       "version": "1.0.0",
+       ...
+     }
+   }
+   ```
+6. **Retry on Failure**: Retries up to 5 times with 2-second delay
+7. **Success/Failure Logging**: Logs outcome with structured logging
+
+## Configuration
+
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SERVICEKIT_ORCHESTRATOR_URL` | (required) | Orchestrator registration endpoint |
+| `SERVICEKIT_HOST` | auto-detected | Service hostname (override auto-detection) |
+| `SERVICEKIT_PORT` | 8000 | Service port |
+
+### Builder Configuration
+
+```python
+.with_registration(
+    orchestrator_url=None,              # Override env var
+    host=None,                          # Override auto-detection
+    port=None,                          # Override default
+    orchestrator_url_env="SERVICEKIT_ORCHESTRATOR_URL",
+    host_env="SERVICEKIT_HOST",
+    port_env="SERVICEKIT_PORT",
+    max_retries=5,
+    retry_delay=2.0,
+    fail_on_error=False,               # Don't abort on failure
+    timeout=10.0,
+)
+```
+
+## Examples
+
+### Basic Registration (main.py)
+
+```python
+from servicekit.api import BaseServiceBuilder, ServiceInfo
+
+app = (
+    BaseServiceBuilder(info=ServiceInfo(display_name="My Service"))
+    .with_logging()
+    .with_health()
+    .with_registration()  # Auto-detect hostname
+    .build()
+)
+```
+
+### Custom ServiceInfo (main_custom.py)
+
+```python
+class CustomServiceInfo(ServiceInfo):
+    deployment_env: str = "production"
+    team: str = "platform"
+    capabilities: list[str] = []
+    priority: int = 1
+
+app = (
+    BaseServiceBuilder(
+        info=CustomServiceInfo(
+            display_name="Custom Service",
+            deployment_env="staging",
+            team="data-science",
+            capabilities=["ml-inference"],
+            priority=5,
+        )
+    )
+    .with_registration()
+    .build()
+)
+```
+
+### Custom Environment Variables
+
+```python
+app = (
+    BaseServiceBuilder(info=ServiceInfo(display_name="My Service"))
+    .with_registration(
+        orchestrator_url_env="MY_APP_ORCHESTRATOR_URL",
+        host_env="MY_APP_HOST",
+        port_env="MY_APP_PORT",
+    )
+    .build()
+)
+```
+
+### Direct Configuration (Testing)
+
+```python
+app = (
+    BaseServiceBuilder(info=ServiceInfo(display_name="My Service"))
+    .with_registration(
+        orchestrator_url="http://orchestrator:9000/register",
+        host="my-service",
+        port=8080,
+        max_retries=10,
+        retry_delay=1.0,
+        fail_on_error=True,  # Abort startup on failure
+    )
+    .build()
+)
+```
+
+## Testing the Registration
+
+### 1. Start All Services
+
+```bash
+docker compose up -d
+```
+
+### 2. Check Service Logs
+
+```bash
+# Check svca registration
+docker compose logs svca | grep registration
+
+# Expected output:
+# registration.starting orchestrator_url=http://orchestrator:9000/register ...
+# registration.success service_url=http://svca:8000 ...
+```
+
+### 3. Query Orchestrator
+
+```bash
+# List all registered services
+curl http://localhost:9000/services | jq
+
+# Get specific service
+curl http://localhost:9000/services/http%3A%2F%2Fsvca%3A8000 | jq
+
+# Expected output:
+{
+  "url": "http://svca:8000",
+  "info": {
+    "display_name": "Registration Example Service",
+    "version": "1.0.0",
+    ...
+  },
+  "registered_at": "2025-10-21T12:00:00.000Z",
+  "last_updated": "2025-10-21T12:00:00.000Z"
+}
+```
+
+### 4. Check Service Health
+
+```bash
+# Via orchestrator's perspective
+curl http://svca:8000/health
+
+# From host (Docker port mapping)
+curl http://localhost:8000/health
+curl http://localhost:8001/health  # svcb
+```
+
+## Hostname Resolution
+
+### Auto-Detection (Recommended for Docker)
+
+In Docker Compose, `socket.gethostname()` returns the container hostname (service name or container ID):
+
+```yaml
+services:
+  my-service:  # hostname = "my-service"
+    image: my-image
+    environment:
+      SERVICEKIT_ORCHESTRATOR_URL: http://orchestrator:9000/register
+      # SERVICEKIT_HOST auto-detected as "my-service"
+```
+
+### Manual Override
+
+For non-Docker or custom hostname scenarios:
+
+```yaml
+services:
+  my-service:
+    image: my-image
+    environment:
+      SERVICEKIT_ORCHESTRATOR_URL: http://orchestrator:9000/register
+      SERVICEKIT_HOST: custom-hostname
+```
+
+### Resolution Priority
+
+1. Direct `host` parameter in `.with_registration(host="...")`
+2. `socket.gethostname()` (Docker container name)
+3. Environment variable `SERVICEKIT_HOST`
+4. Error if none available
+
+## Port Configuration
+
+### Default Behavior
+
+Services default to port 8000:
+
+```yaml
+services:
+  my-service:
+    image: my-image
+    ports:
+      - "8000:8000"  # Maps container port 8000 to host port 8000
+```
+
+### Custom Port
+
+```yaml
+services:
+  my-service:
+    image: my-image
+    ports:
+      - "8001:8000"  # Host sees 8001, container uses 8000
+    environment:
+      SERVICEKIT_ORCHESTRATOR_URL: http://orchestrator:9000/register
+      # SERVICEKIT_PORT defaults to 8000 (correct for intra-container communication)
+```
+
+**Important**: `SERVICEKIT_PORT` should match the **container's internal port** (8000), not the host-mapped port (8001). The orchestrator communicates with services using the internal Docker network.
+
+### Resolution Priority
+
+1. Direct `port` parameter in `.with_registration(port=...)`
+2. Environment variable `SERVICEKIT_PORT`
+3. Default to 8000
+
+## Error Handling
+
+### Retry Logic
+
+By default, registration retries 5 times with 2-second delays:
+
+```python
+.with_registration(
+    max_retries=5,      # Total attempts
+    retry_delay=2.0,    # Seconds between attempts
+)
+```
+
+### Fail on Error
+
+By default, services continue even if registration fails:
+
+```python
+.with_registration(
+    fail_on_error=False  # Log warning and continue
+)
+```
+
+For critical services that require registration:
+
+```python
+.with_registration(
+    fail_on_error=True  # Raise exception and abort startup
+)
+```
+
+### Structured Logging
+
+All registration events are logged:
+
+```json
+{
+  "event": "registration.starting",
+  "orchestrator_url": "http://orchestrator:9000/register",
+  "service_url": "http://svca:8000",
+  "host_source": "auto-detected",
+  "port_source": "default",
+  "max_retries": 5
+}
+
+{
+  "event": "registration.success",
+  "service_url": "http://svca:8000",
+  "attempt": 1,
+  "status_code": 200
+}
+```
+
+## Production Deployment
+
+### Docker Compose with Secrets
+
+```yaml
+services:
+  my-service:
+    image: my-service:latest
+    environment:
+      SERVICEKIT_ORCHESTRATOR_URL: ${ORCHESTRATOR_URL}
+    env_file:
+      - .env.production
+```
+
+### Kubernetes
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-service
+spec:
+  selector:
+    app: my-service
+  ports:
+    - port: 8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-service
+spec:
+  template:
+    spec:
+      containers:
+        - name: my-service
+          image: my-service:latest
+          env:
+            - name: SERVICEKIT_ORCHESTRATOR_URL
+              value: "http://orchestrator-service:9000/register"
+            - name: SERVICEKIT_HOST
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name  # Pod name
+```
+
+## Troubleshooting
+
+### Registration Fails
+
+Check orchestrator is reachable:
+
+```bash
+docker compose exec svca curl http://orchestrator:9000/health
+```
+
+Check environment variables:
+
+```bash
+docker compose exec svca env | grep SERVICEKIT
+```
+
+### Hostname Detection Issues
+
+Override hostname explicitly:
+
+```yaml
+environment:
+  SERVICEKIT_HOST: my-custom-hostname
+```
+
+### Service Not Appearing in Registry
+
+Check orchestrator logs:
+
+```bash
+docker compose logs orchestrator
+```
+
+Check service logs for registration attempts:
+
+```bash
+docker compose logs svca | grep registration
+```
+
+### Port Mismatch
+
+Ensure `SERVICEKIT_PORT` matches container's internal port (not host-mapped port):
+
+```yaml
+ports:
+  - "8001:8000"  # Host:Container
+environment:
+  SERVICEKIT_PORT: "8000"  # Use container port
+```
+
+## Related Examples
+
+- `core_api/` - Basic CRUD service
+- `monitoring/` - Prometheus metrics
+- `auth_envvar/` - Environment-based authentication
+- `job_scheduler/` - Background job execution
+
+## Next Steps
+
+- Implement your own orchestrator with persistent storage
+- Add service health monitoring from orchestrator
+- Integrate with service mesh (Istio, Linkerd)
+- Add authentication between services and orchestrator
+- Implement service deregistration on graceful shutdown
+- Add service metadata versioning and updates

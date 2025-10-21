@@ -76,6 +76,22 @@ class _MonitoringOptions:
     enable_traces: bool
 
 
+@dataclass(frozen=True)
+class _RegistrationOptions:
+    """Configuration for service registration."""
+
+    orchestrator_url: str | None
+    host: str | None
+    port: int | None
+    orchestrator_url_env: str
+    host_env: str
+    port_env: str
+    max_retries: int
+    retry_delay: float
+    fail_on_error: bool
+    timeout: float
+
+
 class ServiceInfo(BaseModel):
     """Service metadata for FastAPI application."""
 
@@ -122,6 +138,7 @@ class BaseServiceBuilder:
         self._job_options: _JobOptions | None = None
         self._auth_options: _AuthOptions | None = None
         self._monitoring_options: _MonitoringOptions | None = None
+        self._registration_options: _RegistrationOptions | None = None
         self._app_configs: List[App] = []
         self._custom_routers: List[APIRouter] = []
         self._dependency_overrides: Dict[DependencyOverride, DependencyOverride] = {}
@@ -282,6 +299,35 @@ class BaseServiceBuilder:
             tags=list(tags) if tags is not None else ["Observability"],
             service_name=service_name,
             enable_traces=enable_traces,
+        )
+        return self
+
+    def with_registration(
+        self,
+        *,
+        orchestrator_url: str | None = None,
+        host: str | None = None,
+        port: int | None = None,
+        orchestrator_url_env: str = "SERVICEKIT_ORCHESTRATOR_URL",
+        host_env: str = "SERVICEKIT_HOST",
+        port_env: str = "SERVICEKIT_PORT",
+        max_retries: int = 5,
+        retry_delay: float = 2.0,
+        fail_on_error: bool = False,
+        timeout: float = 10.0,
+    ) -> Self:
+        """Enable service registration with orchestrator for service discovery."""
+        self._registration_options = _RegistrationOptions(
+            orchestrator_url=orchestrator_url,
+            host=host,
+            port=port,
+            orchestrator_url_env=orchestrator_url_env,
+            host_env=host_env,
+            port_env=port_env,
+            max_retries=max_retries,
+            retry_delay=retry_delay,
+            fail_on_error=fail_on_error,
+            timeout=timeout,
         )
         return self
 
@@ -517,6 +563,8 @@ class BaseServiceBuilder:
         pool_pre_ping = self._pool_pre_ping
         job_options = self._job_options
         include_logging = self._include_logging
+        registration_options = self._registration_options
+        info = self.info
         startup_hooks = list(self._startup_hooks)
         shutdown_hooks = list(self._shutdown_hooks)
 
@@ -591,6 +639,25 @@ class BaseServiceBuilder:
 
             for hook in startup_hooks:
                 await hook(app)
+
+            # Register with orchestrator if enabled
+            if registration_options is not None:
+                from .registration import register_service
+
+                await register_service(
+                    orchestrator_url=registration_options.orchestrator_url,
+                    host=registration_options.host,
+                    port=registration_options.port,
+                    info=info,
+                    orchestrator_url_env=registration_options.orchestrator_url_env,
+                    host_env=registration_options.host_env,
+                    port_env=registration_options.port_env,
+                    max_retries=registration_options.max_retries,
+                    retry_delay=registration_options.retry_delay,
+                    fail_on_error=registration_options.fail_on_error,
+                    timeout=registration_options.timeout,
+                )
+
             try:
                 yield
             finally:

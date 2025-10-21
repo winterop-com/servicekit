@@ -123,6 +123,7 @@ app = (
 - `.with_health()` - Health check endpoint at `/health` (operational monitoring)
 - `.with_system()` - System info endpoint at `/api/v1/system` (service metadata)
 - `.with_monitoring()` - Prometheus metrics at `/metrics` + OpenTelemetry
+- `.with_registration()` - Auto-register with orchestrator for service discovery
 - `.with_app(path, prefix)` - Mount single static web app (HTML/JS/CSS)
 - `.with_apps(path)` - Auto-discover and mount all apps in directory or package
 - `.with_jobs(max_concurrency)` - Job scheduler at `/api/v1/jobs`
@@ -511,6 +512,64 @@ async def process_data(scheduler: JobScheduler = Depends(get_scheduler)):
 
 See `examples/job_scheduler_api.py` and `examples/job_scheduler_sse_api.py` for complete examples.
 
+## Service Registration
+
+Automatic service registration with orchestrator for service discovery in Docker Compose/Kubernetes.
+
+**Example:**
+```python
+app = (
+    BaseServiceBuilder(info=ServiceInfo(display_name="My Service"))
+    .with_health()
+    .with_registration()  # Auto-detect hostname, reads SERVICEKIT_ORCHESTRATOR_URL
+    .build()
+)
+```
+
+**Docker Compose:**
+```yaml
+services:
+  my-service:
+    image: my-service:latest
+    environment:
+      SERVICEKIT_ORCHESTRATOR_URL: http://orchestrator:9000/register
+      # SERVICEKIT_HOST auto-detected from container name (lowercase)
+      # SERVICEKIT_PORT defaults to 8000
+```
+
+**Registration payload sent to orchestrator:**
+```json
+{
+  "url": "http://my-service:8000",
+  "info": {
+    "display_name": "My Service",
+    "version": "1.0.0",
+    ...
+  }
+}
+```
+
+**Features:**
+- **Hostname Auto-Detection**: Uses `socket.gethostname()` (Docker container name)
+- **Retry Logic**: Configurable retries with delays (default: 5 attempts, 2s delay)
+- **Custom Metadata**: Supports ServiceInfo subclasses with additional fields
+- **Fail-Fast Mode**: Optional `fail_on_error=True` to abort startup on failure
+- **Custom Environment Variables**: Override default env var names
+
+**Configuration:**
+```python
+.with_registration(
+    orchestrator_url="http://orchestrator:9000/register",  # Or env var
+    host="my-service",                                    # Or auto-detect
+    port=8000,                                            # Or env var or 8000
+    max_retries=5,
+    retry_delay=2.0,
+    fail_on_error=False,
+)
+```
+
+See `examples/registration/` for complete examples and `docs/guides/registration.md` for detailed guide.
+
 ## Code Quality
 
 **Standards:**
@@ -570,6 +629,7 @@ See the `examples/` directory for complete working examples:
 - `auth_docker_secrets.py` - API key from Docker secrets
 - `auth_custom_header.py` - Custom authentication header
 - `monitoring_api.py` - Prometheus metrics and OpenTelemetry
+- `registration/` - Service registration with orchestrator for service discovery
 
 ## Related Projects
 
