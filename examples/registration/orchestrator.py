@@ -2,21 +2,17 @@
 
 from datetime import UTC, datetime
 
-from fastapi import FastAPI
 from pydantic import BaseModel
+from ulid import ULID
 
+from servicekit.api import BaseServiceBuilder, Router, ServiceInfo
+from servicekit.exceptions import NotFoundError
 from servicekit.logging import get_logger
 
 logger = get_logger(__name__)
 
-app = FastAPI(
-    title="Mock Orchestrator",
-    version="1.0.0",
-    description="Simple orchestrator for testing service registration",
-)
-
-# In-memory registry
-# NOTE: This uses an in-memory dict which only works with a single Gunicorn worker.
+# In-memory registry keyed by ULID
+# NOTE: This uses an in-memory dict which only works with a single worker.
 # For production use with multiple workers, use a shared data store (Redis, database, etc.)
 service_registry: dict[str, dict] = {}
 
@@ -28,105 +24,140 @@ class RegistrationPayload(BaseModel):
     info: dict
 
 
-@app.post("/register")
-async def register_service(payload: RegistrationPayload) -> dict:
-    """Register a service and add it to the in-memory registry."""
-    service_url = payload.url
-    service_info = payload.info
+class RegistrationResponse(BaseModel):
+    """Response from service registration."""
 
-    # Store in registry with timestamp
-    service_registry[service_url] = {
-        "url": service_url,
-        "info": service_info,
-        "registered_at": datetime.now(UTC).isoformat(),
-        "last_updated": datetime.now(UTC).isoformat(),
-    }
-
-    # Build log context with optional fields
-    log_context = {
-        "service_url": service_url,
-        "display_name": service_info.get("display_name", "Unknown"),
-        "version": service_info.get("version", "Unknown"),
-        "registered_at": service_registry[service_url]["registered_at"],
-    }
-    if "deployment_env" in service_info:
-        log_context["deployment_env"] = service_info["deployment_env"]
-    if "team" in service_info:
-        log_context["team"] = service_info["team"]
-    if "capabilities" in service_info:
-        log_context["capabilities"] = service_info["capabilities"]
-
-    logger.info("service.registered", **log_context)
-
-    return {
-        "status": "registered",
-        "service_url": service_url,
-        "message": f"Service {service_info.get('display_name', 'Unknown')} registered successfully",
-    }
+    id: str
+    status: str
+    service_url: str
+    message: str
 
 
-@app.get("/services")
-async def list_services() -> dict:
-    """List all registered services."""
-    return {
-        "count": len(service_registry),
-        "services": list(service_registry.values()),
-    }
+class ServiceDetail(BaseModel):
+    """Detailed service information."""
+
+    id: str
+    url: str
+    info: dict
+    registered_at: str
+    last_updated: str
 
 
-@app.get("/services/{service_url:path}")
-async def get_service(service_url: str) -> dict:
-    """Get details for a specific service."""
-    # URL decode the service_url
-    import urllib.parse
+class ServiceListResponse(BaseModel):
+    """Response for listing all services."""
 
-    decoded_url = urllib.parse.unquote(service_url)
-
-    # Normalize URL (add http:// if missing)
-    if not decoded_url.startswith("http://") and not decoded_url.startswith("https://"):
-        decoded_url = f"http://{decoded_url}"
-
-    if decoded_url in service_registry:
-        return service_registry[decoded_url]
-
-    return {"error": "Service not found", "url": decoded_url}
+    count: int
+    services: list[ServiceDetail]
 
 
-@app.delete("/services/{service_url:path}")
-async def deregister_service(service_url: str) -> dict:
-    """Remove a service from the registry."""
-    import urllib.parse
+class RegistrationRouter(Router):
+    """Router for service registration operations."""
 
-    decoded_url = urllib.parse.unquote(service_url)
+    def _register_routes(self) -> None:
+        """Register service registration endpoints."""
 
-    if not decoded_url.startswith("http://") and not decoded_url.startswith("https://"):
-        decoded_url = f"http://{decoded_url}"
+        @self.router.post("/$register", response_model=RegistrationResponse)
+        async def register_service(payload: RegistrationPayload) -> RegistrationResponse:
+            """Register a service and add it to the in-memory registry."""
+            service_url = payload.url
+            service_info = payload.info
 
-    if decoded_url in service_registry:
-        service = service_registry.pop(decoded_url)
-        return {"status": "deregistered", "service": service}
+            # Generate ULID for this service
+            service_id = str(ULID())
 
-    return {"error": "Service not found", "url": decoded_url}
+            # Store in registry with ULID key
+            service_registry[service_id] = {
+                "id": service_id,
+                "url": service_url,
+                "info": service_info,
+                "registered_at": datetime.now(UTC).isoformat(),
+                "last_updated": datetime.now(UTC).isoformat(),
+            }
+
+            # Build log context with optional fields
+            log_context = {
+                "service_id": service_id,
+                "service_url": service_url,
+                "display_name": service_info.get("display_name", "Unknown"),
+                "version": service_info.get("version", "Unknown"),
+                "registered_at": service_registry[service_id]["registered_at"],
+            }
+            if "deployment_env" in service_info:
+                log_context["deployment_env"] = service_info["deployment_env"]
+            if "team" in service_info:
+                log_context["team"] = service_info["team"]
+            if "capabilities" in service_info:
+                log_context["capabilities"] = service_info["capabilities"]
+
+            logger.info("service.registered", **log_context)
+
+            return RegistrationResponse(
+                id=service_id,
+                status="registered",
+                service_url=service_url,
+                message=f"Service {service_info.get('display_name', 'Unknown')} registered successfully",
+            )
+
+        @self.router.get("", response_model=ServiceListResponse)
+        async def list_services() -> ServiceListResponse:
+            """List all registered services."""
+            services = [ServiceDetail(**svc) for svc in service_registry.values()]
+            return ServiceListResponse(
+                count=len(services),
+                services=services,
+            )
+
+        @self.router.get("/{service_id}", response_model=ServiceDetail)
+        async def get_service(service_id: str) -> ServiceDetail:
+            """Get details for a specific service by ULID."""
+            if service_id not in service_registry:
+                raise NotFoundError(f"Service with ID {service_id} not found")
+
+            return ServiceDetail(**service_registry[service_id])
+
+        @self.router.delete("/{service_id}")
+        async def deregister_service(service_id: str) -> dict:
+            """Remove a service from the registry by ULID."""
+            if service_id not in service_registry:
+                raise NotFoundError(f"Service with ID {service_id} not found")
+
+            service = service_registry.pop(service_id)
+            logger.info(
+                "service.deregistered",
+                service_id=service_id,
+                service_url=service["url"],
+                display_name=service["info"].get("display_name", "Unknown"),
+            )
+            return {"status": "deregistered", "service": service}
 
 
-@app.get("/health")
-async def health() -> dict:
-    """Health check endpoint."""
-    return {"status": "healthy", "registered_services": len(service_registry)}
+app = (
+    BaseServiceBuilder(
+        info=ServiceInfo(
+            display_name="Mock Orchestrator",
+            version="1.0.0",
+            summary="Simple orchestrator for testing service registration",
+            description=(
+                "Provides service registration endpoints for servicekit services to register themselves for discovery."
+            ),
+        ),
+    )
+    .with_logging()
+    .with_health()
+    .with_system()
+    .include_router(RegistrationRouter.create(prefix="/services", tags=["registration"]))
+    .build()
+)
 
 
 if __name__ == "__main__":
-    import uvicorn
-
-    from servicekit.logging import configure_logging
-
-    configure_logging()
+    from servicekit.api import run_app
 
     logger.info(
         "orchestrator.starting",
         url="http://0.0.0.0:9000",
-        register_endpoint="http://0.0.0.0:9000/register",
+        register_endpoint="http://0.0.0.0:9000/services/$register",
         services_endpoint="http://0.0.0.0:9000/services",
     )
 
-    uvicorn.run("orchestrator:app", host="0.0.0.0", port=9000, reload=True)
+    run_app("orchestrator:app", port=9000)

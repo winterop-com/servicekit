@@ -33,7 +33,7 @@ services:
         environment:
             LOG_FORMAT: json
             LOG_LEVEL: INFO
-            SERVICEKIT_ORCHESTRATOR_URL: http://orchestrator:9000/register
+            SERVICEKIT_ORCHESTRATOR_URL: http://orchestrator:9000/services/$$register
         depends_on:
             orchestrator:
                 condition: service_healthy
@@ -61,7 +61,7 @@ services:
         environment:
             LOG_FORMAT: json
             LOG_LEVEL: INFO
-            SERVICEKIT_ORCHESTRATOR_URL: http://orchestrator:9000/register
+            SERVICEKIT_ORCHESTRATOR_URL: http://orchestrator:9000/services/$$register
         depends_on:
             orchestrator:
                 condition: service_healthy

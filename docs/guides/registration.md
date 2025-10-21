@@ -21,7 +21,7 @@ app = (
 Set the environment variable:
 
 ```bash
-export SERVICEKIT_ORCHESTRATOR_URL=http://orchestrator:9000/register
+export SERVICEKIT_ORCHESTRATOR_URL=http://orchestrator:9000/services/$register
 fastapi run your_file.py
 ```
 
@@ -39,7 +39,7 @@ services:
   my-service:
     image: your-service:latest
     environment:
-      SERVICEKIT_ORCHESTRATOR_URL: http://orchestrator:9000/register
+      SERVICEKIT_ORCHESTRATOR_URL: http://orchestrator:9000/services/$register
       # Hostname auto-detected from container name
     depends_on:
       - orchestrator
@@ -199,7 +199,7 @@ services:
   my-service:
     image: my-service:latest
     environment:
-      SERVICEKIT_ORCHESTRATOR_URL: http://orchestrator:9000/register
+      SERVICEKIT_ORCHESTRATOR_URL: http://orchestrator:9000/services/$register
       # SERVICEKIT_HOST auto-detected
       # SERVICEKIT_PORT defaults to 8000
 ```
@@ -210,7 +210,7 @@ services:
 app = (
     BaseServiceBuilder(info=ServiceInfo(display_name="Test Service"))
     .with_registration(
-        orchestrator_url="http://localhost:9000/register",
+        orchestrator_url="http://localhost:9000/services/$register",
         host="test-service",
         port=8080,
     )
@@ -234,7 +234,7 @@ app = (
 
 **Environment:**
 ```bash
-export MY_APP_ORCHESTRATOR_URL=http://orchestrator:9000/register
+export MY_APP_ORCHESTRATOR_URL=http://orchestrator:9000/services/$register
 export MY_APP_HOST=my-service
 export MY_APP_PORT=8000
 ```
@@ -285,7 +285,7 @@ services:
   service-a:
     image: my-service:latest
     environment:
-      SERVICEKIT_ORCHESTRATOR_URL: http://orchestrator:9000/register
+      SERVICEKIT_ORCHESTRATOR_URL: http://orchestrator:9000/services/$register
     depends_on:
       - orchestrator
 ```
@@ -309,7 +309,7 @@ services:
   service-a:
     image: my-service:latest
     environment:
-      SERVICEKIT_ORCHESTRATOR_URL: http://orchestrator:9000/register
+      SERVICEKIT_ORCHESTRATOR_URL: http://orchestrator:9000/services/$register
     depends_on:
       orchestrator:
         condition: service_healthy  # Wait for healthy status
@@ -326,7 +326,7 @@ services:
     ports:
       - "8001:8000"  # Host:Container
     environment:
-      SERVICEKIT_ORCHESTRATOR_URL: http://orchestrator:9000/register
+      SERVICEKIT_ORCHESTRATOR_URL: http://orchestrator:9000/services/$register
       SERVICEKIT_PORT: "8000"  # Use container port, not host port
 ```
 
@@ -346,14 +346,14 @@ services:
     ports:
       - "8000:8000"
     environment:
-      SERVICEKIT_ORCHESTRATOR_URL: http://orchestrator:9000/register
+      SERVICEKIT_ORCHESTRATOR_URL: http://orchestrator:9000/services/$register
 
   service-b:
     image: my-service:latest
     ports:
       - "8001:8000"
     environment:
-      SERVICEKIT_ORCHESTRATOR_URL: http://orchestrator:9000/register
+      SERVICEKIT_ORCHESTRATOR_URL: http://orchestrator:9000/services/$register
 ```
 
 Both services register with different hostnames (service-a, service-b) but same internal port (8000).
@@ -370,7 +370,7 @@ kind: ConfigMap
 metadata:
   name: registration-config
 data:
-  orchestrator-url: "http://orchestrator-service:9000/register"
+  orchestrator-url: "http://orchestrator-service:9000/services/$register"
 ```
 
 ### Deployment with Registration
@@ -465,7 +465,7 @@ All registration events are logged with structured data:
 ```json
 {
   "event": "registration.starting",
-  "orchestrator_url": "http://orchestrator:9000/register",
+  "orchestrator_url": "http://orchestrator:9000/services/$register",
   "service_url": "http://my-service:8000",
   "host_source": "auto-detected",
   "port_source": "default",
@@ -569,13 +569,13 @@ environment:
 **Solution**: Set environment variable
 
 ```bash
-export SERVICEKIT_ORCHESTRATOR_URL=http://orchestrator:9000/register
+export SERVICEKIT_ORCHESTRATOR_URL=http://orchestrator:9000/services/$register
 ```
 
 Or use direct configuration:
 
 ```python
-.with_registration(orchestrator_url="http://orchestrator:9000/register")
+.with_registration(orchestrator_url="http://orchestrator:9000/services/$register")
 ```
 
 ### Service Not Appearing in Registry
@@ -615,7 +615,7 @@ services:
 
   service-a:
     environment:
-      SERVICEKIT_ORCHESTRATOR_URL: http://orchestrator:9000/register
+      SERVICEKIT_ORCHESTRATOR_URL: http://orchestrator:9000/services/$register
 ```
 
 ### Retry Strategy
@@ -639,7 +639,7 @@ Adjust retries for production reliability:
 
 ```python
 .with_registration(
-    orchestrator_url="https://orchestrator:9443/register"
+    orchestrator_url="https://orchestrator:9443/services/$register"
 )
 ```
 

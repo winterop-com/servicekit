@@ -23,6 +23,14 @@ async def test_successful_registration():
     mock_response = MagicMock()
     mock_response.status_code = 200
     mock_response.raise_for_status = MagicMock()
+    mock_response.json = MagicMock(
+        return_value={
+            "id": "01K83B5V85PQZ1HTH4DQ7NC9JM",
+            "status": "registered",
+            "service_url": "http://test-service:8000",
+            "message": "Service registered successfully",
+        }
+    )
 
     with patch("httpx.AsyncClient") as mock_client:
         mock_client.return_value.__aenter__.return_value.post = AsyncMock(return_value=mock_response)
@@ -30,7 +38,7 @@ async def test_successful_registration():
         info = ServiceInfo(display_name="Test Service", version="1.0.0")
 
         await register_service(
-            orchestrator_url="http://orchestrator:9000/register",
+            orchestrator_url="http://orchestrator:9000/services/$register",
             host="test-service",
             port=8000,
             info=info,
@@ -38,7 +46,7 @@ async def test_successful_registration():
 
         # Verify POST was called with correct payload
         call_args = mock_client.return_value.__aenter__.return_value.post.call_args
-        assert call_args[0][0] == "http://orchestrator:9000/register"
+        assert call_args[0][0] == "http://orchestrator:9000/services/$register"
         payload = call_args[1]["json"]
         assert payload["url"] == "http://test-service:8000"
         assert payload["info"]["display_name"] == "Test Service"
@@ -55,6 +63,14 @@ async def test_retry_logic_success_on_second_attempt():
     mock_response_success = MagicMock()
     mock_response_success.status_code = 200
     mock_response_success.raise_for_status = MagicMock()
+    mock_response_success.json = MagicMock(
+        return_value={
+            "id": "01K83B5V85PQZ1HTH4DQ7NC9JM",
+            "status": "registered",
+            "service_url": "http://test-service:8000",
+            "message": "Service registered successfully",
+        }
+    )
 
     with patch("httpx.AsyncClient") as mock_client:
         mock_client.return_value.__aenter__.return_value.post = AsyncMock(
@@ -64,7 +80,7 @@ async def test_retry_logic_success_on_second_attempt():
         info = ServiceInfo(display_name="Test Service")
 
         await register_service(
-            orchestrator_url="http://orchestrator:9000/register",
+            orchestrator_url="http://orchestrator:9000/services/$register",
             host="test-service",
             port=8000,
             info=info,
@@ -91,7 +107,7 @@ async def test_fail_on_error_true_raises_exception():
 
         with pytest.raises(RuntimeError, match="Failed to register service"):
             await register_service(
-                orchestrator_url="http://orchestrator:9000/register",
+                orchestrator_url="http://orchestrator:9000/services/$register",
                 host="test-service",
                 port=8000,
                 info=info,
@@ -116,7 +132,7 @@ async def test_fail_on_error_false_continues():
 
         # Should not raise exception
         await register_service(
-            orchestrator_url="http://orchestrator:9000/register",
+            orchestrator_url="http://orchestrator:9000/services/$register",
             host="test-service",
             port=8000,
             info=info,
@@ -139,7 +155,7 @@ async def test_hostname_resolution_parameter():
         info = ServiceInfo(display_name="Test Service")
 
         await register_service(
-            orchestrator_url="http://orchestrator:9000/register",
+            orchestrator_url="http://orchestrator:9000/services/$register",
             host="param-hostname",  # Explicit parameter
             port=8000,
             info=info,
@@ -166,7 +182,7 @@ async def test_hostname_resolution_auto_detect():
         info = ServiceInfo(display_name="Test Service")
 
         await register_service(
-            orchestrator_url="http://orchestrator:9000/register",
+            orchestrator_url="http://orchestrator:9000/services/$register",
             host=None,  # No explicit host
             port=8000,
             info=info,
@@ -193,7 +209,7 @@ async def test_hostname_resolution_env_var():
         info = ServiceInfo(display_name="Test Service")
 
         await register_service(
-            orchestrator_url="http://orchestrator:9000/register",
+            orchestrator_url="http://orchestrator:9000/services/$register",
             host=None,
             port=8000,
             info=info,
@@ -211,7 +227,7 @@ async def test_hostname_missing_raises_with_fail_on_error():
 
         # Should log warning and return early (no exception with fail_on_error=False)
         await register_service(
-            orchestrator_url="http://orchestrator:9000/register",
+            orchestrator_url="http://orchestrator:9000/services/$register",
             host=None,
             port=8000,
             info=info,
@@ -221,7 +237,7 @@ async def test_hostname_missing_raises_with_fail_on_error():
         # With fail_on_error=True, should raise
         with pytest.raises(ValueError, match="Host not provided"):
             await register_service(
-                orchestrator_url="http://orchestrator:9000/register",
+                orchestrator_url="http://orchestrator:9000/services/$register",
                 host=None,
                 port=8000,
                 info=info,
@@ -242,7 +258,7 @@ async def test_port_resolution_parameter():
         info = ServiceInfo(display_name="Test Service")
 
         await register_service(
-            orchestrator_url="http://orchestrator:9000/register",
+            orchestrator_url="http://orchestrator:9000/services/$register",
             host="test-service",
             port=9999,  # Explicit parameter
             info=info,
@@ -265,7 +281,7 @@ async def test_port_resolution_env_var():
         info = ServiceInfo(display_name="Test Service")
 
         await register_service(
-            orchestrator_url="http://orchestrator:9000/register",
+            orchestrator_url="http://orchestrator:9000/services/$register",
             host="test-service",
             port=None,  # No explicit port
             info=info,
@@ -288,7 +304,7 @@ async def test_port_resolution_default():
         info = ServiceInfo(display_name="Test Service")
 
         await register_service(
-            orchestrator_url="http://orchestrator:9000/register",
+            orchestrator_url="http://orchestrator:9000/services/$register",
             host="test-service",
             port=None,
             info=info,
@@ -355,7 +371,7 @@ async def test_custom_serviceinfo_serialization():
         )
 
         await register_service(
-            orchestrator_url="http://orchestrator:9000/register",
+            orchestrator_url="http://orchestrator:9000/services/$register",
             host="test-service",
             port=8000,
             info=info,
@@ -407,7 +423,7 @@ async def test_url_construction():
         info = ServiceInfo(display_name="Test Service")
 
         await register_service(
-            orchestrator_url="http://orchestrator:9000/register",
+            orchestrator_url="http://orchestrator:9000/services/$register",
             host="my-service",
             port=8080,
             info=info,
@@ -430,7 +446,7 @@ async def test_timeout_parameter():
         info = ServiceInfo(display_name="Test Service")
 
         await register_service(
-            orchestrator_url="http://orchestrator:9000/register",
+            orchestrator_url="http://orchestrator:9000/services/$register",
             host="test-service",
             port=8000,
             info=info,

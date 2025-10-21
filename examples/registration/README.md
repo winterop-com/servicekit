@@ -33,7 +33,7 @@ In a separate terminal:
 
 ```bash
 # Set orchestrator URL
-export SERVICEKIT_ORCHESTRATOR_URL=http://localhost:9000/register
+export SERVICEKIT_ORCHESTRATOR_URL=http://localhost:9000/services/\$register
 
 # Run the service
 uv run uvicorn main:app --reload
@@ -64,7 +64,7 @@ docker compose down
 
 ```
 ┌─────────────┐
-│ Orchestrator│  ← Registration endpoint at :9000/register
+│ Orchestrator│  ← Registration endpoint at :9000/services/$register
 │   (port 9000)│
 └──────▲──────┘
        │
@@ -90,10 +90,10 @@ docker compose down
 
 ### Orchestrator Endpoints
 
-- `POST /register` - Register a service (called by services on startup)
+- `POST /services/$register` - Register a service (called by services on startup)
 - `GET /services` - List all registered services
-- `GET /services/{url}` - Get specific service details
-- `DELETE /services/{url}` - Deregister a service
+- `GET /services/{id}` - Get specific service details by ULID
+- `DELETE /services/{id}` - Deregister a service by ULID
 - `GET /health` - Orchestrator health check
 
 ## Registration Flow
@@ -113,8 +113,17 @@ docker compose down
      }
    }
    ```
-6. **Retry on Failure**: Retries up to 5 times with 2-second delay
-7. **Success/Failure Logging**: Logs outcome with structured logging
+6. **ID Assignment**: Orchestrator assigns ULID and returns:
+   ```json
+   {
+     "id": "01K83B5V85PQZ1HTH4DQ7NC9JM",
+     "status": "registered",
+     "service_url": "http://svca:8000",
+     "message": "..."
+   }
+   ```
+7. **Retry on Failure**: Retries up to 5 times with 2-second delay
+8. **Success/Failure Logging**: Logs outcome with service ID via structured logging
 
 ## Configuration
 
@@ -239,11 +248,12 @@ docker compose logs svca | grep registration
 # List all registered services
 curl http://localhost:9000/services | jq
 
-# Get specific service
-curl http://localhost:9000/services/http%3A%2F%2Fsvca%3A8000 | jq
+# Get specific service by ULID
+curl http://localhost:9000/services/01K83B5V85PQZ1HTH4DQ7NC9JM | jq
 
 # Expected output:
 {
+  "id": "01K83B5V85PQZ1HTH4DQ7NC9JM",
   "url": "http://svca:8000",
   "info": {
     "display_name": "Registration Example Service",
@@ -398,7 +408,7 @@ services:
   my-service:
     image: my-service:latest
     environment:
-      SERVICEKIT_ORCHESTRATOR_URL: ${ORCHESTRATOR_URL}
+      SERVICEKIT_ORCHESTRATOR_URL: ${ORCHESTRATOR_URL}  # e.g., http://orchestrator:9000/services/$register
     env_file:
       - .env.production
 ```
@@ -428,7 +438,7 @@ spec:
           image: my-service:latest
           env:
             - name: SERVICEKIT_ORCHESTRATOR_URL
-              value: "http://orchestrator-service:9000/register"
+              value: "http://orchestrator-service:9000/services/$register"
             - name: SERVICEKIT_HOST
               valueFrom:
                 fieldRef:

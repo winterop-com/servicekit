@@ -23,14 +23,14 @@
 					"response": []
 				},
 				{
-					"name": "Get Service by URL",
+					"name": "Get Service by ID",
 					"request": {
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{orchestratorUrl}}/services/http://svca:8000",
+							"raw": "{{orchestratorUrl}}/services/01K83B5V85PQZ1HTH4DQ7NC9JM",
 							"host": ["{{orchestratorUrl}}"],
-							"path": ["services", "http:", "", "svca:8000"]
+							"path": ["services", "01K83B5V85PQZ1HTH4DQ7NC9JM"]
 						}
 					},
 					"response": []
@@ -50,9 +50,9 @@
 							"raw": "{\n  \"url\": \"http://test-service:8080\",\n  \"info\": {\n    \"display_name\": \"Test Service\",\n    \"version\": \"1.0.0\",\n    \"summary\": \"Manual registration test\"\n  }\n}"
 						},
 						"url": {
-							"raw": "{{orchestratorUrl}}/register",
+							"raw": "{{orchestratorUrl}}/services/$register",
 							"host": ["{{orchestratorUrl}}"],
-							"path": ["register"]
+							"path": ["services", "$register"]
 						}
 					},
 					"response": []
@@ -63,9 +63,9 @@
 						"method": "DELETE",
 						"header": [],
 						"url": {
-							"raw": "{{orchestratorUrl}}/services/http://test-service:8080",
+							"raw": "{{orchestratorUrl}}/services/01K83B5V85PQZ1HTH4DQ7NC9JM",
 							"host": ["{{orchestratorUrl}}"],
-							"path": ["services", "http:", "", "test-service:8080"]
+							"path": ["services", "01K83B5V85PQZ1HTH4DQ7NC9JM"]
 						}
 					},
 					"response": []

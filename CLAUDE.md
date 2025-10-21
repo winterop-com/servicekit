@@ -532,7 +532,7 @@ services:
   my-service:
     image: my-service:latest
     environment:
-      SERVICEKIT_ORCHESTRATOR_URL: http://orchestrator:9000/register
+      SERVICEKIT_ORCHESTRATOR_URL: http://orchestrator:9000/services/$register
       # SERVICEKIT_HOST auto-detected from container name (lowercase)
       # SERVICEKIT_PORT defaults to 8000
 ```
@@ -549,6 +549,16 @@ services:
 }
 ```
 
+**Orchestrator response:**
+```json
+{
+  "id": "01K83B5V85PQZ1HTH4DQ7NC9JM",
+  "status": "registered",
+  "service_url": "http://my-service:8000",
+  "message": "Service registered successfully"
+}
+```
+
 **Features:**
 - **Hostname Auto-Detection**: Uses `socket.gethostname()` (Docker container name)
 - **Retry Logic**: Configurable retries with delays (default: 5 attempts, 2s delay)
@@ -559,9 +569,9 @@ services:
 **Configuration:**
 ```python
 .with_registration(
-    orchestrator_url="http://orchestrator:9000/register",  # Or env var
-    host="my-service",                                    # Or auto-detect
-    port=8000,                                            # Or env var or 8000
+    orchestrator_url="http://orchestrator:9000/services/$register",  # Or env var
+    host="my-service",                                              # Or auto-detect
+    port=8000,                                                      # Or env var or 8000
     max_retries=5,
     retry_delay=2.0,
     fail_on_error=False,

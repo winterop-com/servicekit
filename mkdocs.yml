@@ -37,6 +37,7 @@ nav:
       - Health Checks: guides/health-checks.md
       - Job Scheduler: guides/job-scheduler.md
       - Monitoring: guides/monitoring.md
+      - Service Registration: guides/registration.md
   - API Reference: api-reference.md
 
 markdown_extensions:
