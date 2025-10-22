@@ -126,6 +126,18 @@ mypy_path = ["src", "typings"]
 module = "tests.*"
 disallow_untyped_defs = false
 
+[[tool.mypy.overrides]]
+module = "polars.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "xarray.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "examples.*"
+ignore_missing_imports = true
+
 [tool.pyright]
 include = ["src", "tests", "examples"]
 pythonVersion = "3.13"
