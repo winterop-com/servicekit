@@ -12,6 +12,7 @@ from typing import Any
 
 import altair as alt  # type: ignore[import-not-found]
 import pandas as pd
+import vl_convert as vlc  # type: ignore[import-not-found]
 from fastapi import HTTPException, Response, status
 from pydantic import BaseModel, Field
 
@@ -263,15 +264,11 @@ class VegaRouter(Router):
     def _render_chart(self, chart: alt.Chart, format: str) -> Response:  # type: ignore[no-any-unimported]
         """Render chart to specified format."""
         if format == "png":
-            import vl_convert as vlc  # type: ignore[import-not-found]
-
             png_data = chart.to_json()
             png_bytes = vlc.vegalite_to_png(png_data, scale=2)
             return Response(content=png_bytes, media_type="image/png")
 
         elif format == "svg":
-            import vl_convert as vlc  # pyright: ignore[reportMissingImports]
-
             svg_data = chart.to_json()
             svg_str = vlc.vegalite_to_svg(svg_data)
             return Response(content=svg_str, media_type="image/svg+xml")
