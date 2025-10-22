@@ -9,6 +9,7 @@ services:
         environment:
             LOG_FORMAT: json
             LOG_LEVEL: INFO
+            WORKERS: 1
         restart: unless-stopped
         healthcheck:
             test:
@@ -33,6 +34,7 @@ services:
         environment:
             LOG_FORMAT: json
             LOG_LEVEL: INFO
+            WORKERS: 1
             SERVICEKIT_ORCHESTRATOR_URL: http://orchestrator:9000/services/$$register
         depends_on:
             orchestrator:
@@ -61,6 +63,7 @@ services:
         environment:
             LOG_FORMAT: json
             LOG_LEVEL: INFO
+            WORKERS: 1
             SERVICEKIT_ORCHESTRATOR_URL: http://orchestrator:9000/services/$$register
         depends_on:
             orchestrator:
