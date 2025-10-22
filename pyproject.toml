@@ -153,3 +153,5 @@ reportUnknownParameterType = false
 reportUnknownVariableType = false
 reportMissingTypeArgument = false
 reportMissingTypeStubs = false
+reportMissingImports = "none"
+reportMissingModuleSource = "none"
