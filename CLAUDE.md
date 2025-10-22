@@ -263,6 +263,10 @@ See `examples/` directory for working examples:
 - `monitoring_api.py` - Prometheus metrics
 - `registration/` - Service registration with orchestrator
 
+**Postman Collections:**
+- Each example with REST endpoints should include `postman_collection.json`
+- Always name it exactly `postman_collection.json` (not service-specific names)
+
 ## Related Projects
 
 - **[chapkit](https://github.com/dhis2-chap/chapkit)** - Domain modules (artifacts, configs, tasks, ML workflows) built on servicekit
