@@ -253,8 +253,9 @@ uv sync                   # Install all dependencies from pyproject.toml
 
 **Important rules:**
 - Never manually edit `pyproject.toml` dependencies
-- Never use `uv pip` commands - always use `uv add`, `uv sync`, etc.
-- `uv pip` is deprecated; use native uv commands that work with pyproject.toml
+- Never use `uv pip` commands in development - always use `uv add`, `uv sync`, etc.
+- `uv pip` is only acceptable in Dockerfiles when installing pre-built wheels
+- Use native uv commands that work with pyproject.toml for all development tasks
 
 ## Examples
 
