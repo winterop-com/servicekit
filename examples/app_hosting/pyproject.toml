@@ -8,10 +8,5 @@ dependencies = [
     "servicekit",
 ]
 
-[dependency-groups]
-dev = [
-    "uvicorn[standard]>=0.30.0",
-]
-
 [tool.uv.sources]
 servicekit = { path = "../..", editable = true }

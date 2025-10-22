@@ -11,10 +11,5 @@ dependencies = [
     "vl-convert-python>=1.8.0",
 ]
 
-[dependency-groups]
-dev = [
-    "uvicorn[standard]>=0.30.0",
-]
-
 [tool.uv.sources]
 servicekit = { path = "../..", editable = true }

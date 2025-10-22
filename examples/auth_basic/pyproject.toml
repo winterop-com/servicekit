@@ -1,16 +1,11 @@
 [project]
 name = "servicekit-demo-auth_basic"
 version = "0.1.0"
-description = "auth uasic demo"
+description = "auth basic demo"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "servicekit",
-]
-
-[dependency-groups]
-dev = [
-    "uvicorn[standard]>=0.30.0",
 ]
 
 [tool.uv.sources]
