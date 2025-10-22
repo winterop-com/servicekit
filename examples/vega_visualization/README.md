@@ -6,8 +6,10 @@ A proof-of-concept visualization service that transforms PandasDataFrame data to
 
 - **Data Transformation**: Universal DataFrame → Vega-Lite grammar
 - **Multiple Chart Types**: Line, bar, scatter, heatmap, boxplot, histogram
-- **Multi-Format Support**: Works with pandas, polars, xarray, dicts, records
+- **Multiple Output Formats**: JSON spec, PNG, SVG, or standalone HTML
+- **Multi-Format Input**: Works with pandas, polars, xarray, dicts, records
 - **Data Processing**: Aggregation, grouping, filtering
+- **Built with Altair**: Clean, Pythonic chart generation
 - **REST API**: Clean `/$operation` endpoints following servicekit conventions
 - **Type Safety**: Full Pydantic validation for requests and responses
 - **Extensible**: Easy to add new chart types and transformations
@@ -73,9 +75,22 @@ docker compose down
 - `POST /api/v1/visualizations/$generate` - Generate Vega-Lite spec from data
 - `POST /api/v1/visualizations/$aggregate` - Aggregate data and visualize
 
+## Output Formats
+
+The service supports multiple output formats via the `format` parameter:
+
+| Format | Content-Type | Description | Use Case |
+|--------|-------------|-------------|----------|
+| `json` | `application/json` | Vega-Lite JSON spec | For Vega renderers, embedding in web apps |
+| `png` | `image/png` | Rendered PNG image (2x scale) | Static images, reports, emails |
+| `svg` | `image/svg+xml` | Rendered SVG vector graphic | High-quality prints, scaling |
+| `html` | `text/html` | Standalone HTML page | Direct browser viewing, sharing |
+
+**Default:** `json` (Vega-Lite specification)
+
 ## Usage Examples
 
-### Example 1: Simple Line Chart
+### Example 1: Simple Line Chart (JSON)
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/visualizations/\$generate \
@@ -96,7 +111,8 @@ curl -X POST http://localhost:8000/api/v1/visualizations/\$generate \
     "x_field": "month",
     "y_field": "sales",
     "color_field": "region",
-    "title": "Monthly Sales by Region"
+    "title": "Monthly Sales by Region",
+    "format": "json"
   }'
 ```
 
@@ -154,7 +170,70 @@ curl -X POST http://localhost:8000/api/v1/visualizations/\$generate \
   }'
 ```
 
-### Example 3: Data Aggregation
+### Example 3: Generate PNG Image
+
+```bash
+curl -X POST http://localhost:8000/api/v1/visualizations/\$generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "data": {
+      "columns": ["x", "y"],
+      "data": [[1, 10], [2, 25], [3, 15], [4, 30], [5, 20]]
+    },
+    "chart_type": "line",
+    "x_field": "x",
+    "y_field": "y",
+    "title": "Trend Analysis",
+    "format": "png"
+  }' \
+  --output chart.png
+```
+
+Saves a high-resolution PNG image (2x scale for retina displays).
+
+### Example 4: Generate SVG Vector Graphic
+
+```bash
+curl -X POST http://localhost:8000/api/v1/visualizations/\$generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "data": {
+      "columns": ["category", "value"],
+      "data": [["A", 10], ["B", 20], ["C", 15]]
+    },
+    "chart_type": "bar",
+    "x_field": "category",
+    "y_field": "value",
+    "title": "Category Breakdown",
+    "format": "svg"
+  }' \
+  --output chart.svg
+```
+
+Perfect for high-quality prints and infinite scaling.
+
+### Example 5: Generate Standalone HTML
+
+```bash
+curl -X POST http://localhost:8000/api/v1/visualizations/\$generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "data": {
+      "columns": ["date", "temperature"],
+      "data": [["Mon", 72], ["Tue", 68], ["Wed", 75], ["Thu", 70], ["Fri", 73]]
+    },
+    "chart_type": "line",
+    "x_field": "date",
+    "y_field": "temperature",
+    "title": "Weekly Temperature",
+    "format": "html"
+  }' \
+  --output chart.html
+```
+
+Open `chart.html` in any browser for an interactive visualization.
+
+### Example 6: Data Aggregation
 
 Use the `/$aggregate` endpoint to group and aggregate data before visualization:
 

@@ -8,6 +8,7 @@ dependencies = [
     "servicekit",
     "pandas>=2.3.3",
     "altair>=5.5.0",
+    "vl-convert-python>=1.8.0",
 ]
 
 [dependency-groups]

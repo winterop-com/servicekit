@@ -12,7 +12,7 @@ from typing import Any
 
 import altair as alt  # type: ignore[import-not-found]
 import pandas as pd
-from fastapi import HTTPException, status
+from fastapi import HTTPException, Response, status
 from pydantic import BaseModel, Field
 
 from servicekit.api import BaseServiceBuilder, ServiceInfo
@@ -38,6 +38,7 @@ class VegaGenerateRequest(BaseModel):
         None,
         description="Aggregation function: mean, sum, count, median, min, max",
     )
+    format: str = Field("json", description="Output format: json, png, svg, html")
 
 
 class VegaAggregateRequest(BaseModel):
@@ -49,6 +50,7 @@ class VegaAggregateRequest(BaseModel):
     agg_func: str = Field(..., description="Aggregation function: mean, sum, count, etc.")
     chart_type: str = Field("bar", description="Chart type for aggregated data")
     title: str | None = None
+    format: str = Field("json", description="Output format: json, png, svg, html")
 
 
 class VegaResponse(BaseModel):
@@ -67,13 +69,13 @@ class VegaRouter(Router):
 
         @self.router.post(
             "/$generate",
-            response_model=VegaResponse,
+            response_model=None,
             status_code=status.HTTP_200_OK,
-            summary="Generate Vega-Lite spec",
-            description="Transform PandasDataFrame to Vega-Lite specification",
+            summary="Generate Vega-Lite spec or rendered image",
+            description="Transform PandasDataFrame to Vega-Lite specification or rendered format (json/png/svg/html)",
         )
-        async def generate_vega(request: VegaGenerateRequest) -> VegaResponse:
-            """Generate Vega-Lite specification from data."""
+        async def generate_vega(request: VegaGenerateRequest) -> VegaResponse | Response:
+            """Generate Vega-Lite specification or rendered image from data."""
             # Convert to pandas DataFrame
             df = request.data.to_pandas()
 
@@ -89,8 +91,8 @@ class VegaRouter(Router):
                     detail=f"Field '{request.y_field}' not found in data",
                 )
 
-            # Generate spec based on chart type
-            spec = self._build_spec(
+            # Build chart
+            chart = self._build_chart(
                 df=df,
                 chart_type=request.chart_type,
                 x_field=request.x_field,
@@ -102,20 +104,25 @@ class VegaRouter(Router):
                 aggregate=request.aggregate,
             )
 
-            return VegaResponse(
-                spec=spec,
-                row_count=len(df),
-                columns=df.columns.tolist(),
-            )
+            # Return based on format
+            if request.format == "json":
+                spec = chart.to_dict()
+                return VegaResponse(
+                    spec=spec,
+                    row_count=len(df),
+                    columns=df.columns.tolist(),
+                )
+            else:
+                return self._render_chart(chart, request.format)
 
         @self.router.post(
             "/$aggregate",
-            response_model=VegaResponse,
+            response_model=None,
             status_code=status.HTTP_200_OK,
             summary="Aggregate and visualize",
-            description="Aggregate PandasDataFrame and generate visualization",
+            description="Aggregate PandasDataFrame and generate visualization in specified format",
         )
-        async def aggregate_and_visualize(request: VegaAggregateRequest) -> VegaResponse:
+        async def aggregate_and_visualize(request: VegaAggregateRequest) -> VegaResponse | Response:
             """Aggregate data and generate visualization."""
             # Convert to pandas DataFrame
             df = request.data.to_pandas()
@@ -141,11 +148,11 @@ class VegaRouter(Router):
                 agg_func=request.agg_func,
             )
 
-            # Generate spec for aggregated data
+            # Generate chart for aggregated data
             x_field = request.group_by[0] if request.group_by else None
             y_field = f"{request.agg_field}_{request.agg_func}"
 
-            spec = self._build_spec(
+            chart = self._build_chart(
                 df=agg_df,
                 chart_type=request.chart_type,
                 x_field=x_field,
@@ -156,13 +163,18 @@ class VegaRouter(Router):
                 height=400,
             )
 
-            return VegaResponse(
-                spec=spec,
-                row_count=len(agg_df),
-                columns=agg_df.columns.tolist(),
-            )
+            # Return based on format
+            if request.format == "json":
+                spec = chart.to_dict()
+                return VegaResponse(
+                    spec=spec,
+                    row_count=len(agg_df),
+                    columns=agg_df.columns.tolist(),
+                )
+            else:
+                return self._render_chart(chart, request.format)
 
-    def _build_spec(
+    def _build_chart(  # type: ignore[no-any-unimported]
         self,
         df: pd.DataFrame,
         chart_type: str,
@@ -173,8 +185,8 @@ class VegaRouter(Router):
         width: int,
         height: int,
         aggregate: str | None = None,
-    ) -> dict[str, Any]:
-        """Build Vega-Lite specification using altair."""
+    ) -> alt.Chart:
+        """Build altair chart object."""
         # Create base chart with data
         chart = alt.Chart(df).properties(width=width, height=height)
 
@@ -221,7 +233,7 @@ class VegaRouter(Router):
                 detail=f"Unsupported chart type: {chart_type}",
             )
 
-        return chart.to_dict()  # type: ignore[no-any-return]
+        return chart
 
     def _add_encoding(  # type: ignore[no-any-unimported]
         self,
@@ -247,6 +259,32 @@ class VegaRouter(Router):
             encoding["color"] = alt.Color(color_field, type="nominal")
 
         return chart.encode(**encoding)
+
+    def _render_chart(self, chart: alt.Chart, format: str) -> Response:  # type: ignore[no-any-unimported]
+        """Render chart to specified format."""
+        if format == "png":
+            import vl_convert as vlc  # type: ignore[import-not-found]
+
+            png_data = chart.to_json()
+            png_bytes = vlc.vegalite_to_png(png_data, scale=2)
+            return Response(content=png_bytes, media_type="image/png")
+
+        elif format == "svg":
+            import vl_convert as vlc  # pyright: ignore[reportMissingImports]
+
+            svg_data = chart.to_json()
+            svg_str = vlc.vegalite_to_svg(svg_data)
+            return Response(content=svg_str, media_type="image/svg+xml")
+
+        elif format == "html":
+            html_str = chart.to_html()
+            return Response(content=html_str, media_type="text/html")
+
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Unsupported format: {format}. Use json, png, svg, or html",
+            )
 
     def _aggregate_data(
         self,
