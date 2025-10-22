@@ -83,6 +83,7 @@ clean:
 	@rm -rf .coverage coverage.xml htmlcov/
 	@rm -rf .pytype/
 	@rm -rf dist/ build/ *.egg-info
+	@rm -f examples/*/uv.lock
 
 # ==============================================================================
 # Default
