@@ -177,7 +177,7 @@ class VegaRouter(Router):
         # Base spec
         spec: dict[str, Any] = {
             "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
-            "data": {"values": df.to_dict(orient="records")},
+            "data": {"values": df.to_dict(orient="records")},  # pyright: ignore[reportUnknownMemberType]
             "width": width,
             "height": height,
         }
@@ -268,10 +268,10 @@ class VegaRouter(Router):
     ) -> pd.DataFrame:
         """Aggregate DataFrame by specified fields."""
         if agg_func == "count":
-            agg_df = df.groupby(group_by).size().reset_index(name=f"{agg_field}_count")
+            agg_df = df.groupby(group_by).size().reset_index(name=f"{agg_field}_count")  # pyright: ignore[reportUnknownMemberType]
         else:
             agg_mapping = {f"{agg_field}_{agg_func}": (agg_field, agg_func)}
-            agg_df = df.groupby(group_by).agg(**agg_mapping).reset_index()
+            agg_df = df.groupby(group_by).agg(**agg_mapping).reset_index()  # pyright: ignore[reportUnknownMemberType]
 
         return agg_df
 
