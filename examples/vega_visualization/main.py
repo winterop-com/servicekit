@@ -10,6 +10,7 @@ This example demonstrates:
 
 from typing import Any
 
+import altair as alt  # type: ignore[import-not-found]
 import pandas as pd
 from fastapi import HTTPException, status
 from pydantic import BaseModel, Field
@@ -173,57 +174,46 @@ class VegaRouter(Router):
         height: int,
         aggregate: str | None = None,
     ) -> dict[str, Any]:
-        """Build Vega-Lite specification based on parameters."""
-        # Base spec
-        spec: dict[str, Any] = {
-            "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
-            "data": {"values": df.to_dict(orient="records")},  # pyright: ignore[reportUnknownMemberType]
-            "width": width,
-            "height": height,
-        }
+        """Build Vega-Lite specification using altair."""
+        # Create base chart with data
+        chart = alt.Chart(df).properties(width=width, height=height)
 
         if title:
-            spec["title"] = title
+            chart = chart.properties(title=title)
 
-        # Chart-specific configurations
+        # Build encoding based on chart type
         if chart_type == "line":
-            spec["mark"] = {"type": "line", "point": True, "tooltip": True}
-            spec["encoding"] = self._build_encoding(x_field, y_field, color_field, aggregate)
+            chart = chart.mark_line(point=True, tooltip=True)
+            chart = self._add_encoding(chart, x_field, y_field, color_field, aggregate)
 
         elif chart_type == "bar":
-            spec["mark"] = {"type": "bar", "tooltip": True}
-            spec["encoding"] = self._build_encoding(x_field, y_field, color_field, aggregate)
+            chart = chart.mark_bar(tooltip=True)
+            chart = self._add_encoding(chart, x_field, y_field, color_field, aggregate)
 
         elif chart_type == "scatter":
-            spec["mark"] = {"type": "point", "tooltip": True}
-            spec["encoding"] = self._build_encoding(x_field, y_field, color_field, aggregate)
+            chart = chart.mark_point(tooltip=True)
+            chart = self._add_encoding(chart, x_field, y_field, color_field, aggregate)
 
         elif chart_type == "heatmap":
-            spec["mark"] = "rect"
-            encoding = self._build_encoding(x_field, y_field, color_field, aggregate)
-            # For heatmap, color represents the value
-            if aggregate and y_field:
-                encoding["color"] = {
-                    "field": y_field,
-                    "type": "quantitative",
-                    "aggregate": aggregate,
-                }
-            spec["encoding"] = encoding
+            chart = chart.mark_rect()
+            if x_field and y_field:
+                encoding = {"x": alt.X(x_field, type="nominal"), "y": alt.Y(y_field, type="nominal")}
+                if aggregate and y_field:
+                    encoding["color"] = alt.Color(y_field, type="quantitative", aggregate=aggregate)
+                elif color_field:
+                    encoding["color"] = alt.Color(color_field, type="quantitative")
+                chart = chart.encode(**encoding)
 
         elif chart_type == "boxplot":
-            spec["mark"] = {"type": "boxplot", "extent": "min-max"}
-            spec["encoding"] = self._build_encoding(x_field, y_field, color_field, aggregate=None)
+            chart = chart.mark_boxplot(extent="min-max")
+            chart = self._add_encoding(chart, x_field, y_field, color_field, aggregate=None)
 
         elif chart_type == "histogram":
-            spec["mark"] = "bar"
-            spec["encoding"] = {
-                "x": {
-                    "field": x_field or y_field,
-                    "type": "quantitative",
-                    "bin": True,
-                },
-                "y": {"aggregate": "count", "type": "quantitative"},
-            }
+            field = x_field or y_field
+            if field:
+                chart = chart.mark_bar().encode(
+                    x=alt.X(field, type="quantitative", bin=True), y=alt.Y("count()", type="quantitative")
+                )
 
         else:
             raise HTTPException(
@@ -231,33 +221,32 @@ class VegaRouter(Router):
                 detail=f"Unsupported chart type: {chart_type}",
             )
 
-        return spec
+        return chart.to_dict()  # type: ignore[no-any-return]
 
-    def _build_encoding(
+    def _add_encoding(  # type: ignore[no-any-unimported]
         self,
+        chart: alt.Chart,
         x_field: str | None,
         y_field: str | None,
         color_field: str | None,
         aggregate: str | None,
-    ) -> dict[str, Any]:
-        """Build encoding specification for Vega-Lite."""
+    ) -> alt.Chart:
+        """Add encoding to altair chart."""
         encoding: dict[str, Any] = {}
 
         if x_field:
-            encoding["x"] = {"field": x_field, "type": "nominal"}
+            encoding["x"] = alt.X(x_field, type="nominal")
 
         if y_field:
-            y_encoding: dict[str, Any] = {"field": y_field, "type": "quantitative"}
             if aggregate:
-                y_encoding["aggregate"] = aggregate
-            encoding["y"] = y_encoding
+                encoding["y"] = alt.Y(y_field, type="quantitative", aggregate=aggregate)
+            else:
+                encoding["y"] = alt.Y(y_field, type="quantitative")
 
         if color_field:
-            encoding["color"] = {"field": color_field, "type": "nominal"}
+            encoding["color"] = alt.Color(color_field, type="nominal")
 
-        encoding["tooltip"] = [{"field": f, "type": "nominal"} for f in [x_field, y_field, color_field] if f]
-
-        return encoding
+        return chart.encode(**encoding)
 
     def _aggregate_data(
         self,
