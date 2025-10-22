@@ -16,14 +16,13 @@ COPY src /servicekit/src/
 WORKDIR /servicekit
 RUN uv build
 
-# Install servicekit wheel in app directory
+# Copy example files and install dependencies
 WORKDIR /app
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv venv && \
-    uv pip install /servicekit/dist/*.whl pandas
+COPY examples/vega_visualization/pyproject.toml examples/vega_visualization/main.py ./
 
-# Copy demo files
-COPY examples/vega_visualization/main.py ./
+# Install dependencies using uv sync
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --no-dev
 
 # Cleanup Python cache files
 RUN find /app/.venv -type d -name '__pycache__' -prune -exec rm -rf {} + && \

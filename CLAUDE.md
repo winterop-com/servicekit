@@ -248,9 +248,13 @@ uv add <package>          # Runtime dependency
 uv add --dev <package>    # Dev dependency
 uv add <package>@latest   # Update specific
 uv lock --upgrade         # Update all
+uv sync                   # Install all dependencies from pyproject.toml
 ```
 
-**Never manually edit `pyproject.toml` dependencies**
+**Important rules:**
+- Never manually edit `pyproject.toml` dependencies
+- Never use `uv pip` commands - always use `uv add`, `uv sync`, etc.
+- `uv pip` is deprecated; use native uv commands that work with pyproject.toml
 
 ## Examples
 
