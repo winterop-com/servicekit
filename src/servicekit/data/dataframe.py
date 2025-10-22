@@ -9,12 +9,7 @@ from pydantic import BaseModel
 
 
 class DataFrame(BaseModel):
-    """Universal Pydantic schema for tabular data from any library.
-
-    This schema provides a simple columns + data representation that works
-    with pandas, polars, xarray, and other data libraries. It acts as a
-    universal interchange format for HTTP APIs.
-    """
+    """Universal interchange format for tabular data from pandas, polars, xarray, and other libraries."""
 
     columns: list[str]
     data: list[list[Any]]
@@ -90,14 +85,7 @@ class DataFrame(BaseModel):
         return pl.DataFrame(self.data, schema=self.columns, orient="row")
 
     def to_dict(self, orient: Literal["dict", "list", "records"] = "dict") -> Any:
-        """Convert schema to dictionary.
-
-        Args:
-            orient: Output format
-                - 'dict': {column: {index: value}}
-                - 'list': {column: [values]}
-                - 'records': [{column: value}]
-        """
+        """Convert schema to dictionary with specified orient (dict, list, or records)."""
         if orient == "dict":
             return {col: {i: self.data[i][j] for i in range(len(self.data))} for j, col in enumerate(self.columns)}
         elif orient == "list":
