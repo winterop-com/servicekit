@@ -16,13 +16,16 @@ COPY src /servicekit/src/
 WORKDIR /servicekit
 RUN uv build
 
-# Copy example files and install dependencies
+# Copy example files
 WORKDIR /app
 COPY examples/vega_visualization/pyproject.toml examples/vega_visualization/main.py ./
 
-# Install dependencies using uv sync
+# Install dependencies
+# First install servicekit wheel, then sync other dependencies from pyproject.toml
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --no-dev
+    uv venv && \
+    uv pip install /servicekit/dist/*.whl && \
+    uv pip install pandas>=2.3.3 altair>=5.5.0 vl-convert-python>=1.8.0
 
 # Cleanup Python cache files
 RUN find /app/.venv -type d -name '__pycache__' -prune -exec rm -rf {} + && \
