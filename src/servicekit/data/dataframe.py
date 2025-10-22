@@ -1,10 +1,7 @@
 """Universal DataFrame schema for servicekit services."""
 
-from typing import Any, Literal, Self, cast
+from typing import Any, Literal, Self
 
-import pandas as pd
-import polars as pl
-import xarray as xr
 from pydantic import BaseModel
 
 
@@ -15,9 +12,14 @@ class DataFrame(BaseModel):
     data: list[list[Any]]
 
     @classmethod
-    def from_pandas(cls, df: pd.DataFrame) -> Self:
+    def from_pandas(cls, df: Any) -> Self:
         """Create schema from pandas DataFrame."""
-        if not isinstance(df, pd.DataFrame):  # pyright: ignore[reportUnnecessaryIsInstance]
+        try:
+            import pandas as pd
+        except ImportError:
+            raise ImportError("pandas is required for from_pandas(). Install with: uv add pandas") from None
+
+        if not isinstance(df, pd.DataFrame):
             raise TypeError(f"Expected pandas DataFrame, got {type(df)}")
 
         return cls(
@@ -26,9 +28,14 @@ class DataFrame(BaseModel):
         )
 
     @classmethod
-    def from_polars(cls, df: pl.DataFrame) -> Self:
+    def from_polars(cls, df: Any) -> Self:
         """Create schema from Polars DataFrame."""
-        if not isinstance(df, pl.DataFrame):  # pyright: ignore[reportUnnecessaryIsInstance]
+        try:
+            import polars as pl
+        except ImportError:
+            raise ImportError("polars is required for from_polars(). Install with: uv add polars") from None
+
+        if not isinstance(df, pl.DataFrame):
             raise TypeError(f"Expected Polars DataFrame, got {type(df)}")
 
         return cls(
@@ -37,16 +44,21 @@ class DataFrame(BaseModel):
         )
 
     @classmethod
-    def from_xarray(cls, da: xr.DataArray) -> Self:
+    def from_xarray(cls, da: Any) -> Self:
         """Create schema from xarray DataArray (2D only)."""
-        if not isinstance(da, xr.DataArray):  # pyright: ignore[reportUnnecessaryIsInstance]
+        try:
+            import xarray as xr
+        except ImportError:
+            raise ImportError("xarray is required for from_xarray(). Install with: uv add xarray") from None
+
+        if not isinstance(da, xr.DataArray):
             raise TypeError(f"Expected xarray DataArray, got {type(da)}")
 
         if len(da.dims) != 2:
             raise ValueError(f"Only 2D DataArrays supported, got {len(da.dims)} dimensions")
 
         # Convert to pandas then use from_pandas
-        pdf = cast(pd.DataFrame, da.to_pandas())
+        pdf = da.to_pandas()
         return cls.from_pandas(pdf)
 
     @classmethod
@@ -76,12 +88,22 @@ class DataFrame(BaseModel):
 
         return cls(columns=columns, data=data)
 
-    def to_pandas(self) -> pd.DataFrame:
+    def to_pandas(self) -> Any:
         """Convert schema to pandas DataFrame."""
+        try:
+            import pandas as pd
+        except ImportError:
+            raise ImportError("pandas is required for to_pandas(). Install with: uv add pandas") from None
+
         return pd.DataFrame(self.data, columns=self.columns)
 
-    def to_polars(self) -> pl.DataFrame:
+    def to_polars(self) -> Any:
         """Convert schema to Polars DataFrame."""
+        try:
+            import polars as pl
+        except ImportError:
+            raise ImportError("polars is required for to_polars(). Install with: uv add polars") from None
+
         return pl.DataFrame(self.data, schema=self.columns, orient="row")
 
     def to_dict(self, orient: Literal["dict", "list", "records"] = "dict") -> Any:

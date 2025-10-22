@@ -16,7 +16,7 @@ import pandas as pd
 df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
 schema = DataFrame.from_pandas(df)
 
-# From polars (requires: uv add 'servicekit[polars]')
+# From polars (requires: uv add polars)
 import polars as pl
 df = pl.DataFrame({"a": [1, 2], "b": [3, 4]})
 schema = DataFrame.from_polars(df)
@@ -48,37 +48,41 @@ Universal schema for tabular data.
 
 | Method | Description | Requires |
 |--------|-------------|----------|
-| `from_pandas(df)` | Create from pandas DataFrame | `[data]` |
-| `from_polars(df)` | Create from Polars DataFrame | `[polars]` |
-| `from_xarray(da)` | Create from xarray DataArray (2D) | `[xarray]` |
+| `from_pandas(df)` | Create from pandas DataFrame | `pandas` |
+| `from_polars(df)` | Create from Polars DataFrame | `polars` |
+| `from_xarray(da)` | Create from xarray DataArray (2D) | `xarray` |
 | `from_dict(data)` | Create from dict of columns | - |
 | `from_records(records)` | Create from list of dicts | - |
-| `from_dataframe(df)` | Alias for `from_pandas()` | `[data]` |
+| `from_dataframe(df)` | Alias for `from_pandas()` | `pandas` |
 
 **Instance Methods:**
 
 | Method | Description | Requires |
 |--------|-------------|----------|
-| `to_pandas()` | Convert to pandas DataFrame | `[data]` |
-| `to_polars()` | Convert to Polars DataFrame | `[polars]` |
+| `to_pandas()` | Convert to pandas DataFrame | `pandas` |
+| `to_polars()` | Convert to Polars DataFrame | `polars` |
 | `to_dict(orient)` | Convert to dict (orient: dict/list/records) | - |
-| `to_dataframe()` | Alias for `to_pandas()` | `[data]` |
+| `to_dataframe()` | Alias for `to_pandas()` | `pandas` |
 
 ## Installation
 
+The `DataFrame` class is included in servicekit core. Install the data libraries you need separately:
+
 ```bash
-# Pandas support
-uv add 'servicekit[data]'
+# For pandas support
+uv add pandas
 
-# Polars support
-uv add 'servicekit[polars]'
+# For Polars support
+uv add polars
 
-# Xarray support
-uv add 'servicekit[xarray]'
+# For xarray support
+uv add xarray
 
-# All formats
-uv add 'servicekit[data,polars,xarray]'
+# Or install multiple libraries
+uv add pandas polars xarray
 ```
+
+Each method will provide a helpful error message if the required library is not installed.
 
 ## Examples
 
@@ -110,6 +114,13 @@ async def process_data(request: DataRequest):
 ### Data Transformation Service
 
 See `examples/vega_visualization/` for a complete example of using `DataFrame` to build a data transformation service (DataFrame → Vega-Lite specs).
+
+### Simple Usage Examples
+
+See `examples/dataframe_usage/` for simple standalone examples:
+- `pandas_example.py` - pandas conversion
+- `polars_example.py` - Polars conversion
+- `xarray_example.py` - xarray conversion
 
 ## Backwards Compatibility
 
