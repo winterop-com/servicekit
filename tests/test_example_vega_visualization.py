@@ -7,6 +7,10 @@ from fastapi.testclient import TestClient
 @pytest.fixture
 def vega_client() -> TestClient:
     """Create test client for vega visualization service."""
+    pytest.importorskip("pandas", reason="pandas not installed")
+    pytest.importorskip("altair", reason="altair not installed")
+    pytest.importorskip("vl_convert", reason="vl-convert-python not installed")
+
     import sys
     from pathlib import Path
 
