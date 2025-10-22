@@ -18,7 +18,7 @@ class TestPandasExample:
 
         sys.path.insert(0, str(EXAMPLES_DIR))
         try:
-            from pandas_example import df, sk_df, df_back  # type: ignore[import-not-found]
+            from pandas_example import df, df_back, sk_df  # type: ignore[import-not-found]
 
             # Verify conversion worked
             assert sk_df.columns == ["name", "age", "city"]
@@ -40,7 +40,7 @@ class TestPolarsExample:
 
         sys.path.insert(0, str(EXAMPLES_DIR))
         try:
-            from polars_example import df, sk_df, df_back  # type: ignore[import-not-found]
+            from polars_example import df, df_back, sk_df  # type: ignore[import-not-found]
 
             # Verify conversion worked
             assert sk_df.columns == ["name", "age", "city"]
@@ -62,7 +62,7 @@ class TestXarrayExample:
 
         sys.path.insert(0, str(EXAMPLES_DIR))
         try:
-            from xarray_example import da, sk_df, df  # type: ignore[import-not-found]
+            from xarray_example import df, sk_df  # type: ignore[import-not-found]
 
             # Verify conversion worked
             assert sk_df.columns == ["x", "y", "z"]
