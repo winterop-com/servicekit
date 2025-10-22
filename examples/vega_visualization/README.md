@@ -127,6 +127,8 @@ curl -X POST http://localhost:8000/api/v1/visualizations/\$generate \
 }
 ```
 
+**Note**: To use with the Vega online renderer, copy only the `spec` object contents (not the entire response).
+
 ### Example 2: Bar Chart with Aggregation
 
 ```bash
