@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Iterable, Sequence
+from typing import TYPE_CHECKING, Iterable, Sequence
 
 from pydantic import BaseModel
 
 from servicekit.repository import BaseRepository
+
+if TYPE_CHECKING:
+    from servicekit.schemas import CollectionStats
 
 
 class LifecycleHooks[ModelT, InSchemaT: BaseModel]:
@@ -98,6 +101,11 @@ class Manager[InSchemaT: BaseModel, OutSchemaT: BaseModel, IdT](ABC):
     @abstractmethod
     async def find_all_by_id(self, ids: Sequence[IdT]) -> list[OutSchemaT]:
         """Find entities by their IDs."""
+        ...
+
+    @abstractmethod
+    async def get_stats(self) -> CollectionStats:
+        """Get collection statistics."""
         ...
 
 
@@ -294,3 +302,10 @@ class BaseManager[ModelT, InSchemaT: BaseModel, OutSchemaT: BaseModel, IdT](
         """Find entities by their IDs."""
         entities = await self.repo.find_all_by_id(ids)
         return [self._to_output_schema(e) for e in entities]
+
+    async def get_stats(self) -> CollectionStats:
+        """Get collection statistics."""
+        from servicekit.schemas import CollectionStats
+
+        raw_stats = await self.repo.get_stats()
+        return CollectionStats(total=raw_stats["total"])

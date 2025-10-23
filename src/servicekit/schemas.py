@@ -107,6 +107,12 @@ class PaginatedResponse(BaseModel, Generic[T]):
         return (self.total + self.size - 1) // self.size
 
 
+class CollectionStats(BaseModel):
+    """Statistics about an entity collection."""
+
+    total: int = Field(description="Total number of entities in the collection", ge=0)
+
+
 class BulkOperationError(BaseModel):
     """Error information for a single item in a bulk operation."""
 

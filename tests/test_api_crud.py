@@ -3,6 +3,10 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from servicekit.schemas import CollectionStats
 
 import pytest
 from fastapi import Depends, FastAPI, HTTPException, status
@@ -77,6 +81,12 @@ class FakeManager(Manager[ItemIn, ItemOut, ULID]):
 
     async def save_all(self, items: Iterable[ItemIn]) -> list[ItemOut]:
         return [await self.save(item) for item in items]
+
+    async def get_stats(self) -> CollectionStats:
+        """Get collection statistics."""
+        from servicekit.schemas import CollectionStats
+
+        return CollectionStats(total=len(self.entities))
 
 
 def _build_router(manager: FakeManager) -> CrudRouter[ItemIn, ItemOut]:
