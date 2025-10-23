@@ -112,9 +112,9 @@ async def seed_users(app: FastAPI) -> None:
         )
         await repository.save(bob)
 
-        # Charlie: 01JARKBV9S7X6W5V4U3T2S1R0Q
+        # Charlie: 01JARKBV9S0000000000000000
         charlie = User(
-            id=ULID.from_str("01JARKBV9S7X6W5V4U3T2S1R0Q"),
+            id=ULID.from_str("01JARKBV9S0000000000000000"),
             username="charlie",
             email="charlie@example.com",
             full_name="Charlie Davis",
@@ -123,9 +123,9 @@ async def seed_users(app: FastAPI) -> None:
         )
         await repository.save(charlie)
 
-        # Diana: 01JARKBV9T6W5V4U3T2S1R0P9N
+        # Diana: 01JARKBV9T0000000000000000
         diana = User(
-            id=ULID.from_str("01JARKBV9T6W5V4U3T2S1R0P9N"),
+            id=ULID.from_str("01JARKBV9T0000000000000000"),
             username="diana",
             email="diana@example.com",
             full_name="Diana Martinez",
@@ -134,9 +134,9 @@ async def seed_users(app: FastAPI) -> None:
         )
         await repository.save(diana)
 
-        # Eve: 01JARKBV9U5V4U3T2S1R0P9N8M
+        # Eve: 01JARKBV9V0000000000000000
         eve = User(
-            id=ULID.from_str("01JARKBV9U5V4U3T2S1R0P9N8M"),
+            id=ULID.from_str("01JARKBV9V0000000000000000"),
             username="eve",
             email="eve@example.com",
             full_name="Eve Thompson",
@@ -144,6 +144,9 @@ async def seed_users(app: FastAPI) -> None:
             tags=["qa-engineer", "team-gamma"],
         )
         await repository.save(eve)
+
+        # Commit all users
+        await repository.commit()
 
 
 user_router = CrudRouter.create(
