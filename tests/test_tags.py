@@ -1,5 +1,6 @@
 """Tests for tags support in Entity, EntityIn, and EntityOut."""
 
+import pytest
 from ulid import ULID
 
 from servicekit import EntityIn, EntityOut, SqliteDatabaseBuilder
@@ -418,3 +419,130 @@ class TestBaseEntityInAndOutTags:
 
         assert hasattr(entity_out, "tags")
         assert entity_out.tags == ["base"]
+
+
+class TestTagValidation:
+    """Tests for tag validation rules."""
+
+    def test_valid_tags_alphanumeric(self) -> None:
+        """Test that alphanumeric tags are valid."""
+        entity_in = EntityIn(tags=["abc123", "test", "v2"])
+
+        assert entity_in.tags == ["abc123", "test", "v2"]
+
+    def test_valid_tags_mixed_case(self) -> None:
+        """Test that mixed case tags are preserved."""
+        entity_in = EntityIn(tags=["Production", "TESTING", "CamelCase"])
+
+        assert entity_in.tags == ["Production", "TESTING", "CamelCase"]
+
+    def test_valid_tags_with_hyphens(self) -> None:
+        """Test that tags with hyphens are valid."""
+        entity_in = EntityIn(tags=["api-v2", "multi-word-tag", "test-123"])
+
+        assert entity_in.tags == ["api-v2", "multi-word-tag", "test-123"]
+
+    def test_valid_tags_with_underscores(self) -> None:
+        """Test that tags with underscores are valid."""
+        entity_in = EntityIn(tags=["backend_service", "db_config", "test_123"])
+
+        assert entity_in.tags == ["backend_service", "db_config", "test_123"]
+
+    def test_valid_tags_mixed_characters(self) -> None:
+        """Test that tags with mixed valid characters are accepted."""
+        entity_in = EntityIn(tags=["api-v2_prod", "Test-123_ABC"])
+
+        assert entity_in.tags == ["api-v2_prod", "Test-123_ABC"]
+
+    def test_invalid_tags_with_whitespace(self) -> None:
+        """Test that tags with whitespace are rejected."""
+        with pytest.raises(ValueError, match="contains whitespace"):
+            EntityIn(tags=["has space"])
+
+    def test_invalid_tags_with_leading_whitespace(self) -> None:
+        """Test that tags with leading whitespace are rejected."""
+        with pytest.raises(ValueError, match="contains whitespace"):
+            EntityIn(tags=[" leading"])
+
+    def test_invalid_tags_with_trailing_whitespace(self) -> None:
+        """Test that tags with trailing whitespace are rejected."""
+        with pytest.raises(ValueError, match="contains whitespace"):
+            EntityIn(tags=["trailing "])
+
+    def test_invalid_tags_with_special_characters(self) -> None:
+        """Test that tags with special characters are rejected."""
+        with pytest.raises(ValueError, match="invalid characters"):
+            EntityIn(tags=["special@char"])
+
+    def test_invalid_tags_with_symbols(self) -> None:
+        """Test that tags with symbols are rejected."""
+        with pytest.raises(ValueError, match="invalid characters"):
+            EntityIn(tags=["tag!"])
+
+    def test_invalid_tags_empty_string(self) -> None:
+        """Test that empty string tags are rejected."""
+        with pytest.raises(ValueError, match="Empty tags not allowed"):
+            EntityIn(tags=[""])
+
+    def test_invalid_tags_duplicates(self) -> None:
+        """Test that duplicate tags are rejected."""
+        with pytest.raises(ValueError, match="Duplicate tags"):
+            EntityIn(tags=["duplicate", "duplicate"])
+
+    def test_invalid_tags_case_sensitive_duplicates(self) -> None:
+        """Test that case-sensitive duplicates are allowed (different tags)."""
+        entity_in = EntityIn(tags=["Production", "production"])
+
+        # These are different tags (case-sensitive)
+        assert entity_in.tags == ["Production", "production"]
+
+    def test_invalid_tags_too_long(self) -> None:
+        """Test that tags exceeding length limit are rejected."""
+        long_tag = "x" * 101
+        with pytest.raises(ValueError, match="exceeds 100 character limit"):
+            EntityIn(tags=[long_tag])
+
+    def test_invalid_tags_too_many(self) -> None:
+        """Test that more than 50 tags are rejected."""
+        many_tags = [f"tag{i}" for i in range(51)]
+        with pytest.raises(ValueError, match="Maximum 50 tags allowed"):
+            EntityIn(tags=many_tags)
+
+    def test_valid_tags_at_limits(self) -> None:
+        """Test that tags at limit boundaries are valid."""
+        # 50 tags (max)
+        many_tags = [f"tag{i}" for i in range(50)]
+        entity_in = EntityIn(tags=many_tags)
+        assert len(entity_in.tags) == 50
+
+        # 100 char tag (max)
+        long_tag = "x" * 100
+        entity_in = EntityIn(tags=[long_tag])
+        assert entity_in.tags == [long_tag]
+
+    def test_error_messages_multiple_errors(self) -> None:
+        """Test that multiple validation errors are reported together."""
+        with pytest.raises(ValueError) as exc_info:
+            EntityIn(tags=["has space", "special@", ""])
+
+        error_msg = str(exc_info.value)
+        assert "contains whitespace" in error_msg
+        assert "invalid characters" in error_msg
+        assert "Empty tags not allowed" in error_msg
+
+    def test_error_message_clear_for_duplicates(self) -> None:
+        """Test that duplicate error message lists the duplicates."""
+        with pytest.raises(ValueError, match=r"Duplicate tags: \['x'\]"):
+            EntityIn(tags=["x", "y", "x"])
+
+    def test_empty_tags_list_valid(self) -> None:
+        """Test that empty tags list is valid."""
+        entity_in = EntityIn(tags=[])
+
+        assert entity_in.tags == []
+
+    def test_no_tags_provided_valid(self) -> None:
+        """Test that no tags defaults to empty list."""
+        entity_in = EntityIn()
+
+        assert entity_in.tags == []

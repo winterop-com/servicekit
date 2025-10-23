@@ -7,7 +7,7 @@ from enum import StrEnum
 from typing import Generic, TypeVar
 
 import ulid
-from pydantic import BaseModel, ConfigDict, Field, computed_field
+from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator
 
 ULID = ulid.ULID
 T = TypeVar("T")
@@ -17,12 +17,63 @@ T = TypeVar("T")
 
 
 class EntityIn(BaseModel):
-    """Base input schema for entities with optional ID."""
+    """Base input schema for entities with optional ID.
+
+    Tags must contain only letters, numbers, hyphens, and underscores.
+    Whitespace and special characters are not allowed.
+    Tags are case-sensitive and duplicates are not allowed.
+    """
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     id: ULID | None = None
-    tags: list[str] = Field(default_factory=list)
+    tags: list[str] = Field(
+        default_factory=list,
+        description="Tags for categorization (alphanumeric, hyphens, underscores only; max 50 tags, 100 chars each)",
+    )
+
+    @field_validator("tags")
+    @classmethod
+    def validate_tags(cls, v: list[str]) -> list[str]:
+        """Validate tag format - alphanumeric, hyphens, underscores only."""
+        if not v:
+            return []
+
+        errors = []
+
+        for tag in v:
+            # Check empty
+            if not tag:
+                errors.append("Empty tags not allowed")
+                continue
+
+            # Check whitespace
+            if any(c.isspace() for c in tag):
+                errors.append(f"Tag '{tag}' contains whitespace")
+
+            # Check valid characters (letters, numbers, -, _)
+            if not all(c.isalnum() or c in "-_" for c in tag):
+                errors.append(
+                    f"Tag '{tag}' contains invalid characters (use letters, numbers, hyphens, underscores only)"
+                )
+
+            # Check length
+            if len(tag) > 100:
+                errors.append(f"Tag '{tag}' exceeds 100 character limit")
+
+        # Check duplicates
+        if len(v) != len(set(v)):
+            duplicates = sorted([tag for tag in set(v) if v.count(tag) > 1])
+            errors.append(f"Duplicate tags: {duplicates}")
+
+        # Check max tags
+        if len(v) > 50:
+            errors.append(f"Maximum 50 tags allowed (got {len(v)})")
+
+        if errors:
+            raise ValueError("; ".join(errors))
+
+        return v  # Return as-is (no mutation)
 
 
 class EntityOut(BaseModel):
