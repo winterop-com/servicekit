@@ -3,6 +3,7 @@
 import datetime
 
 from sqlalchemy import func
+from sqlalchemy.dialects.sqlite import JSON
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from ulid import ULID
@@ -22,3 +23,4 @@ class Entity(Base):
     id: Mapped[ULID] = mapped_column(ULIDType, primary_key=True, default=ULID)
     created_at: Mapped[datetime.datetime] = mapped_column(server_default=func.now())
     updated_at: Mapped[datetime.datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
+    tags: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)

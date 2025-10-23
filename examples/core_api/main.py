@@ -97,6 +97,7 @@ async def seed_users(app: FastAPI) -> None:
             email="alice@example.com",
             full_name="Alice Smith",
             is_active=True,
+            tags=["admin", "team-alpha", "premium"],
         )
         await repository.save(alice)
 
@@ -107,8 +108,45 @@ async def seed_users(app: FastAPI) -> None:
             email="bob@example.com",
             full_name="Bob Johnson",
             is_active=True,
+            tags=["developer", "team-beta"],
         )
         await repository.save(bob)
+
+        # Charlie: 01JARKBV9S0000000000000000
+        charlie = User(
+            id=ULID.from_str("01JARKBV9S0000000000000000"),
+            username="charlie",
+            email="charlie@example.com",
+            full_name="Charlie Davis",
+            is_active=True,
+            tags=["designer", "team-alpha", "contractor"],
+        )
+        await repository.save(charlie)
+
+        # Diana: 01JARKBV9T0000000000000000
+        diana = User(
+            id=ULID.from_str("01JARKBV9T0000000000000000"),
+            username="diana",
+            email="diana@example.com",
+            full_name="Diana Martinez",
+            is_active=False,
+            tags=["developer", "team-beta", "on-leave"],
+        )
+        await repository.save(diana)
+
+        # Eve: 01JARKBV9V0000000000000000
+        eve = User(
+            id=ULID.from_str("01JARKBV9V0000000000000000"),
+            username="eve",
+            email="eve@example.com",
+            full_name="Eve Thompson",
+            is_active=True,
+            tags=["qa-engineer", "team-gamma"],
+        )
+        await repository.save(eve)
+
+        # Commit all users
+        await repository.commit()
 
 
 user_router = CrudRouter.create(

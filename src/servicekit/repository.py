@@ -166,3 +166,8 @@ class BaseRepository[T, IdT = ULID](Repository[T, IdT]):
     async def find_by_id(self, id: IdT) -> T | None:
         """Find an entity by its ID."""
         return await self.s.get(self.model, id)
+
+    async def get_stats(self) -> dict[str, int]:
+        """Get collection statistics."""
+        total = await self.count()
+        return {"total": total}

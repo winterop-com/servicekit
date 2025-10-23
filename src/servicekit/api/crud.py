@@ -58,6 +58,7 @@ class CrudRouter[InSchemaT: BaseModel, OutSchemaT: BaseModel](Router):
             self._register_find_all_route(manager_dependency, manager_annotation)
             self._register_find_by_id_route(manager_dependency, manager_annotation)
             self._register_schema_route()
+            self._register_stats_route(manager_dependency, manager_annotation)
         if perms.update:
             self._register_update_route(manager_dependency, manager_annotation)
         if perms.delete:
@@ -295,6 +296,27 @@ class CrudRouter[InSchemaT: BaseModel, OutSchemaT: BaseModel](Router):
             handler=get_schema,
             http_method="GET",
             response_model=dict[str, Any],
+        )
+
+    def _register_stats_route(self, manager_dependency: Any, manager_annotation: Any) -> None:
+        """Register collection statistics endpoint."""
+        from servicekit.schemas import CollectionStats
+
+        async def get_stats(
+            manager: Manager[InSchemaT, OutSchemaT, ULID] = manager_dependency,
+        ) -> CollectionStats:
+            """Get collection statistics."""
+            return await manager.get_stats()
+
+        self._annotate_manager(get_stats, manager_annotation)
+
+        self.register_collection_operation(
+            name="stats",
+            handler=get_stats,
+            http_method="GET",
+            response_model=CollectionStats,
+            summary="Get collection statistics",
+            description="Returns statistics about the collection including total entity count.",
         )
 
     # Helper utilities -------------------------------------------------
