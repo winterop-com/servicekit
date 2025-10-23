@@ -22,6 +22,7 @@ class EntityIn(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     id: ULID | None = None
+    tags: list[str] = Field(default_factory=list)
 
 
 class EntityOut(BaseModel):
@@ -32,6 +33,7 @@ class EntityOut(BaseModel):
     id: ULID
     created_at: datetime
     updated_at: datetime
+    tags: list[str] = Field(default_factory=list)
 
 
 # Response schemas
