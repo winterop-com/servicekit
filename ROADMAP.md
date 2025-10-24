@@ -253,7 +253,9 @@ Visualization services often:
 
 - Extract `TransformationRouter` base class pattern from Vega example
 - Integrate caching support (Phase 2.2)
-- Add PyArrow/Parquet support for DataFrame (optional - requires pyarrow dependency)
+- ~~Add PyArrow/Parquet support for DataFrame (optional - requires pyarrow dependency)~~
+
+**Note:** DataFrame enhancements completed separately (feat/dataframe-enhancements branch) with 15 new methods for data manipulation, missing data handling, and utilities. The DataFrame now provides comprehensive data interchange capabilities using stdlib only. PyArrow/Parquet support deferred - users can convert to pandas/polars for advanced I/O formats.
 
 ### 5.2 Schema Registry
 
