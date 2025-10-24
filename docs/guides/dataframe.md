@@ -647,23 +647,91 @@ print(stats.get_column('stat'))  # ['count', 'mean', 'std', ...]
 
 ### Group By Operations
 
+The `groupby()` method provides SQL-like aggregation capabilities. It returns a `GroupBy` helper object that builds groups internally and provides aggregation methods.
+
+**How it works:**
+- Groups rows by unique values in the specified column
+- Filters out rows where the grouping column is None
+- Provides aggregation methods that return new DataFrames
+- Uses eager evaluation (groups are built immediately)
+- Uses only Python stdlib (statistics module for mean)
+
+**Available aggregation methods:**
+
+| Method | Description | Returns |
+|--------|-------------|---------|
+| `count()` | Count rows per group | DataFrame with `[group_col, 'count']` |
+| `sum(col)` | Sum numeric column per group | DataFrame with `[group_col, 'col_sum']` |
+| `mean(col)` | Average numeric column per group | DataFrame with `[group_col, 'col_mean']` |
+| `min(col)` | Minimum value per group | DataFrame with `[group_col, 'col_min']` |
+| `max(col)` | Maximum value per group | DataFrame with `[group_col, 'col_max']` |
+
+**Basic usage:**
+
 ```python
-# Group and count
-category_counts = df.groupby('category').count()
-# Returns: DataFrame with columns ['category', 'count']
+from servicekit.data import DataFrame
 
-# Group and sum
-sales_by_region = df.groupby('region').sum('sales')
-# Returns: DataFrame with columns ['region', 'sales_sum']
+# Sample sales data
+df = DataFrame(
+    columns=['region', 'product', 'sales', 'quantity'],
+    data=[
+        ['North', 'Widget', 1000, 10],
+        ['North', 'Gadget', 1500, 15],
+        ['South', 'Widget', 800, 8],
+        ['South', 'Gadget', 1200, 12],
+        ['North', 'Widget', 1100, 11],
+    ]
+)
 
-# Group and average
-avg_price = df.groupby('product').mean('price')
-# Returns: DataFrame with columns ['product', 'price_mean']
+# Count rows per group
+region_counts = df.groupby('region').count()
+# Returns: DataFrame({'region': ['North', 'South'], 'count': [3, 2]})
 
-# Group and find min/max
-min_score = df.groupby('team').min('score')
-max_score = df.groupby('team').max('score')
+# Sum sales by region
+total_sales = df.groupby('region').sum('sales')
+# Returns: DataFrame({'region': ['North', 'South'], 'sales_sum': [3600, 2000]})
+
+# Average quantity by product
+avg_qty = df.groupby('product').mean('quantity')
+# Returns: DataFrame({'product': ['Widget', 'Gadget'], 'quantity_mean': [9.67, 13.5]})
+
+# Find min/max sales by region
+min_sales = df.groupby('region').min('sales')
+max_sales = df.groupby('region').max('sales')
 ```
+
+**Advanced patterns:**
+
+```python
+# Multiple aggregations on same grouping
+grouped = df.groupby('region')
+summary = DataFrame(
+    columns=['region', 'count', 'total_sales', 'avg_sales'],
+    data=[
+        [
+            group,
+            grouped.count().filter(lambda r: r['region'] == group)[0]['count'],
+            grouped.sum('sales').filter(lambda r: r['region'] == group)[0]['sales_sum'],
+            grouped.mean('sales').filter(lambda r: r['region'] == group)[0]['sales_mean'],
+        ]
+        for group in df.unique('region')
+    ]
+)
+
+# Combine with filtering
+high_sales = df.filter(lambda r: r['sales'] > 1000)
+summary = high_sales.groupby('region').count()
+
+# Chain with other operations
+df.groupby('product').sum('sales').sort('sales_sum', reverse=True).head(5)
+```
+
+**Design notes:**
+- Groups are built eagerly when `groupby()` is called
+- Aggregation methods filter out None values automatically
+- All methods return new DataFrame instances (immutable pattern)
+- Uses stdlib only (no pandas/numpy dependencies)
+- Raises KeyError if column not found
 
 ## Common Patterns
 
