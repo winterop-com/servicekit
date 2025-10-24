@@ -1,10 +1,9 @@
 # DataFrame Enhancement Design Document
 
 **Version:** 2.0
-**Status:** Phase 1 & 2 Completed, Phase 3 & 4 Proposed
+**Status:** Phase 3 & 4 Proposed
 **Created:** 2025-10-24
 **Updated:** 2025-10-24
-**Author:** Claude Code
 
 ## Table of Contents
 
@@ -23,82 +22,27 @@
 
 ## Overview
 
-This document tracks enhancements to the `servicekit.data.DataFrame` class, transforming it from a basic interchange format into a comprehensive data serialization and interchange library.
-
-**Completion Status:**
-- **Phase 1 (Essential I/O):** COMPLETED - CSV support, utility properties
-- **Phase 2 (Developer Experience):** COMPLETED - Inspection, column ops, validation
-- **Phase 3 (Advanced Formats):** PROPOSED - JSONL, NumPy, DuckDB
-- **Phase 4 (Specialized Formats):** PROPOSED - MessagePack, Excel, Feather
-
-## Completed Implementation Summary
-
-### Phase 1: Essential I/O (COMPLETED)
-
-**Utility Properties (4 properties):**
-- `shape` - Returns (num_rows, num_columns)
-- `empty` - True if no rows or columns
-- `size` - Total elements (rows × columns)
-- `ndim` - Always 2
-
-**CSV Support (2 methods):**
-- `from_csv(path/csv_string, delimiter, has_header, encoding)` - Read CSV
-- `to_csv(path, delimiter, include_header, encoding)` - Write CSV
-- No dependencies (uses stdlib csv module)
-
-**Implementation:**
-- File: `src/servicekit/data/dataframe.py`
-- Tests: 30 tests in `tests/test_dataframe.py`
-- Documentation: `docs/guides/dataframe.md`
-- Examples: `examples/dataframe_usage/csv_example.py`
-
-### Phase 2: Developer Experience (COMPLETED)
-
-**Data Inspection (3 methods):**
-- `head(n=5)` - First n rows (supports negative indexing)
-- `tail(n=5)` - Last n rows (supports negative indexing)
-- `sample(n/frac, random_state)` - Random sampling with reproducibility
-
-**Column Operations (3 methods):**
-- `select(columns)` - Keep only specified columns
-- `drop(columns)` - Remove specified columns
-- `rename(mapper)` - Rename columns via dictionary
-
-**Validation (3 methods):**
-- `validate_structure()` - Check DataFrame integrity
-- `infer_types()` - Detect column types (int, float, str, bool, null, mixed)
-- `has_nulls()` - Check for None values per column
-
-**Implementation:**
-- File: `src/servicekit/data/dataframe.py`
-- Tests: 38 tests in `tests/test_dataframe.py`
-- Documentation: `docs/guides/dataframe.md`
-- Examples: `examples/dataframe_usage/` (5 example files)
-- No dependencies (uses stdlib random module)
-
-**Total Delivered:**
-- 15 new methods
-- 0 external dependencies (all stdlib)
-- 422 total tests
-- Comprehensive documentation and examples
+This document proposes advanced format support for the `servicekit.data.DataFrame` class to enable specialized data interchange scenarios beyond CSV.
 
 ## Motivation
 
 ### Current State
 
-The `DataFrame` class currently provides:
-- Basic structure: `columns` (list) and `data` (list of lists)
-- Conversions: pandas, polars, xarray
-- Dictionary operations: from_dict, from_records, to_dict
-- Lazy dependency loading (no required dependencies)
+The `DataFrame` class provides:
+- CSV I/O with stdlib (no dependencies)
+- Library integrations: pandas, polars, xarray
+- Data inspection: head, tail, sample
+- Column operations: select, drop, rename
+- Validation: structure checks, type inference, null detection
+- Utility properties: shape, size, empty, ndim
 
-### Limitations
+### Proposed Enhancements
 
-1. **No File I/O**: Cannot read/write CSV, Parquet, or other common formats
-2. **Limited Introspection**: No way to query shape, check if empty, or inspect types
-3. **No Data Operations**: Cannot head/tail, select columns, or perform basic transformations
-4. **Missing Industry Standards**: No Arrow/Parquet support (de facto standard for data interchange)
-5. **No Binary Formats**: Missing MessagePack, Parquet for efficient API responses
+This document proposes adding advanced format support for specialized use cases:
+- **Binary Formats**: Parquet, Arrow, MessagePack for efficient data transfer
+- **Streaming Formats**: JSONL for large datasets
+- **Interoperability**: NumPy for numerical computing, DuckDB for SQL queries
+- **Business Formats**: Excel for enterprise users
 
 ### Use Cases Driving These Changes
 
@@ -124,16 +68,15 @@ The `DataFrame` class currently provides:
 
 ## Goals
 
-1. **Add Essential File I/O**: CSV, Parquet, Arrow formats
-2. **Improve Developer Experience**: Utility methods for inspection and manipulation
-3. **Support Industry Standards**: PyArrow/Arrow ecosystem integration
-4. **Maintain Design Principles**:
+1. **Add Advanced File I/O**: Parquet, Arrow, JSONL formats
+2. **Support Industry Standards**: PyArrow/Arrow ecosystem integration
+3. **Maintain Design Principles**:
    - Lightweight core (no required dependencies)
    - Lazy imports (import only when methods are called)
    - Simple API (consistent from_X / to_X pattern)
    - Framework-agnostic (works in any Python environment)
-5. **Enable Performance**: Binary formats for efficient data transfer
-6. **Preserve Backward Compatibility**: No breaking changes to existing API
+4. **Enable Performance**: Binary formats for efficient data transfer
+5. **Preserve Backward Compatibility**: No breaking changes to existing API
 
 ## Non-Goals
 
@@ -185,68 +128,7 @@ def from_parquet(cls, path: str | Path) -> Self:
 
 ## Proposed API
 
-### Phase 1: Essential I/O (Priority: High)
-
-#### CSV Support
-
-```python
-@classmethod
-def from_csv(
-    cls,
-    path: str | Path | None = None,
-    *,
-    csv_string: str | None = None,
-    delimiter: str = ",",
-    has_header: bool = True,
-    encoding: str = "utf-8",
-) -> Self:
-    """Create DataFrame from CSV file or string.
-
-    Args:
-        path: Path to CSV file (mutually exclusive with csv_string)
-        csv_string: CSV data as string (mutually exclusive with path)
-        delimiter: Column delimiter (default: comma)
-        has_header: First row contains column names
-        encoding: File encoding
-
-    Returns:
-        DataFrame instance
-
-    Raises:
-        ValueError: If neither or both path and csv_string provided
-        FileNotFoundError: If path does not exist
-
-    Example:
-        >>> df = DataFrame.from_csv("data.csv")
-        >>> df = DataFrame.from_csv(csv_string="a,b\\n1,2\\n3,4")
-    """
-
-def to_csv(
-    self,
-    path: str | Path | None = None,
-    *,
-    delimiter: str = ",",
-    include_header: bool = True,
-    encoding: str = "utf-8",
-) -> str | None:
-    """Export DataFrame to CSV file or string.
-
-    Args:
-        path: Path to write CSV file (if None, returns string)
-        delimiter: Column delimiter
-        include_header: Include column names in first row
-        encoding: File encoding
-
-    Returns:
-        CSV string if path is None, otherwise None
-
-    Example:
-        >>> df.to_csv("output.csv")
-        >>> csv_str = df.to_csv()  # Returns string
-    """
-```
-
-#### PyArrow/Arrow Support
+### PyArrow/Arrow Support
 
 ```python
 @classmethod
@@ -333,170 +215,7 @@ def to_parquet(
     """
 ```
 
-#### Utility Properties
-
-```python
-@property
-def shape(self) -> tuple[int, int]:
-    """Return (num_rows, num_columns)."""
-    return (len(self.data), len(self.columns))
-
-@property
-def num_rows(self) -> int:
-    """Return number of rows."""
-    return len(self.data)
-
-@property
-def num_columns(self) -> int:
-    """Return number of columns."""
-    return len(self.columns)
-
-@property
-def is_empty(self) -> bool:
-    """Return True if DataFrame has no rows."""
-    return len(self.data) == 0
-```
-
-### Phase 2: Developer Experience (Priority: Medium)
-
-#### Data Inspection Methods
-
-```python
-def head(self, n: int = 5) -> Self:
-    """Return first n rows.
-
-    Args:
-        n: Number of rows to return
-
-    Returns:
-        New DataFrame with first n rows
-
-    Example:
-        >>> df.head(10)
-    """
-
-def tail(self, n: int = 5) -> Self:
-    """Return last n rows."""
-
-def sample(
-    self,
-    n: int | None = None,
-    frac: float | None = None,
-    *,
-    random_state: int | None = None,
-) -> Self:
-    """Return random sample of rows.
-
-    Args:
-        n: Number of rows to sample (mutually exclusive with frac)
-        frac: Fraction of rows to sample (mutually exclusive with n)
-        random_state: Random seed for reproducibility
-
-    Returns:
-        New DataFrame with sampled rows
-
-    Example:
-        >>> df.sample(n=100)
-        >>> df.sample(frac=0.1)
-    """
-```
-
-#### Column Operations
-
-```python
-def select(self, columns: list[str]) -> Self:
-    """Return DataFrame with only specified columns.
-
-    Args:
-        columns: List of column names to keep
-
-    Returns:
-        New DataFrame with selected columns
-
-    Raises:
-        KeyError: If any column does not exist
-
-    Example:
-        >>> df.select(["name", "age"])
-    """
-
-def drop(self, columns: list[str]) -> Self:
-    """Return DataFrame without specified columns.
-
-    Args:
-        columns: List of column names to drop
-
-    Returns:
-        New DataFrame without dropped columns
-
-    Raises:
-        KeyError: If any column does not exist
-
-    Example:
-        >>> df.drop(["temp_col"])
-    """
-
-def rename(self, mapper: dict[str, str]) -> Self:
-    """Return DataFrame with renamed columns.
-
-    Args:
-        mapper: Dictionary mapping old names to new names
-
-    Returns:
-        New DataFrame with renamed columns
-
-    Raises:
-        KeyError: If any old column name does not exist
-
-    Example:
-        >>> df.rename({"old_name": "new_name"})
-    """
-```
-
-#### Validation Methods
-
-```python
-def validate(self) -> None:
-    """Validate DataFrame structure.
-
-    Checks:
-    - All rows have same length as columns
-    - Column names are unique
-    - No null/empty column names
-
-    Raises:
-        ValueError: If validation fails
-
-    Example:
-        >>> df.validate()
-    """
-
-def infer_types(self) -> dict[str, str]:
-    """Infer column data types.
-
-    Returns:
-        Dictionary mapping column names to type strings
-        Types: "int", "float", "str", "bool", "null", "mixed"
-
-    Example:
-        >>> df.infer_types()
-        {"age": "int", "name": "str", "score": "float"}
-    """
-
-def has_nulls(self) -> dict[str, bool]:
-    """Check for null values in each column.
-
-    Returns:
-        Dictionary mapping column names to boolean
-        True if column contains None values
-
-    Example:
-        >>> df.has_nulls()
-        {"age": False, "email": True}
-    """
-```
-
-### Phase 3: Advanced Formats (Priority: Low)
+### Advanced Formats
 
 #### JSON Lines (JSONL)
 
@@ -596,7 +315,7 @@ def query(self, sql: str) -> Self:
     """
 ```
 
-### Phase 4: Specialized Formats (Priority: Very Low)
+### Specialized Formats
 
 #### MessagePack Support
 
@@ -647,46 +366,22 @@ def to_feather(self, path: str | Path) -> None:
 
 ## Implementation Phases
 
-### Phase 1: Essential I/O (COMPLETED)
+### Phase 1: Arrow/Parquet Support (2 weeks)
 
-**Status:** COMPLETED in PR #3
-
-**Delivered:**
-- CSV read/write methods (using stdlib)
-- Utility properties (shape, empty, size, ndim)
-- 30 comprehensive tests
+**Deliverables:**
+- PyArrow Table conversions
+- Parquet read/write methods
+- Comprehensive tests
 - Documentation and examples
 
-**Not Implemented (Optional):**
-- PyArrow Table conversions (requires pyarrow dependency)
-- Parquet read/write methods (requires pyarrow dependency)
+**Dependencies:**
+- `pyarrow>=14.0.0` (optional)
 
-**Implementation:**
-- Files: `src/servicekit/data/dataframe.py`, `tests/test_dataframe.py`
-- Examples: `examples/dataframe_usage/csv_example.py`
-- Commits: 13c28b2, ce989d2
+**Priority:** Medium
 
-### Phase 2: Developer Experience (COMPLETED)
+### Phase 2: Advanced Formats (2 weeks)
 
-**Status:** COMPLETED in PR #3
-
-**Delivered:**
-- head/tail/sample methods
-- select/drop/rename column operations
-- validate_structure/infer_types/has_nulls inspection
-- 38 comprehensive tests
-- Documentation and examples
-
-**Implementation:**
-- Files: `src/servicekit/data/dataframe.py`, `tests/test_dataframe.py`
-- Examples: `examples/dataframe_usage/` (4 new example files)
-- Commit: b61683c
-
-### Phase 3: Advanced Formats (PROPOSED - 2 weeks)
-
-**Status:** Not Started
-
-**Proposed Deliverables:**
+**Deliverables:**
 - JSON Lines support (uses stdlib json)
 - NumPy conversions (requires numpy)
 - DuckDB integration with SQL query support (requires duckdb)
@@ -696,13 +391,11 @@ def to_feather(self, path: str | Path) -> None:
 - `numpy>=1.24.0` (optional)
 - `duckdb>=0.9.0` (optional)
 
-**Priority:** Low - implement if there's user demand
+**Priority:** Low
 
-### Phase 4: Specialized Formats (PROPOSED - 1 week, optional)
+### Phase 3: Specialized Formats (1 week)
 
-**Status:** Not Started
-
-**Proposed Deliverables:**
+**Deliverables:**
 - MessagePack support (requires msgpack)
 - Excel support (requires openpyxl)
 - Feather/Arrow IPC (requires pyarrow)
@@ -710,9 +403,8 @@ def to_feather(self, path: str | Path) -> None:
 **Dependencies:**
 - `msgpack>=1.0.0` (optional)
 - `openpyxl>=3.1.0` (optional)
-- `pyarrow>=14.0.0` (optional)
 
-**Priority:** Very Low - implement only if specifically requested
+**Priority:** Low
 
 ## Backward Compatibility
 
@@ -735,16 +427,7 @@ No migration needed. New features are purely additive.
 
 ### Unit Tests
 
-1. **CSV Module**
-   - `test_from_csv_file()` - Read from file path
-   - `test_from_csv_string()` - Read from string
-   - `test_to_csv_file()` - Write to file
-   - `test_to_csv_string()` - Return as string
-   - `test_csv_custom_delimiter()` - Semicolon, tab, etc.
-   - `test_csv_no_header()` - Generate column names
-   - `test_csv_empty()` - Empty DataFrame
-
-2. **Arrow/Parquet Module**
+1. **Arrow/Parquet Module**
    - `test_from_arrow_table()` - Convert from PyArrow
    - `test_to_arrow_table()` - Convert to PyArrow
    - `test_from_parquet()` - Read Parquet file
@@ -753,33 +436,30 @@ No migration needed. New features are purely additive.
    - `test_parquet_compression()` - Different codecs
    - `test_arrow_not_installed()` - ImportError handling
 
-3. **Utility Methods**
-   - `test_shape_property()` - Correct dimensions
-   - `test_is_empty()` - Empty detection
-   - `test_head()` - First n rows
-   - `test_tail()` - Last n rows
-   - `test_sample()` - Random sampling
-   - `test_select_columns()` - Column selection
-   - `test_drop_columns()` - Column dropping
-   - `test_rename_columns()` - Column renaming
+2. **JSONL Module**
+   - `test_from_jsonl_file()` - Read JSONL file
+   - `test_from_jsonl_string()` - Read JSONL string
+   - `test_to_jsonl_file()` - Write JSONL file
+   - `test_to_jsonl_string()` - Return as string
 
-4. **Validation**
-   - `test_validate_success()` - Valid DataFrame
-   - `test_validate_unequal_rows()` - Catch errors
-   - `test_infer_types()` - Type detection
-   - `test_has_nulls()` - Null detection
+3. **NumPy Module**
+   - `test_from_numpy_2d()` - Convert from NumPy array
+   - `test_to_numpy()` - Convert to NumPy array
+   - `test_numpy_with_columns()` - Custom column names
+
+4. **DuckDB Module**
+   - `test_to_duckdb()` - Convert to DuckDB relation
+   - `test_from_duckdb()` - Convert from DuckDB relation
+   - `test_query()` - SQL queries on DataFrame
 
 ### Integration Tests
 
 1. **Round-trip Tests**
-   - pandas → DataFrame → pandas
-   - polars → DataFrame → polars
-   - DataFrame → CSV → DataFrame
    - DataFrame → Parquet → DataFrame
    - DataFrame → Arrow → DataFrame
+   - DataFrame → JSONL → DataFrame
 
 2. **Cross-library Tests**
-   - pandas → DataFrame → polars
    - DataFrame → Arrow → DuckDB
    - NumPy → DataFrame → pandas
 
@@ -797,26 +477,7 @@ No migration needed. New features are purely additive.
 
 ### CI/CD Integration
 
-```yaml
-# .github/workflows/test.yml
-test-dataframe:
-  strategy:
-    matrix:
-      optional-deps:
-        - "none"  # Test without optional dependencies
-        - "arrow"  # Test with PyArrow
-        - "all"  # Test with all dependencies
-  steps:
-    - name: Install dependencies
-      run: |
-        if [ "${{ matrix.optional-deps }}" = "none" ]; then
-          uv sync
-        else
-          uv sync --extra ${{ matrix.optional-deps }}
-        fi
-    - name: Run tests
-      run: make test
-```
+Test with and without optional dependencies to ensure lazy imports work correctly.
 
 ## Dependencies
 
@@ -825,18 +486,17 @@ test-dataframe:
 - Python 3.13+
 - pydantic
 
-### Optional (New)
+### Proposed Optional Dependencies
 
 ```toml
 [project.optional-dependencies]
-csv = []  # Uses stdlib csv module
 arrow = ["pyarrow>=14.0.0"]
 parquet = ["pyarrow>=14.0.0"]  # Alias for arrow
 numpy = ["numpy>=1.24.0"]
 duckdb = ["duckdb>=0.9.0"]
 msgpack = ["msgpack>=1.0.0"]
 excel = ["openpyxl>=3.1.0"]
-all = [
+data-all = [
     "pyarrow>=14.0.0",
     "numpy>=1.24.0",
     "duckdb>=0.9.0",
@@ -1172,28 +832,3 @@ df3.to_msgpack()  # Binary format for API
 | `has_nulls()` | dict | Null detection |
 | `query(sql)` | DataFrame | SQL query |
 
-## Appendix B: Migration from PandasDataFrame
-
-**Note**: This proposal comes after the recent rename from `PandasDataFrame` to `DataFrame`. This is a reminder of that migration for context.
-
-### Old Code (Pre-rename)
-
-```python
-from servicekit.data import PandasDataFrame
-
-df = PandasDataFrame.from_pandas(pd_df)
-```
-
-### New Code (Post-rename)
-
-```python
-from servicekit.data import DataFrame
-
-df = DataFrame.from_pandas(pd_df)
-```
-
-**Status**: Migration complete, `PandasDataFrame` alias removed in v0.3.3.
-
-## Changelog
-
-- **2025-10-24**: Initial proposal (v1.0)
