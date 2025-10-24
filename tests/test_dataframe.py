@@ -677,3 +677,267 @@ class TestDataFrameValidation:
 
         assert result["a"] is False
         assert result["b"] is False
+
+
+class TestDataFrameIteration:
+    """Test DataFrame iteration and length."""
+
+    def test_len(self) -> None:
+        """len() returns number of rows."""
+        df = DataFrame(columns=["a"], data=[[1], [2], [3]])
+        assert len(df) == 3
+
+    def test_len_empty(self) -> None:
+        """len() returns 0 for empty DataFrame."""
+        df = DataFrame(columns=["a"], data=[])
+        assert len(df) == 0
+
+    def test_iter(self) -> None:
+        """Iterate over rows as dictionaries."""
+        df = DataFrame(columns=["name", "age"], data=[["Alice", 25], ["Bob", 30]])
+
+        rows = list(df)
+
+        assert rows == [{"name": "Alice", "age": 25}, {"name": "Bob", "age": 30}]
+
+    def test_iter_empty(self) -> None:
+        """Iterate over empty DataFrame."""
+        df = DataFrame(columns=["a"], data=[])
+        assert list(df) == []
+
+
+class TestDataFrameJSON:
+    """Test DataFrame JSON support."""
+
+    def test_from_json_records(self) -> None:
+        """Create DataFrame from JSON array."""
+        json_string = '[{"name": "Alice", "age": 25}, {"name": "Bob", "age": 30}]'
+        df = DataFrame.from_json(json_string)
+
+        assert df.columns == ["name", "age"]
+        assert df.data == [["Alice", 25], ["Bob", 30]]
+
+    def test_from_json_empty(self) -> None:
+        """Create DataFrame from empty JSON array."""
+        df = DataFrame.from_json("[]")
+        assert df.columns == []
+        assert df.data == []
+
+    def test_from_json_not_array(self) -> None:
+        """from_json raises ValueError for non-array JSON."""
+        with pytest.raises(ValueError, match="JSON must be an array of objects"):
+            DataFrame.from_json('{"a": 1}')
+
+    def test_to_json_records(self) -> None:
+        """Export DataFrame as JSON records."""
+        df = DataFrame(columns=["name", "age"], data=[["Alice", 25], ["Bob", 30]])
+
+        result = df.to_json(orient="records")
+
+        assert result == '[{"name": "Alice", "age": 25}, {"name": "Bob", "age": 30}]'
+
+    def test_to_json_columns(self) -> None:
+        """Export DataFrame as JSON columns."""
+        df = DataFrame(columns=["name", "age"], data=[["Alice", 25], ["Bob", 30]])
+
+        result = df.to_json(orient="columns")
+
+        assert result == '{"name": ["Alice", "Bob"], "age": [25, 30]}'
+
+    def test_to_json_empty(self) -> None:
+        """Export empty DataFrame as JSON."""
+        df = DataFrame(columns=[], data=[])
+        assert df.to_json() == "[]"
+
+    def test_json_roundtrip(self) -> None:
+        """Round-trip JSON conversion preserves data."""
+        original = DataFrame(columns=["x", "y"], data=[[1, 2], [3, 4]])
+
+        json_string = original.to_json()
+        restored = DataFrame.from_json(json_string)
+
+        assert restored.columns == original.columns
+        assert restored.data == original.data
+
+
+class TestDataFrameColumnAccess:
+    """Test DataFrame column access methods."""
+
+    def test_get_column(self) -> None:
+        """get_column() returns column values."""
+        df = DataFrame(columns=["name", "age"], data=[["Alice", 25], ["Bob", 30]])
+
+        result = df.get_column("age")
+
+        assert result == [25, 30]
+
+    def test_get_column_not_found(self) -> None:
+        """get_column() raises KeyError for missing column."""
+        df = DataFrame(columns=["a"], data=[[1]])
+
+        with pytest.raises(KeyError, match="Column 'b' not found"):
+            df.get_column("b")
+
+    def test_getitem_single_column(self) -> None:
+        """df['col'] returns column values."""
+        df = DataFrame(columns=["name", "age"], data=[["Alice", 25], ["Bob", 30]])
+
+        result = df["age"]
+
+        assert result == [25, 30]
+
+    def test_getitem_multiple_columns(self) -> None:
+        """df[['col1', 'col2']] returns DataFrame."""
+        df = DataFrame(columns=["name", "age", "city"], data=[["Alice", 25, "NYC"], ["Bob", 30, "LA"]])
+
+        result = df[["name", "city"]]
+
+        assert isinstance(result, DataFrame)
+        assert result.columns == ["name", "city"]
+        assert result.data == [["Alice", "NYC"], ["Bob", "LA"]]
+
+    def test_getitem_not_found(self) -> None:
+        """df['col'] raises KeyError for missing column."""
+        df = DataFrame(columns=["a"], data=[[1]])
+
+        with pytest.raises(KeyError, match="Column 'b' not found"):
+            df["b"]
+
+
+class TestDataFrameUnique:
+    """Test DataFrame.unique() method."""
+
+    def test_unique_basic(self) -> None:
+        """unique() returns unique values."""
+        df = DataFrame(columns=["category"], data=[["A"], ["B"], ["A"], ["C"], ["B"]])
+
+        result = df.unique("category")
+
+        assert result == ["A", "B", "C"]
+
+    def test_unique_preserves_order(self) -> None:
+        """unique() preserves order of first appearance."""
+        df = DataFrame(columns=["x"], data=[[3], [1], [2], [1], [3]])
+
+        result = df.unique("x")
+
+        assert result == [3, 1, 2]
+
+    def test_unique_with_none(self) -> None:
+        """unique() includes None values."""
+        df = DataFrame(columns=["x"], data=[[1], [None], [2], [None], [1]])
+
+        result = df.unique("x")
+
+        assert result == [1, None, 2]
+
+    def test_unique_all_same(self) -> None:
+        """unique() with all same values."""
+        df = DataFrame(columns=["x"], data=[["A"], ["A"], ["A"]])
+        assert df.unique("x") == ["A"]
+
+    def test_unique_not_found(self) -> None:
+        """unique() raises KeyError for missing column."""
+        df = DataFrame(columns=["a"], data=[[1]])
+
+        with pytest.raises(KeyError, match="Column 'b' not found"):
+            df.unique("b")
+
+
+class TestDataFrameValueCounts:
+    """Test DataFrame.value_counts() method."""
+
+    def test_value_counts_basic(self) -> None:
+        """value_counts() returns counts."""
+        df = DataFrame(columns=["category"], data=[["A"], ["B"], ["A"], ["C"], ["B"], ["A"]])
+
+        result = df.value_counts("category")
+
+        assert result == {"A": 3, "B": 2, "C": 1}
+
+    def test_value_counts_with_none(self) -> None:
+        """value_counts() counts None values."""
+        df = DataFrame(columns=["x"], data=[[1], [None], [2], [None], [1]])
+
+        result = df.value_counts("x")
+
+        assert result == {1: 2, None: 2, 2: 1}
+
+    def test_value_counts_single_value(self) -> None:
+        """value_counts() with all same values."""
+        df = DataFrame(columns=["x"], data=[["A"], ["A"], ["A"]])
+        assert df.value_counts("x") == {"A": 3}
+
+    def test_value_counts_empty(self) -> None:
+        """value_counts() on empty DataFrame."""
+        df = DataFrame(columns=["x"], data=[])
+        assert df.value_counts("x") == {}
+
+    def test_value_counts_not_found(self) -> None:
+        """value_counts() raises KeyError for missing column."""
+        df = DataFrame(columns=["a"], data=[[1]])
+
+        with pytest.raises(KeyError, match="Column 'b' not found"):
+            df.value_counts("b")
+
+
+class TestDataFrameSort:
+    """Test DataFrame.sort() method."""
+
+    def test_sort_ascending(self) -> None:
+        """sort() in ascending order."""
+        df = DataFrame(columns=["name", "age"], data=[["Bob", 30], ["Alice", 25], ["Charlie", 35]])
+
+        result = df.sort("age")
+
+        assert result.data == [["Alice", 25], ["Bob", 30], ["Charlie", 35]]
+
+    def test_sort_descending(self) -> None:
+        """sort() in descending order."""
+        df = DataFrame(columns=["name", "score"], data=[["Alice", 85], ["Bob", 95], ["Charlie", 90]])
+
+        result = df.sort("score", ascending=False)
+
+        assert result.data == [["Bob", 95], ["Charlie", 90], ["Alice", 85]]
+
+    def test_sort_with_none_ascending(self) -> None:
+        """sort() with None values (ascending)."""
+        df = DataFrame(columns=["x"], data=[[3], [None], [1], [None], [2]])
+
+        result = df.sort("x")
+
+        # None values should be at the end
+        assert result.data == [[1], [2], [3], [None], [None]]
+
+    def test_sort_with_none_descending(self) -> None:
+        """sort() with None values (descending)."""
+        df = DataFrame(columns=["x"], data=[[3], [None], [1], [None], [2]])
+
+        result = df.sort("x", ascending=False)
+
+        # None values should still be at the end
+        assert result.data == [[3], [2], [1], [None], [None]]
+
+    def test_sort_strings(self) -> None:
+        """sort() string values."""
+        df = DataFrame(columns=["name"], data=[["Charlie"], ["Alice"], ["Bob"]])
+
+        result = df.sort("name")
+
+        assert result.data == [["Alice"], ["Bob"], ["Charlie"]]
+
+    def test_sort_immutable(self) -> None:
+        """sort() returns new DataFrame, doesn't modify original."""
+        df = DataFrame(columns=["x"], data=[[3], [1], [2]])
+
+        result = df.sort("x")
+
+        assert df.data == [[3], [1], [2]]  # Original unchanged
+        assert result.data == [[1], [2], [3]]
+
+    def test_sort_not_found(self) -> None:
+        """sort() raises KeyError for missing column."""
+        df = DataFrame(columns=["a"], data=[[1]])
+
+        with pytest.raises(KeyError, match="Column 'b' not found"):
+            df.sort("b")

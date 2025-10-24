@@ -3,21 +3,19 @@
 from servicekit.data import DataFrame
 
 # Create sample data
-df = DataFrame.from_dict({
-    "product": ["Apple", "Banana", "Cherry", "Date", "Elderberry",
-                "Fig", "Grape", "Honeydew", "Kiwi", "Lemon"],
-    "price": [1.20, 0.50, 3.00, 2.50, 4.00,
-              2.00, 2.50, 3.50, 1.80, 0.80],
-    "stock": [100, 150, 80, 60, 40,
-              90, 120, 70, 110, 130],
-    "category": ["Fruit", "Fruit", "Fruit", "Fruit", "Berry",
-                 "Fruit", "Fruit", "Melon", "Fruit", "Citrus"]
-})
+df = DataFrame.from_dict(
+    {
+        "product": ["Apple", "Banana", "Cherry", "Date", "Elderberry", "Fig", "Grape", "Honeydew", "Kiwi", "Lemon"],
+        "price": [1.20, 0.50, 3.00, 2.50, 4.00, 2.00, 2.50, 3.50, 1.80, 0.80],
+        "stock": [100, 150, 80, 60, 40, 90, 120, 70, 110, 130],
+        "category": ["Fruit", "Fruit", "Fruit", "Fruit", "Berry", "Fruit", "Fruit", "Melon", "Fruit", "Citrus"],
+    }
+)
 
 print("=== DataFrame Properties ===")
 print(f"Shape: {df.shape}")
-print(f"Number of rows: {df.num_rows}")
-print(f"Number of columns: {df.num_columns}")
+print(f"Number of rows: {df.shape[0]}")
+print(f"Number of columns: {df.shape[1]}")
 print(f"Size (total elements): {df.size}")
 print(f"Is empty: {df.empty}")
 print(f"Dimensions: {df.ndim}")

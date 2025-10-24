@@ -2,6 +2,7 @@
 
 import csv
 import io
+import json
 import random
 from pathlib import Path
 from typing import Any, Literal, Self
@@ -548,6 +549,189 @@ class DataFrame(BaseModel):
             result[col_name] = has_null
 
         return result
+
+    # Iteration and length
+
+    def __len__(self) -> int:
+        """Return number of rows."""
+        return len(self.data)
+
+    def __iter__(self) -> Any:
+        """Iterate over rows as dictionaries."""
+        for row in self.data:
+            yield dict(zip(self.columns, row))
+
+    # JSON support
+
+    @classmethod
+    def from_json(cls, json_string: str) -> Self:
+        """Create DataFrame from JSON string (array of objects).
+
+        Args:
+            json_string: JSON array of objects
+
+        Returns:
+            DataFrame instance
+
+        Raises:
+            ValueError: If JSON is not a list of objects
+
+        Example:
+            >>> df = DataFrame.from_json('[{"a": 1, "b": 2}, {"a": 3, "b": 4}]')
+        """
+        records = json.loads(json_string)
+        if not isinstance(records, list):
+            raise ValueError("JSON must be an array of objects")
+        return cls.from_records(records)
+
+    def to_json(self, orient: Literal["records", "columns"] = "records") -> str:
+        """Export DataFrame as JSON string.
+
+        Args:
+            orient: "records" for list of objects, "columns" for dict of arrays
+
+        Returns:
+            JSON string
+
+        Example:
+            >>> df.to_json()
+            '[{"a": 1}, {"a": 2}]'
+            >>> df.to_json(orient="columns")
+            '{"a": [1, 2]}'
+        """
+        # Map "columns" to "list" for to_dict()
+        dict_orient: Literal["dict", "list", "records"] = "list" if orient == "columns" else orient
+        return json.dumps(self.to_dict(orient=dict_orient))
+
+    # Column access
+
+    def get_column(self, column: str) -> list[Any]:
+        """Get all values for a column.
+
+        Args:
+            column: Column name
+
+        Returns:
+            List of values
+
+        Raises:
+            KeyError: If column does not exist
+
+        Example:
+            >>> df.get_column("age")
+            [25, 30, 35]
+        """
+        if column not in self.columns:
+            raise KeyError(f"Column '{column}' not found in DataFrame")
+        idx = self.columns.index(column)
+        return [row[idx] for row in self.data]
+
+    def __getitem__(self, key: str | list[str]) -> list[Any] | Self:
+        """Support df['col'] and df[['col1', 'col2']].
+
+        Args:
+            key: Column name or list of column names
+
+        Returns:
+            List of values for single column, or DataFrame for multiple columns
+
+        Example:
+            >>> df["age"]  # Returns list
+            >>> df[["name", "age"]]  # Returns DataFrame
+        """
+        if isinstance(key, str):
+            return self.get_column(key)
+        return self.select(key)
+
+    # Analytics methods
+
+    def unique(self, column: str) -> list[Any]:
+        """Get unique values from a column (preserves order).
+
+        Args:
+            column: Column name
+
+        Returns:
+            List of unique values in order of first appearance
+
+        Raises:
+            KeyError: If column does not exist
+
+        Example:
+            >>> df.unique("category")
+            ['A', 'B', 'C']
+        """
+        if column not in self.columns:
+            raise KeyError(f"Column '{column}' not found in DataFrame")
+
+        col_idx = self.columns.index(column)
+        seen = set()
+        result = []
+        for row in self.data:
+            val = row[col_idx]
+            if val not in seen:
+                seen.add(val)
+                result.append(val)
+        return result
+
+    def value_counts(self, column: str) -> dict[Any, int]:
+        """Count occurrences of each unique value in column.
+
+        Args:
+            column: Column name
+
+        Returns:
+            Dictionary mapping values to counts
+
+        Raises:
+            KeyError: If column does not exist
+
+        Example:
+            >>> df.value_counts("category")
+            {'A': 3, 'B': 2, 'C': 1}
+        """
+        if column not in self.columns:
+            raise KeyError(f"Column '{column}' not found in DataFrame")
+
+        col_idx = self.columns.index(column)
+        counts: dict[Any, int] = {}
+        for row in self.data:
+            val = row[col_idx]
+            counts[val] = counts.get(val, 0) + 1
+        return counts
+
+    def sort(self, by: str, ascending: bool = True) -> Self:
+        """Sort DataFrame by column.
+
+        Args:
+            by: Column name to sort by
+            ascending: Sort in ascending order (default True)
+
+        Returns:
+            New sorted DataFrame
+
+        Raises:
+            KeyError: If column does not exist
+
+        Example:
+            >>> df.sort("age")
+            >>> df.sort("score", ascending=False)
+        """
+        if by not in self.columns:
+            raise KeyError(f"Column '{by}' not found in DataFrame")
+
+        col_idx = self.columns.index(by)
+
+        # Sort with None values at the end
+        def sort_key(row: list[Any]) -> tuple[int, Any]:
+            val = row[col_idx]
+            if val is None:
+                # Use a tuple to ensure None sorts last
+                return (1, None) if ascending else (0, None)
+            return (0, val) if ascending else (1, val)
+
+        sorted_data = sorted(self.data, key=sort_key, reverse=not ascending)
+        return self.__class__(columns=self.columns, data=sorted_data)
 
 
 __all__ = ["DataFrame"]

@@ -193,10 +193,11 @@ polars_df = df.to_polars()
 print(df.shape)  # (100, 5)
 
 # Number of rows
-print(df.num_rows)  # 100
+print(df.shape[0])  # 100
+print(len(df))  # 100 - can also use len()
 
 # Number of columns
-print(df.num_columns)  # 5
+print(df.shape[1])  # 5
 
 # Check if empty
 print(df.empty)  # False
@@ -241,7 +242,33 @@ sample = df.sample(frac=0.1)  # 10% of rows
 sample = df.sample(n=50, random_state=42)
 ```
 
+### Iteration
+
+```python
+# Iterate over rows as dictionaries
+for row in df:
+    print(row)  # {'name': 'Alice', 'age': 25}
+
+# Get number of rows with len()
+num_rows = len(df)
+
+# Use in list comprehensions
+names = [row['name'] for row in df]
+```
+
 ## Column Operations
+
+### Accessing Columns
+
+```python
+# Get column values as list
+ages = df.get_column("age")  # [25, 30, 35]
+ages = df["age"]  # Same using [] syntax
+
+# Select multiple columns as DataFrame
+df_subset = df[["name", "age"]]
+df_subset = df.select(["name", "age"])  # Equivalent
+```
 
 ### Selecting Columns
 
@@ -322,6 +349,82 @@ print(nulls)
 # Use for data quality checks
 if any(nulls.values()):
     print("Warning: DataFrame contains null values")
+```
+
+## Sorting and Analytics
+
+### Sorting
+
+```python
+# Sort by column (ascending)
+df_sorted = df.sort("age")
+
+# Sort descending
+df_sorted = df.sort("score", ascending=False)
+
+# None values always sort to the end
+df_sorted = df.sort("nullable_column")
+```
+
+### Unique Values
+
+```python
+# Get unique values from a column
+categories = df.unique("category")
+# ['A', 'B', 'C'] - preserves order of first appearance
+
+# Count unique values
+num_unique = len(df.unique("category"))
+```
+
+### Value Counts
+
+```python
+# Count occurrences of each value
+counts = df.value_counts("category")
+# {'A': 3, 'B': 2, 'C': 1}
+
+# Find most common value
+most_common = max(counts, key=counts.get)
+
+# Get distribution
+total = len(df)
+distribution = {k: v/total for k, v in counts.items()}
+```
+
+## JSON Support
+
+### Creating from JSON
+
+```python
+# From JSON array of objects
+json_data = '[{"name": "Alice", "age": 25}, {"name": "Bob", "age": 30}]'
+df = DataFrame.from_json(json_data)
+
+# From API response
+import requests
+response = requests.get("https://api.example.com/data")
+df = DataFrame.from_json(response.text)
+```
+
+### Exporting to JSON
+
+```python
+# As array of objects (records format)
+json_str = df.to_json(orient="records")
+# '[{"name": "Alice", "age": 25}, {"name": "Bob", "age": 30}]'
+
+# As object with arrays (columns format)
+json_str = df.to_json(orient="columns")
+# '{"name": ["Alice", "Bob"], "age": [25, 30]}'
+
+# For API responses
+from fastapi import Response
+
+@app.get("/data")
+async def get_data():
+    df = get_dataframe()
+    return Response(content=df.to_json(), media_type="application/json")
 ```
 
 ## Common Patterns

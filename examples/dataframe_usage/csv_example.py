@@ -1,15 +1,18 @@
 """Example showing DataFrame CSV read/write capabilities."""
 
 from pathlib import Path
+
 from servicekit.data import DataFrame
 
 # Create sample data
-df = DataFrame.from_dict({
-    "name": ["Alice", "Bob", "Charlie", "Diana", "Eve"],
-    "age": [25, 30, 35, 28, 42],
-    "city": ["NYC", "SF", "LA", "Chicago", "Boston"],
-    "score": [95.5, 87.0, 92.3, 88.5, 91.0]
-})
+df = DataFrame.from_dict(
+    {
+        "name": ["Alice", "Bob", "Charlie", "Diana", "Eve"],
+        "age": [25, 30, 35, 28, 42],
+        "city": ["NYC", "SF", "LA", "Chicago", "Boston"],
+        "score": [95.5, 87.0, 92.3, 88.5, 91.0],
+    }
+)
 
 print("Original DataFrame:")
 print(f"Shape: {df.shape}")

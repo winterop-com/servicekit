@@ -3,16 +3,23 @@
 from servicekit.data import DataFrame
 
 # Create sample data
-df = DataFrame.from_dict({
-    "id": [1, 2, 3, 4, 5],
-    "first_name": ["Alice", "Bob", "Charlie", "Diana", "Eve"],
-    "last_name": ["Smith", "Jones", "Brown", "Wilson", "Davis"],
-    "age": [25, 30, 35, 28, 42],
-    "email": ["alice@example.com", "bob@example.com", "charlie@example.com",
-              "diana@example.com", "eve@example.com"],
-    "temp_field": ["x", "y", "z", "a", "b"],
-    "debug_col": [1, 2, 3, 4, 5]
-})
+df = DataFrame.from_dict(
+    {
+        "id": [1, 2, 3, 4, 5],
+        "first_name": ["Alice", "Bob", "Charlie", "Diana", "Eve"],
+        "last_name": ["Smith", "Jones", "Brown", "Wilson", "Davis"],
+        "age": [25, 30, 35, 28, 42],
+        "email": [
+            "alice@example.com",
+            "bob@example.com",
+            "charlie@example.com",
+            "diana@example.com",
+            "eve@example.com",
+        ],
+        "temp_field": ["x", "y", "z", "a", "b"],
+        "debug_col": [1, 2, 3, 4, 5],
+    }
+)
 
 print("=== Original DataFrame ===")
 print(f"Columns: {df.columns}")
@@ -49,18 +56,13 @@ print()
 
 print("=== Renaming Columns ===")
 # Rename for clarity
-renamed = df.rename({
-    "first_name": "name",
-    "last_name": "surname",
-    "temp_field": "status"
-})
+renamed = df.rename({"first_name": "name", "last_name": "surname", "temp_field": "status"})
 print(f"Renamed columns: {renamed.columns}")
 print()
 
 # Chain operations
 result = (
-    df
-    .drop(["temp_field", "debug_col"])
+    df.drop(["temp_field", "debug_col"])
     .rename({"first_name": "name", "last_name": "surname"})
     .select(["id", "name", "surname", "age"])
 )

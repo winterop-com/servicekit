@@ -93,6 +93,31 @@ Shows how to:
 
 Then visit http://localhost:8000/docs for interactive API documentation.
 
+#### Analytics Example
+```bash
+python analytics_example.py
+```
+
+Shows how to:
+- Access columns with [] syntax
+- Get unique values
+- Count value occurrences
+- Sort DataFrames
+- Iterate over rows
+- Perform analytics with iteration
+
+#### JSON Example
+```bash
+python json_example.py
+```
+
+Shows how to:
+- Create DataFrame from JSON
+- Export to JSON (records and columns formats)
+- Round-trip JSON conversion
+- Process API responses
+- Handle mixed data types
+
 ### Library Integration Examples
 
 #### Pandas Example
@@ -141,6 +166,7 @@ df = DataFrame(
 - `DataFrame.from_dict(data)` - From dictionary (no dependencies)
 - `DataFrame.from_records(records)` - From list of dicts (no dependencies)
 - `DataFrame.from_csv(path/csv_string)` - From CSV (no dependencies)
+- `DataFrame.from_json(json_string)` - From JSON array (no dependencies)
 - `DataFrame.from_pandas(df)` - From pandas (requires pandas)
 - `DataFrame.from_polars(df)` - From polars (requires polars)
 - `DataFrame.from_xarray(da)` - From xarray (requires xarray)
@@ -148,13 +174,13 @@ df = DataFrame(
 #### Exporting DataFrames
 - `df.to_dict(orient)` - To dictionary (no dependencies)
 - `df.to_csv(path)` - To CSV file/string (no dependencies)
+- `df.to_json(orient)` - To JSON string (no dependencies)
 - `df.to_pandas()` - To pandas (requires pandas)
 - `df.to_polars()` - To polars (requires polars)
 
 #### Properties
 - `df.shape` - (rows, columns) tuple
-- `df.num_rows` - Number of rows
-- `df.num_columns` - Number of columns
+- `len(df)` - Number of rows
 - `df.size` - Total elements (rows × columns)
 - `df.empty` - True if no rows or columns
 - `df.ndim` - Always 2 (2-dimensional)
@@ -163,11 +189,20 @@ df = DataFrame(
 - `df.head(n)` - First n rows (default 5)
 - `df.tail(n)` - Last n rows (default 5)
 - `df.sample(n/frac, random_state)` - Random sample
+- `for row in df` - Iterate over rows as dicts
 
 #### Column Operations
+- `df["column"]` - Get column values as list
+- `df[["col1", "col2"]]` - Select multiple columns as DataFrame
+- `df.get_column(name)` - Get column values
 - `df.select(columns)` - Keep only specified columns
 - `df.drop(columns)` - Remove specified columns
 - `df.rename(mapper)` - Rename columns
+
+#### Analytics
+- `df.unique(column)` - Get unique values
+- `df.value_counts(column)` - Count value occurrences
+- `df.sort(by, ascending)` - Sort by column
 
 #### Validation
 - `df.validate_structure()` - Validate DataFrame integrity

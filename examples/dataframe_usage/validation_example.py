@@ -3,14 +3,16 @@
 from servicekit.data import DataFrame
 
 # Create sample data with various types
-df = DataFrame.from_dict({
-    "user_id": [1, 2, 3, 4, 5],
-    "username": ["alice", "bob", "charlie", "diana", "eve"],
-    "age": [25, 30, 35, 28, 42],
-    "score": [95.5, 87.0, 92.3, 88.5, 91.0],
-    "active": [True, True, False, True, True],
-    "notes": ["Good", None, "Excellent", None, "Average"]
-})
+df = DataFrame.from_dict(
+    {
+        "user_id": [1, 2, 3, 4, 5],
+        "username": ["alice", "bob", "charlie", "diana", "eve"],
+        "age": [25, 30, 35, 28, 42],
+        "score": [95.5, 87.0, 92.3, 88.5, 91.0],
+        "active": [True, True, False, True, True],
+        "notes": ["Good", None, "Excellent", None, "Average"],
+    }
+)
 
 print("=== DataFrame Structure Validation ===")
 try:
@@ -36,11 +38,13 @@ for col, has_null in nulls.items():
 print()
 
 # Create DataFrame with mixed types
-mixed_df = DataFrame.from_dict({
-    "mixed_col": [1, "hello", 3.14, True, None],
-    "int_float_col": [1, 2, 3.5, 4.0, 5],
-    "all_null_col": [None, None, None, None, None]
-})
+mixed_df = DataFrame.from_dict(
+    {
+        "mixed_col": [1, "hello", 3.14, True, None],
+        "int_float_col": [1, 2, 3.5, 4.0, 5],
+        "all_null_col": [None, None, None, None, None],
+    }
+)
 
 print("=== Mixed Type Detection ===")
 mixed_types = mixed_df.infer_types()
@@ -89,7 +93,7 @@ for col in df.columns:
 
     print(f"  {col}:")
     print(f"    Type: {dtype}")
-    print(f"    Nulls: {null_count}/{df.shape[0]} ({null_count/df.shape[0]*100:.1f}%)")
+    print(f"    Nulls: {null_count}/{df.shape[0]} ({null_count / df.shape[0] * 100:.1f}%)")
 print()
 
 # Filtering columns with nulls
