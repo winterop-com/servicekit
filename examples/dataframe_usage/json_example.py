@@ -66,7 +66,7 @@ print()
 
 print("=== Filter and Export ===")
 # Filter products in stock and export
-in_stock = []
+in_stock: list[dict] = []
 for row in df_products:
     if row["stock"] > 20:
         in_stock.append(row)

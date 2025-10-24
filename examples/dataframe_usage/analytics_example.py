@@ -93,7 +93,7 @@ print()
 
 print("=== Finding Specific Data ===")
 # Find unique stores selling Apples using iteration
-apple_stores = []
+apple_stores: list[str] = []
 for row in df:
     if row["product"] == "Apple" and row["store"] not in apple_stores:
         apple_stores.append(row["store"])
