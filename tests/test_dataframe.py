@@ -1888,6 +1888,17 @@ class TestDataFrameMelt:
         assert melted.columns == ["a", "b"]
         assert melted.data == df.data
 
+    def test_melt_no_value_vars_no_id_vars(self) -> None:
+        """Melt with no value_vars and no id_vars returns empty with default columns."""
+        df = DataFrame.from_dict({"a": [1, 2]})
+
+        # All columns as id_vars, no value_vars specified
+        melted = df.melt(id_vars=["a"], value_vars=[])
+
+        # Should return just the id column since no value_vars to melt
+        assert melted.columns == ["a"]
+        assert melted.data == [[1], [2]]
+
     def test_melt_single_value_var(self) -> None:
         """Melt with single value_var."""
         df = DataFrame.from_dict(
@@ -2516,3 +2527,13 @@ class TestDataFrameTranspose:
         assert transposed.data[0] == ["col1", 1, 2, 3]
         assert transposed.data[1] == ["col2", 4, 5, 6]
         assert transposed.data[2] == ["col3", 7, 8, 9]
+
+    def test_transpose_no_columns_edge_case(self) -> None:
+        """Transpose handles edge case of DataFrame with data but no columns."""
+        # This is an edge case that shouldn't normally occur
+        df = DataFrame(columns=[], data=[])
+
+        transposed = df.transpose()
+
+        assert transposed.columns == []
+        assert transposed.data == []
