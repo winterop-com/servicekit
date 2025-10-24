@@ -733,5 +733,424 @@ class DataFrame(BaseModel):
         sorted_data = sorted(self.data, key=sort_key, reverse=not ascending)
         return self.__class__(columns=self.columns, data=sorted_data)
 
+    # Row filtering and transformation
 
-__all__ = ["DataFrame"]
+    def filter(self, predicate: Any) -> Self:
+        """Filter rows using a predicate function.
+
+        Args:
+            predicate: Callable that takes a row dict and returns bool
+
+        Returns:
+            New DataFrame with filtered rows
+
+        Example:
+            >>> df.filter(lambda row: row["age"] > 25)
+            >>> df.filter(lambda row: row["score"] >= 90 and row["active"])
+        """
+        filtered_data = []
+        for row in self.data:
+            row_dict = dict(zip(self.columns, row))
+            if predicate(row_dict):
+                filtered_data.append(row)
+        return self.__class__(columns=self.columns, data=filtered_data)
+
+    def apply(self, func: Any, column: str) -> Self:
+        """Apply function to column values.
+
+        Args:
+            func: Callable that takes a value and returns transformed value
+            column: Column name to apply function to
+
+        Returns:
+            New DataFrame with transformed column
+
+        Raises:
+            KeyError: If column does not exist
+
+        Example:
+            >>> df.apply(str.upper, "name")
+            >>> df.apply(lambda x: x * 2, "price")
+        """
+        if column not in self.columns:
+            raise KeyError(f"Column '{column}' not found in DataFrame")
+
+        col_idx = self.columns.index(column)
+        new_data = []
+        for row in self.data:
+            new_row = row.copy()
+            new_row[col_idx] = func(row[col_idx])
+            new_data.append(new_row)
+
+        return self.__class__(columns=self.columns, data=new_data)
+
+    def add_column(self, name: str, values: list[Any]) -> Self:
+        """Add new column to DataFrame.
+
+        Args:
+            name: Column name
+            values: List of values (must match row count)
+
+        Returns:
+            New DataFrame with added column
+
+        Raises:
+            ValueError: If values length doesn't match row count
+            ValueError: If column name already exists
+
+        Example:
+            >>> df.add_column("total", [10, 20, 30])
+        """
+        if name in self.columns:
+            raise ValueError(f"Column '{name}' already exists")
+
+        if len(values) != len(self.data):
+            raise ValueError(f"Values length ({len(values)}) must match row count ({len(self.data)})")
+
+        new_columns = self.columns + [name]
+        new_data = [row + [values[i]] for i, row in enumerate(self.data)]
+
+        return self.__class__(columns=new_columns, data=new_data)
+
+    def drop_rows(self, indices: list[int]) -> Self:
+        """Drop rows by index.
+
+        Args:
+            indices: List of row indices to drop
+
+        Returns:
+            New DataFrame without dropped rows
+
+        Example:
+            >>> df.drop_rows([0, 5, 10])
+        """
+        indices_set = set(indices)
+        new_data = [row for i, row in enumerate(self.data) if i not in indices_set]
+        return self.__class__(columns=self.columns, data=new_data)
+
+    def drop_duplicates(self, subset: list[str] | None = None) -> Self:
+        """Remove duplicate rows.
+
+        Args:
+            subset: Column names to consider for duplicates (None = all columns)
+
+        Returns:
+            New DataFrame with duplicates removed (keeps first occurrence)
+
+        Raises:
+            KeyError: If any column in subset does not exist
+
+        Example:
+            >>> df.drop_duplicates()  # All columns
+            >>> df.drop_duplicates(["user_id"])  # By specific columns
+        """
+        # Validate subset columns
+        if subset is not None:
+            for col in subset:
+                if col not in self.columns:
+                    raise KeyError(f"Column '{col}' not found in DataFrame")
+            col_indices = [self.columns.index(col) for col in subset]
+        else:
+            col_indices = list(range(len(self.columns)))
+
+        # Track seen values
+        seen = set()
+        new_data = []
+
+        for row in self.data:
+            # Create tuple of relevant column values
+            key = tuple(row[i] for i in col_indices)
+
+            if key not in seen:
+                seen.add(key)
+                new_data.append(row)
+
+        return self.__class__(columns=self.columns, data=new_data)
+
+    def fillna(self, value: Any | dict[str, Any]) -> Self:
+        """Replace None values.
+
+        Args:
+            value: Single value or dict mapping column names to fill values
+
+        Returns:
+            New DataFrame with None values replaced
+
+        Raises:
+            KeyError: If dict key is not a valid column name
+
+        Example:
+            >>> df.fillna(0)  # Replace all None with 0
+            >>> df.fillna({"age": 0, "name": "Unknown"})  # Column-specific
+        """
+        if isinstance(value, dict):
+            # Validate column names
+            for col in value:
+                if col not in self.columns:
+                    raise KeyError(f"Column '{col}' not found in DataFrame")
+
+            # Create mapping of column index to fill value
+            fill_map = {self.columns.index(col): val for col, val in value.items()}
+
+            # Fill values
+            new_data = []
+            for row in self.data:
+                new_row = [fill_map[i] if i in fill_map and val is None else val for i, val in enumerate(row)]
+                new_data.append(new_row)
+        else:
+            # Single fill value for all None
+            new_data = [[value if val is None else val for val in row] for row in self.data]
+
+        return self.__class__(columns=self.columns, data=new_data)
+
+    def concat(self, other: Self) -> Self:
+        """Concatenate DataFrames vertically (stack rows).
+
+        Args:
+            other: DataFrame to concatenate
+
+        Returns:
+            New DataFrame with combined rows
+
+        Raises:
+            ValueError: If columns don't match
+
+        Example:
+            >>> df1.concat(df2)
+        """
+        if self.columns != other.columns:
+            raise ValueError(f"Column mismatch: {self.columns} != {other.columns}")
+
+        combined_data = self.data + other.data
+        return self.__class__(columns=self.columns, data=combined_data)
+
+    # Statistical methods
+
+    def describe(self) -> Self:
+        """Generate statistical summary for numeric columns.
+
+        Returns:
+            DataFrame with statistics (count, mean, std, min, 25%, 50%, 75%, max)
+
+        Example:
+            >>> df.describe()
+        """
+        import statistics
+
+        stats_rows: list[list[Any]] = []
+        stat_names = ["count", "mean", "std", "min", "25%", "50%", "75%", "max"]
+
+        for col_idx in range(len(self.columns)):
+            # Extract numeric values (filter None and non-numeric)
+            values = []
+            for row in self.data:
+                val = row[col_idx]
+                if val is not None and isinstance(val, (int, float)) and not isinstance(val, bool):
+                    values.append(float(val))
+
+            if not values:
+                # Non-numeric column - fill with None
+                stats_rows.append([None] * len(stat_names))
+                continue
+
+            # Calculate statistics
+            count = len(values)
+            mean = statistics.mean(values)
+            std = statistics.stdev(values) if count > 1 else 0.0
+            min_val = min(values)
+            max_val = max(values)
+
+            # Quantiles
+            sorted_vals = sorted(values)
+            try:
+                q25 = statistics.quantiles(sorted_vals, n=4)[0] if count > 1 else sorted_vals[0]
+                q50 = statistics.median(sorted_vals)
+                q75 = statistics.quantiles(sorted_vals, n=4)[2] if count > 1 else sorted_vals[0]
+            except statistics.StatisticsError:
+                q25 = q50 = q75 = sorted_vals[0] if sorted_vals else 0.0
+
+            stats_rows.append([count, mean, std, min_val, q25, q50, q75, max_val])
+
+        # Transpose to make stats the rows and columns the columns
+        transposed_data = [
+            [stats_rows[col_idx][stat_idx] for col_idx in range(len(self.columns))]
+            for stat_idx in range(len(stat_names))
+        ]
+
+        return self.__class__(columns=self.columns, data=transposed_data).add_column("stat", stat_names)
+
+    def groupby(self, by: str) -> "GroupBy":
+        """Group DataFrame by column values.
+
+        Args:
+            by: Column name to group by
+
+        Returns:
+            GroupBy object with aggregation methods
+
+        Raises:
+            KeyError: If column does not exist
+
+        Example:
+            >>> df.groupby("category").count()
+            >>> df.groupby("region").mean("sales")
+        """
+        if by not in self.columns:
+            raise KeyError(f"Column '{by}' not found in DataFrame")
+
+        return GroupBy(self, by)
+
+
+class GroupBy:
+    """GroupBy helper for aggregations."""
+
+    def __init__(self, dataframe: DataFrame, by: str):
+        """Initialize GroupBy helper."""
+        self.dataframe = dataframe
+        self.by = by
+        self.by_idx = dataframe.columns.index(by)
+
+        # Build groups
+        self.groups: dict[Any, list[list[Any]]] = {}
+        for row in dataframe.data:
+            key = row[self.by_idx]
+            if key not in self.groups:
+                self.groups[key] = []
+            self.groups[key].append(row)
+
+    def count(self) -> DataFrame:
+        """Count rows per group.
+
+        Returns:
+            DataFrame with group values and counts
+
+        Example:
+            >>> df.groupby("category").count()
+        """
+        data = [[key, len(rows)] for key, rows in self.groups.items()]
+        return DataFrame(columns=[self.by, "count"], data=data)
+
+    def sum(self, column: str) -> DataFrame:
+        """Sum numeric column per group.
+
+        Args:
+            column: Column to sum
+
+        Returns:
+            DataFrame with group values and sums
+
+        Raises:
+            KeyError: If column does not exist
+
+        Example:
+            >>> df.groupby("category").sum("sales")
+        """
+        if column not in self.dataframe.columns:
+            raise KeyError(f"Column '{column}' not found in DataFrame")
+
+        col_idx = self.dataframe.columns.index(column)
+        data = []
+
+        for key, rows in self.groups.items():
+            values = [
+                row[col_idx] for row in rows if row[col_idx] is not None and isinstance(row[col_idx], (int, float))
+            ]
+            total = sum(values) if values else None
+            data.append([key, total])
+
+        return DataFrame(columns=[self.by, f"{column}_sum"], data=data)
+
+    def mean(self, column: str) -> DataFrame:
+        """Calculate mean of numeric column per group.
+
+        Args:
+            column: Column to average
+
+        Returns:
+            DataFrame with group values and means
+
+        Raises:
+            KeyError: If column does not exist
+
+        Example:
+            >>> df.groupby("category").mean("price")
+        """
+        if column not in self.dataframe.columns:
+            raise KeyError(f"Column '{column}' not found in DataFrame")
+
+        import statistics
+
+        col_idx = self.dataframe.columns.index(column)
+        data = []
+
+        for key, rows in self.groups.items():
+            values = [
+                row[col_idx] for row in rows if row[col_idx] is not None and isinstance(row[col_idx], (int, float))
+            ]
+            avg = statistics.mean(values) if values else None
+            data.append([key, avg])
+
+        return DataFrame(columns=[self.by, f"{column}_mean"], data=data)
+
+    def min(self, column: str) -> DataFrame:
+        """Find minimum of numeric column per group.
+
+        Args:
+            column: Column to find minimum
+
+        Returns:
+            DataFrame with group values and minimums
+
+        Raises:
+            KeyError: If column does not exist
+
+        Example:
+            >>> df.groupby("category").min("price")
+        """
+        if column not in self.dataframe.columns:
+            raise KeyError(f"Column '{column}' not found in DataFrame")
+
+        col_idx = self.dataframe.columns.index(column)
+        data = []
+
+        for key, rows in self.groups.items():
+            values = [
+                row[col_idx] for row in rows if row[col_idx] is not None and isinstance(row[col_idx], (int, float))
+            ]
+            minimum = min(values) if values else None
+            data.append([key, minimum])
+
+        return DataFrame(columns=[self.by, f"{column}_min"], data=data)
+
+    def max(self, column: str) -> DataFrame:
+        """Find maximum of numeric column per group.
+
+        Args:
+            column: Column to find maximum
+
+        Returns:
+            DataFrame with group values and maximums
+
+        Raises:
+            KeyError: If column does not exist
+
+        Example:
+            >>> df.groupby("category").max("price")
+        """
+        if column not in self.dataframe.columns:
+            raise KeyError(f"Column '{column}' not found in DataFrame")
+
+        col_idx = self.dataframe.columns.index(column)
+        data = []
+
+        for key, rows in self.groups.items():
+            values = [
+                row[col_idx] for row in rows if row[col_idx] is not None and isinstance(row[col_idx], (int, float))
+            ]
+            maximum = max(values) if values else None
+            data.append([key, maximum])
+
+        return DataFrame(columns=[self.by, f"{column}_max"], data=data)
+
+
+__all__ = ["DataFrame", "GroupBy"]

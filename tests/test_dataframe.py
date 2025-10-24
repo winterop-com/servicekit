@@ -1068,3 +1068,412 @@ class TestDataFrameXarrayIntegration:
         # Should have 2 rows (from row dimension) and 2 columns (from col dimension)
         assert df.shape == (2, 2)
         assert df.data == [[1.0, 2.0], [3.0, 4.0]]
+
+
+class TestDataFrameFilter:
+    """Test DataFrame filter() method."""
+
+    def test_filter_basic(self) -> None:
+        """Filter rows with simple predicate."""
+        df = DataFrame.from_dict({"name": ["Alice", "Bob", "Charlie"], "age": [25, 30, 35]})
+
+        filtered = df.filter(lambda row: row["age"] > 25)
+
+        assert filtered.shape == (2, 2)
+        assert filtered.data == [["Bob", 30], ["Charlie", 35]]
+
+    def test_filter_multiple_conditions(self) -> None:
+        """Filter with multiple conditions."""
+        df = DataFrame.from_dict(
+            {"name": ["Alice", "Bob", "Charlie"], "age": [25, 30, 35], "active": [True, False, True]}
+        )
+
+        filtered = df.filter(lambda row: row["age"] >= 30 and row["active"])
+
+        assert filtered.shape == (1, 3)
+        assert filtered.data == [["Charlie", 35, True]]
+
+    def test_filter_no_matches(self) -> None:
+        """Filter returns empty DataFrame when no matches."""
+        df = DataFrame.from_dict({"name": ["Alice", "Bob"], "age": [25, 30]})
+
+        filtered = df.filter(lambda row: row["age"] > 50)
+
+        assert filtered.shape == (0, 2)
+        assert filtered.data == []
+
+    def test_filter_all_match(self) -> None:
+        """Filter returns all rows when all match."""
+        df = DataFrame.from_dict({"name": ["Alice", "Bob"], "age": [25, 30]})
+
+        filtered = df.filter(lambda row: row["age"] > 0)
+
+        assert filtered.shape == df.shape
+        assert filtered.data == df.data
+
+
+class TestDataFrameApply:
+    """Test DataFrame apply() method."""
+
+    def test_apply_string_function(self) -> None:
+        """Apply string transformation."""
+        df = DataFrame.from_dict({"name": ["alice", "bob"], "age": [25, 30]})
+
+        result = df.apply(str.upper, "name")
+
+        assert result.columns == df.columns
+        assert result.data == [["ALICE", 25], ["BOB", 30]]
+
+    def test_apply_lambda(self) -> None:
+        """Apply lambda function."""
+        df = DataFrame.from_dict({"price": [10, 20, 30]})
+
+        result = df.apply(lambda x: x * 2, "price")
+
+        assert result.data == [[20], [40], [60]]
+
+    def test_apply_nonexistent_column(self) -> None:
+        """Apply to nonexistent column raises KeyError."""
+        df = DataFrame.from_dict({"name": ["Alice"]})
+
+        with pytest.raises(KeyError, match="Column 'age' not found"):
+            df.apply(str.upper, "age")
+
+    def test_apply_preserves_other_columns(self) -> None:
+        """Apply only modifies target column."""
+        df = DataFrame.from_dict({"name": ["Alice", "Bob"], "age": [25, 30]})
+
+        result = df.apply(str.upper, "name")
+
+        # age column should be unchanged
+        assert result.get_column("age") == [25, 30]
+
+
+class TestDataFrameAddColumn:
+    """Test DataFrame add_column() method."""
+
+    def test_add_column_basic(self) -> None:
+        """Add column to DataFrame."""
+        df = DataFrame.from_dict({"name": ["Alice", "Bob"], "age": [25, 30]})
+
+        result = df.add_column("city", ["NYC", "LA"])
+
+        assert result.columns == ["name", "age", "city"]
+        assert result.data == [["Alice", 25, "NYC"], ["Bob", 30, "LA"]]
+
+    def test_add_column_mismatched_length(self) -> None:
+        """Add column with wrong length raises ValueError."""
+        df = DataFrame.from_dict({"name": ["Alice", "Bob"]})
+
+        with pytest.raises(ValueError, match="Values length .* must match row count"):
+            df.add_column("city", ["NYC"])
+
+    def test_add_column_existing_name(self) -> None:
+        """Add column with existing name raises ValueError."""
+        df = DataFrame.from_dict({"name": ["Alice"]})
+
+        with pytest.raises(ValueError, match="Column 'name' already exists"):
+            df.add_column("name", ["Bob"])
+
+    def test_add_column_empty_dataframe(self) -> None:
+        """Add column to empty DataFrame."""
+        df = DataFrame(columns=[], data=[])
+
+        result = df.add_column("name", [])
+
+        assert result.columns == ["name"]
+        assert result.data == []
+
+
+class TestDataFrameDropRows:
+    """Test DataFrame drop_rows() method."""
+
+    def test_drop_rows_basic(self) -> None:
+        """Drop rows by indices."""
+        df = DataFrame.from_dict({"name": ["Alice", "Bob", "Charlie", "Dave"], "age": [25, 30, 35, 40]})
+
+        result = df.drop_rows([0, 2])
+
+        assert result.shape == (2, 2)
+        assert result.data == [["Bob", 30], ["Dave", 40]]
+
+    def test_drop_rows_single(self) -> None:
+        """Drop single row."""
+        df = DataFrame.from_dict({"name": ["Alice", "Bob"]})
+
+        result = df.drop_rows([0])
+
+        assert result.shape == (1, 1)
+        assert result.data == [["Bob"]]
+
+    def test_drop_rows_none(self) -> None:
+        """Drop no rows returns same data."""
+        df = DataFrame.from_dict({"name": ["Alice", "Bob"]})
+
+        result = df.drop_rows([])
+
+        assert result.shape == df.shape
+        assert result.data == df.data
+
+    def test_drop_rows_out_of_range(self) -> None:
+        """Drop rows with out of range indices (ignores invalid indices)."""
+        df = DataFrame.from_dict({"name": ["Alice", "Bob"]})
+
+        result = df.drop_rows([0, 5, 10])
+
+        assert result.shape == (1, 1)
+        assert result.data == [["Bob"]]
+
+
+class TestDataFrameDropDuplicates:
+    """Test DataFrame drop_duplicates() method."""
+
+    def test_drop_duplicates_all_columns(self) -> None:
+        """Drop duplicates considering all columns."""
+        df = DataFrame.from_dict({"name": ["Alice", "Bob", "Alice", "Charlie"], "age": [25, 30, 25, 35]})
+
+        result = df.drop_duplicates()
+
+        assert result.shape == (3, 2)
+        assert result.data == [["Alice", 25], ["Bob", 30], ["Charlie", 35]]
+
+    def test_drop_duplicates_subset(self) -> None:
+        """Drop duplicates by specific columns."""
+        df = DataFrame.from_dict({"name": ["Alice", "Bob", "Alice"], "age": [25, 30, 35], "city": ["NYC", "LA", "SF"]})
+
+        result = df.drop_duplicates(subset=["name"])
+
+        # Should keep first Alice (age 25) and Bob
+        assert result.shape == (2, 3)
+        assert result.data == [["Alice", 25, "NYC"], ["Bob", 30, "LA"]]
+
+    def test_drop_duplicates_no_duplicates(self) -> None:
+        """Drop duplicates with no duplicates returns same data."""
+        df = DataFrame.from_dict({"name": ["Alice", "Bob"], "age": [25, 30]})
+
+        result = df.drop_duplicates()
+
+        assert result.shape == df.shape
+        assert result.data == df.data
+
+    def test_drop_duplicates_nonexistent_column(self) -> None:
+        """Drop duplicates with nonexistent column raises KeyError."""
+        df = DataFrame.from_dict({"name": ["Alice"]})
+
+        with pytest.raises(KeyError, match="Column 'age' not found"):
+            df.drop_duplicates(subset=["age"])
+
+
+class TestDataFrameFillna:
+    """Test DataFrame fillna() method."""
+
+    def test_fillna_single_value(self) -> None:
+        """Fill all None values with single value."""
+        df = DataFrame.from_dict({"name": ["Alice", None, "Charlie"], "age": [25, None, 35]})
+
+        result = df.fillna("Unknown")
+
+        assert result.data == [["Alice", 25], ["Unknown", "Unknown"], ["Charlie", 35]]
+
+    def test_fillna_dict(self) -> None:
+        """Fill None values with column-specific values."""
+        df = DataFrame.from_dict({"name": ["Alice", None], "age": [25, None]})
+
+        result = df.fillna({"name": "Unknown", "age": 0})
+
+        assert result.data == [["Alice", 25], ["Unknown", 0]]
+
+    def test_fillna_partial_dict(self) -> None:
+        """Fill only specified columns."""
+        df = DataFrame.from_dict({"name": ["Alice", None], "age": [25, None]})
+
+        result = df.fillna({"name": "Unknown"})
+
+        assert result.data == [["Alice", 25], ["Unknown", None]]
+
+    def test_fillna_no_nulls(self) -> None:
+        """Fill on DataFrame with no nulls."""
+        df = DataFrame.from_dict({"name": ["Alice", "Bob"]})
+
+        result = df.fillna("Unknown")
+
+        assert result.data == df.data
+
+    def test_fillna_nonexistent_column(self) -> None:
+        """Fill with nonexistent column raises KeyError."""
+        df = DataFrame.from_dict({"name": ["Alice"]})
+
+        with pytest.raises(KeyError, match="Column 'age' not found"):
+            df.fillna({"age": 0})
+
+
+class TestDataFrameConcat:
+    """Test DataFrame concat() method."""
+
+    def test_concat_basic(self) -> None:
+        """Concatenate two DataFrames."""
+        df1 = DataFrame.from_dict({"name": ["Alice"], "age": [25]})
+        df2 = DataFrame.from_dict({"name": ["Bob"], "age": [30]})
+
+        result = df1.concat(df2)
+
+        assert result.shape == (2, 2)
+        assert result.data == [["Alice", 25], ["Bob", 30]]
+
+    def test_concat_multiple_rows(self) -> None:
+        """Concatenate DataFrames with multiple rows."""
+        df1 = DataFrame.from_dict({"x": [1, 2]})
+        df2 = DataFrame.from_dict({"x": [3, 4]})
+
+        result = df1.concat(df2)
+
+        assert result.shape == (4, 1)
+        assert result.data == [[1], [2], [3], [4]]
+
+    def test_concat_mismatched_columns(self) -> None:
+        """Concat with mismatched columns raises ValueError."""
+        df1 = DataFrame.from_dict({"name": ["Alice"]})
+        df2 = DataFrame.from_dict({"age": [30]})
+
+        with pytest.raises(ValueError, match="Column mismatch"):
+            df1.concat(df2)
+
+    def test_concat_empty(self) -> None:
+        """Concatenate with empty DataFrame."""
+        df1 = DataFrame.from_dict({"name": ["Alice"]})
+        df2 = DataFrame(columns=["name"], data=[])
+
+        result = df1.concat(df2)
+
+        assert result.shape == (1, 1)
+        assert result.data == [["Alice"]]
+
+
+class TestDataFrameDescribe:
+    """Test DataFrame describe() method."""
+
+    def test_describe_numeric(self) -> None:
+        """Describe numeric columns."""
+        df = DataFrame.from_dict({"age": [25, 30, 35, 40, 45]})
+
+        result = df.describe()
+
+        # Should have columns: age, stat
+        assert "age" in result.columns
+        assert "stat" in result.columns
+
+        # Check stats are present
+        stats = result.get_column("stat")
+        assert "count" in stats
+        assert "mean" in stats
+        assert "std" in stats
+        assert "min" in stats
+        assert "max" in stats
+
+    def test_describe_mixed_columns(self) -> None:
+        """Describe with mixed numeric and non-numeric columns."""
+        df = DataFrame.from_dict({"name": ["Alice", "Bob"], "age": [25, 30]})
+
+        result = df.describe()
+
+        # Should have both columns
+        assert "name" in result.columns
+        assert "age" in result.columns
+
+        # name column should have None stats
+        name_col_idx = result.columns.index("name")
+        for row in result.data:
+            assert row[name_col_idx] is None
+
+    def test_describe_empty(self) -> None:
+        """Describe empty DataFrame."""
+        df = DataFrame(columns=["age"], data=[])
+
+        result = df.describe()
+
+        assert "age" in result.columns
+        assert "stat" in result.columns
+
+
+class TestDataFrameGroupBy:
+    """Test DataFrame groupby() method and GroupBy class."""
+
+    def test_groupby_count(self) -> None:
+        """Group by and count."""
+        df = DataFrame.from_dict({"category": ["A", "B", "A", "C", "B"], "value": [10, 20, 30, 40, 50]})
+
+        result = df.groupby("category").count()
+
+        assert result.columns == ["category", "count"]
+        assert result.shape[0] == 3  # Three unique categories
+
+        # Check counts (order may vary)
+        counts_dict = {row[0]: row[1] for row in result.data}
+        assert counts_dict["A"] == 2
+        assert counts_dict["B"] == 2
+        assert counts_dict["C"] == 1
+
+    def test_groupby_sum(self) -> None:
+        """Group by and sum."""
+        df = DataFrame.from_dict({"category": ["A", "B", "A"], "value": [10, 20, 30]})
+
+        result = df.groupby("category").sum("value")
+
+        assert result.columns == ["category", "value_sum"]
+
+        # Check sums
+        sums_dict = {row[0]: row[1] for row in result.data}
+        assert sums_dict["A"] == 40
+        assert sums_dict["B"] == 20
+
+    def test_groupby_mean(self) -> None:
+        """Group by and mean."""
+        df = DataFrame.from_dict({"category": ["A", "B", "A"], "value": [10, 20, 30]})
+
+        result = df.groupby("category").mean("value")
+
+        assert result.columns == ["category", "value_mean"]
+
+        # Check means
+        means_dict = {row[0]: row[1] for row in result.data}
+        assert means_dict["A"] == 20.0
+        assert means_dict["B"] == 20.0
+
+    def test_groupby_min_max(self) -> None:
+        """Group by and find min/max."""
+        df = DataFrame.from_dict({"category": ["A", "A", "B"], "value": [10, 30, 20]})
+
+        min_result = df.groupby("category").min("value")
+        max_result = df.groupby("category").max("value")
+
+        min_dict = {row[0]: row[1] for row in min_result.data}
+        max_dict = {row[0]: row[1] for row in max_result.data}
+
+        assert min_dict["A"] == 10
+        assert max_dict["A"] == 30
+        assert min_dict["B"] == 20
+        assert max_dict["B"] == 20
+
+    def test_groupby_with_none(self) -> None:
+        """Group by handles None values in aggregation column."""
+        df = DataFrame.from_dict({"category": ["A", "A", "B"], "value": [10, None, 20]})
+
+        result = df.groupby("category").sum("value")
+
+        sums_dict = {row[0]: row[1] for row in result.data}
+        assert sums_dict["A"] == 10  # Ignores None
+        assert sums_dict["B"] == 20
+
+    def test_groupby_nonexistent_column(self) -> None:
+        """Group by nonexistent column raises KeyError."""
+        df = DataFrame.from_dict({"name": ["Alice"]})
+
+        with pytest.raises(KeyError, match="Column 'category' not found"):
+            df.groupby("category")
+
+    def test_groupby_agg_nonexistent_column(self) -> None:
+        """GroupBy aggregation on nonexistent column raises KeyError."""
+        df = DataFrame.from_dict({"category": ["A"], "value": [10]})
+
+        with pytest.raises(KeyError, match="Column 'price' not found"):
+            df.groupby("category").sum("price")

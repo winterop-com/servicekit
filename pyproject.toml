@@ -153,6 +153,7 @@ reportUnusedFunction = false
 reportUnusedTypeParameters = true
 reportUnknownMemberType = false
 reportUnknownArgumentType = false
+reportUnknownLambdaType = false
 reportUnknownParameterType = false
 reportUnknownVariableType = false
 reportMissingTypeArgument = false

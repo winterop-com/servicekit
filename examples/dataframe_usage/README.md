@@ -118,6 +118,23 @@ Shows how to:
 - Process API responses
 - Handle mixed data types
 
+#### Advanced Features Example
+```bash
+python advanced_features_example.py
+```
+
+Shows how to:
+- Filter rows with predicates
+- Transform columns with apply()
+- Add new columns
+- Drop rows by index
+- Remove duplicate rows
+- Fill missing values
+- Concatenate DataFrames
+- Generate statistical summaries
+- Group by and aggregate
+- Chain operations in pipelines
+
 ### Library Integration Examples
 
 #### Pandas Example
@@ -203,6 +220,23 @@ df = DataFrame(
 - `df.unique(column)` - Get unique values
 - `df.value_counts(column)` - Count value occurrences
 - `df.sort(by, ascending)` - Sort by column
+
+#### Row Operations
+- `df.filter(predicate)` - Filter rows with function
+- `df.apply(func, column)` - Transform column values
+- `df.add_column(name, values)` - Add new column
+- `df.drop_rows(indices)` - Drop rows by index
+- `df.drop_duplicates(subset)` - Remove duplicate rows
+- `df.fillna(value/dict)` - Fill None values
+- `df.concat(other)` - Concatenate DataFrames vertically
+
+#### Statistical Analysis
+- `df.describe()` - Generate summary statistics
+- `df.groupby(column)` - Group by column values
+  - `.count()` - Count rows per group
+  - `.sum(column)` - Sum numeric column
+  - `.mean(column)` - Average numeric column
+  - `.min(column)` / `.max(column)` - Min/max values
 
 #### Validation
 - `df.validate_structure()` - Validate DataFrame integrity

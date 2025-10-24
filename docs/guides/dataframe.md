@@ -427,6 +427,143 @@ async def get_data():
     return Response(content=df.to_json(), media_type="application/json")
 ```
 
+## Row Filtering and Transformation
+
+### Filtering Rows
+
+```python
+# Filter with predicate function
+adults = df.filter(lambda row: row['age'] >= 18)
+
+# Multiple conditions
+active_adults = df.filter(lambda row: row['age'] >= 18 and row['active'])
+
+# Complex filtering
+high_scorers = df.filter(lambda row: row['score'] > 90 or (row['score'] > 80 and row['bonus_eligible']))
+```
+
+### Applying Transformations
+
+```python
+# Transform column values
+df_upper = df.apply(str.upper, 'name')
+
+# Apply custom function
+df_doubled = df.apply(lambda x: x * 2, 'price')
+
+# Apply method
+df_rounded = df.apply(round, 'price')
+```
+
+### Adding Columns
+
+```python
+# Add new column
+total = [x + y for x, y in zip(df['price'], df['tax'])]
+df_with_total = df.add_column('total', total)
+
+# Chain column additions
+df_enhanced = (
+    df.add_column('total', totals)
+      .add_column('formatted', formatted_values)
+)
+```
+
+## Row Operations
+
+### Dropping Rows
+
+```python
+# Drop rows by index
+df_cleaned = df.drop_rows([0, 5, 10])
+
+# Drop first row
+df_no_header = df.drop_rows([0])
+
+# Drop multiple rows
+invalid_indices = [i for i, row in enumerate(df) if row['status'] == 'invalid']
+df_valid = df.drop_rows(invalid_indices)
+```
+
+### Removing Duplicates
+
+```python
+# Remove duplicate rows (all columns)
+df_unique = df.drop_duplicates()
+
+# Remove duplicates by specific columns
+df_unique_users = df.drop_duplicates(subset=['user_id'])
+
+# Remove duplicates considering multiple columns
+df_unique_pairs = df.drop_duplicates(subset=['category', 'product'])
+```
+
+### Filling Missing Values
+
+```python
+# Fill all None with single value
+df_filled = df.fillna(0)
+
+# Column-specific fill values
+df_filled = df.fillna({
+    'age': 0,
+    'name': 'Unknown',
+    'score': -1
+})
+
+# Partial filling (only specified columns)
+df_partial = df.fillna({'age': 0})  # Other columns keep None
+```
+
+### Concatenating DataFrames
+
+```python
+# Stack DataFrames vertically
+df1 = DataFrame.from_dict({'name': ['Alice'], 'age': [25]})
+df2 = DataFrame.from_dict({'name': ['Bob'], 'age': [30]})
+combined = df1.concat(df2)
+
+# Combine multiple DataFrames
+dfs = [df1, df2, df3]
+result = dfs[0]
+for df in dfs[1:]:
+    result = result.concat(df)
+```
+
+## Statistical Analysis
+
+### Summary Statistics
+
+```python
+# Generate statistical summary
+stats = df.describe()
+
+# Results include: count, mean, std, min, 25%, 50%, 75%, max
+# Non-numeric columns show None for statistics
+print(stats.get_column('age'))  # [5, 32.5, 4.2, 25, 28, 31, 36, 45]
+print(stats.get_column('stat'))  # ['count', 'mean', 'std', ...]
+```
+
+### Group By Operations
+
+```python
+# Group and count
+category_counts = df.groupby('category').count()
+# Returns: DataFrame with columns ['category', 'count']
+
+# Group and sum
+sales_by_region = df.groupby('region').sum('sales')
+# Returns: DataFrame with columns ['region', 'sales_sum']
+
+# Group and average
+avg_price = df.groupby('product').mean('price')
+# Returns: DataFrame with columns ['product', 'price_mean']
+
+# Group and find min/max
+min_score = df.groupby('team').min('score')
+max_score = df.groupby('team').max('score')
+```
+
 ## Common Patterns
 
 ### Data Pipeline
@@ -437,9 +574,23 @@ df = (
     DataFrame.from_csv("input.csv")
     .select(["name", "age", "score"])
     .rename({"score": "grade"})
+    .filter(lambda row: row['age'] >= 18)
+    .drop_duplicates(subset=['name'])
+    .fillna({'grade': 0})
     .head(1000)
 )
 df.to_csv("output.csv")
+
+# Advanced pipeline with transformations
+df = (
+    DataFrame.from_csv("sales.csv")
+    .drop(['internal_id', 'debug_flag'])
+    .rename({'product_name': 'product', 'sale_amount': 'amount'})
+    .filter(lambda row: row['amount'] > 0)
+    .apply(str.upper, 'product')
+    .drop_duplicates(subset=['order_id'])
+    .sort('amount', ascending=False)
+)
 ```
 
 ### API Data Validation
