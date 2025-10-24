@@ -837,6 +837,46 @@ class DataFrame(BaseModel):
 
         return self.__class__(columns=result_columns, data=result_data)
 
+    def transpose(self) -> Self:
+        """Transpose DataFrame by swapping rows and columns."""
+        if not self.data:
+            # Empty DataFrame - return with swapped structure
+            return self.__class__(columns=[], data=[])
+
+        # First column becomes the new column names
+        # Remaining columns become data rows
+        if not self.columns:
+            return self.__class__(columns=[], data=[])
+
+        # Extract first column values as new column names
+        # Convert to strings to ensure valid column names
+        new_columns = [str(row[0]) for row in self.data]
+
+        # Transpose the remaining columns
+        num_original_cols = len(self.columns)
+        if num_original_cols == 1:
+            # Only one column (the index) - result is just column names as rows
+            single_col_data = [[col] for col in self.columns]
+            return self.__class__(columns=new_columns if new_columns else ["0"], data=single_col_data)
+
+        # Build transposed data
+        # Each original column (except first) becomes a row
+        # Each original row becomes a column
+        result_data: list[list[Any]] = []
+
+        for col_idx in range(1, num_original_cols):
+            # Original column name becomes first value in new row
+            row = [self.columns[col_idx]]
+            # Add values from each original row for this column
+            for orig_row in self.data:
+                row.append(orig_row[col_idx])
+            result_data.append(row)
+
+        # New columns: first is placeholder for original column names, rest are from first column
+        result_columns = ["index"] + new_columns
+
+        return self.__class__(columns=result_columns, data=result_data)
+
     # Statistical methods
 
     def describe(self) -> Self:

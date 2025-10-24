@@ -79,6 +79,7 @@ Universal schema for tabular data.
 | `concat(other)` | Concatenate DataFrames vertically | - |
 | `melt(id_vars, value_vars, var_name, value_name)` | Unpivot DataFrame from wide to long format | - |
 | `pivot(index, columns, values)` | Pivot DataFrame from long to wide format | - |
+| `transpose()` | Swap rows and columns (matrix transpose) | - |
 | `merge(other, on, how, left_on, right_on, suffixes)` | Merge DataFrames using database-style joins | - |
 
 *Missing Data:*

@@ -592,3 +592,117 @@ for row in report:
     q1_score = f"{row['Q1']}" if row["Q1"] is not None else "N/A"
     q2_score = f"{row['Q2']}" if row["Q2"] is not None else "N/A"
     print(f"  {row['employee']}: Q1={q1_score}, Q2={q2_score}")
+
+print("\n=== Transposing Data (Swap Rows and Columns) ===")
+# Metrics as rows
+metrics_by_year = DataFrame.from_dict(
+    {"metric": ["revenue", "profit", "growth"], "2023": [1000, 200, 0.10], "2024": [1200, 250, 0.20]}
+)
+
+print("Original (metrics as rows):")
+for row in metrics_by_year:
+    print(f"  {row['metric']}: 2023={row['2023']}, 2024={row['2024']}")
+
+# Transpose to have years as rows
+years_as_rows = metrics_by_year.transpose()
+
+print("\nTransposed (years as rows):")
+for row in years_as_rows:
+    print(f"  {row['index']}: revenue={row['revenue']}, profit={row['profit']}, growth={row['growth']}")
+
+print("\n=== Transposing Quarterly Data ===")
+quarterly_regions = DataFrame.from_dict(
+    {
+        "region": ["North", "South", "East", "West"],
+        "Q1": [100, 200, 150, 180],
+        "Q2": [110, 210, 160, 190],
+        "Q3": [120, 220, 170, 200],
+        "Q4": [130, 230, 180, 210],
+    }
+)
+
+print("By region (regions as rows):")
+for row in quarterly_regions:
+    print(f"  {row['region']}: Q1={row['Q1']}, Q2={row['Q2']}, Q3={row['Q3']}, Q4={row['Q4']}")
+
+# Transpose to view by quarter
+by_quarter = quarterly_regions.transpose()
+
+print("\nBy quarter (quarters as rows):")
+for row in by_quarter:
+    print(f"  {row['index']}: North={row['North']}, South={row['South']}, East={row['East']}, West={row['West']}")
+
+print("\n=== Transpose for Report Formatting ===")
+# Product sales by month
+product_sales = DataFrame.from_dict(
+    {
+        "product": ["Widget", "Gadget", "Tool"],
+        "jan": [100, 80, 60],
+        "feb": [110, 85, 65],
+        "mar": [120, 90, 70],
+    }
+)
+
+print("Original (products as rows):")
+for row in product_sales:
+    print(f"  {row['product']}: Jan={row['jan']}, Feb={row['feb']}, Mar={row['mar']}")
+
+# Transpose for monthly view
+monthly_view = product_sales.transpose()
+
+print("\nTransposed (months as rows):")
+for row in monthly_view:
+    print(f"  {row['index']}: Widget={row['Widget']}, Gadget={row['Gadget']}, Tool={row['Tool']}")
+
+print("\n=== Double Transpose (Round-trip) ===")
+original_data = DataFrame.from_dict({"id": [1, 2, 3], "value_a": [10, 20, 30], "value_b": [40, 50, 60]})
+
+print("Original:")
+for row in original_data:
+    print(f"  ID {row['id']}: A={row['value_a']}, B={row['value_b']}")
+
+# Transpose once
+first_transpose = original_data.transpose()
+print(f"\nAfter first transpose: {len(first_transpose.data)} rows, {len(first_transpose.columns)} columns")
+
+# Transpose again
+second_transpose = first_transpose.transpose()
+print(f"After second transpose: {len(second_transpose.data)} rows, {len(second_transpose.columns)} columns")
+
+print("\nRestored structure (dimensions match original):")
+print(f"  Original: {len(original_data.data)} rows x {len(original_data.columns)} cols")
+print(f"  Restored: {len(second_transpose.data)} rows x {len(second_transpose.columns)} cols")
+
+print("\n=== Combining Transpose with Other Operations ===")
+# Start with team scores
+team_scores = DataFrame.from_dict(
+    {
+        "team": ["Red", "Blue", "Green"],
+        "round1": [85, 78, 92],
+        "round2": [88, 82, 90],
+        "round3": [90, 85, 95],
+    }
+)
+
+print("Team scores:")
+for row in team_scores:
+    print(f"  {row['team']}: R1={row['round1']}, R2={row['round2']}, R3={row['round3']}")
+
+# Transpose to work with rounds as rows
+by_round = team_scores.transpose()
+
+# Filter for high-scoring rounds (any team scored >= 90)
+high_rounds = by_round.filter(lambda row: any(v >= 90 for k, v in row.items() if k != "index" and v is not None))
+
+print(f"\nHigh-scoring rounds (any team >= 90): {len(high_rounds.data)} rounds")
+for row in high_rounds:
+    print(f"  {row['index']}: Red={row['Red']}, Blue={row['Blue']}, Green={row['Green']}")
+
+# Transpose back to original orientation
+final_result = high_rounds.transpose()
+
+print("\nFiltered teams (only high-scoring rounds):")
+for row in final_result:
+    print(f"  {row['index']}: ", end="")
+    scores = [f"{k}={v}" for k, v in row.items() if k != "index"]
+    print(", ".join(scores))

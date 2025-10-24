@@ -2372,3 +2372,147 @@ class TestDataFrameMerge:
 
         with pytest.raises(ValueError, match="left_on and right_on must have same length"):
             left.merge(right, left_on=["a", "b"], right_on=["c"])
+
+
+class TestDataFrameTranspose:
+    """Test DataFrame.transpose() method."""
+
+    def test_transpose_basic(self) -> None:
+        """Transpose basic DataFrame."""
+        df = DataFrame.from_dict(
+            {"metric": ["revenue", "profit", "growth"], "2023": [1000, 200, 0.10], "2024": [1200, 250, 0.20]}
+        )
+
+        transposed = df.transpose()
+
+        assert transposed.columns == ["index", "revenue", "profit", "growth"]
+        assert transposed.data == [
+            ["2023", 1000, 200, 0.10],
+            ["2024", 1200, 250, 0.20],
+        ]
+
+    def test_transpose_numeric_data(self) -> None:
+        """Transpose DataFrame with numeric values."""
+        df = DataFrame.from_dict({"id": [1, 2, 3], "a": [10, 20, 30], "b": [40, 50, 60]})
+
+        transposed = df.transpose()
+
+        assert transposed.columns == ["index", "1", "2", "3"]
+        assert transposed.data == [
+            ["a", 10, 20, 30],
+            ["b", 40, 50, 60],
+        ]
+
+    def test_transpose_string_index(self) -> None:
+        """Transpose with string index column."""
+        df = DataFrame.from_dict(
+            {"product": ["Widget", "Gadget"], "jan": [100, 200], "feb": [110, 210], "mar": [120, 220]}
+        )
+
+        transposed = df.transpose()
+
+        assert transposed.columns == ["index", "Widget", "Gadget"]
+        assert transposed.data == [
+            ["jan", 100, 200],
+            ["feb", 110, 210],
+            ["mar", 120, 220],
+        ]
+
+    def test_transpose_with_none_values(self) -> None:
+        """Transpose preserves None values."""
+        df = DataFrame.from_dict({"id": ["a", "b"], "x": [1, None], "y": [None, 4]})
+
+        transposed = df.transpose()
+
+        assert transposed.data == [
+            ["x", 1, None],
+            ["y", None, 4],
+        ]
+
+    def test_transpose_single_row(self) -> None:
+        """Transpose DataFrame with single row."""
+        df = DataFrame.from_dict({"id": [1], "a": [10], "b": [20], "c": [30]})
+
+        transposed = df.transpose()
+
+        assert transposed.columns == ["index", "1"]
+        assert transposed.data == [
+            ["a", 10],
+            ["b", 20],
+            ["c", 30],
+        ]
+
+    def test_transpose_single_column(self) -> None:
+        """Transpose DataFrame with single column."""
+        df = DataFrame.from_dict({"values": [1, 2, 3]})
+
+        transposed = df.transpose()
+
+        # Single column transposes to row of column names
+        assert transposed.columns == ["1", "2", "3"]
+        assert transposed.data == [["values"]]
+
+    def test_transpose_twice(self) -> None:
+        """Transposing twice restores original structure."""
+        original = DataFrame.from_dict({"id": ["a", "b"], "x": [1, 2], "y": [3, 4]})
+
+        transposed_once = original.transpose()
+        transposed_twice = transposed_once.transpose()
+
+        # Column names might differ but structure should match
+        assert len(transposed_twice.columns) == len(original.columns)
+        assert len(transposed_twice.data) == len(original.data)
+
+    def test_transpose_empty(self) -> None:
+        """Transpose empty DataFrame."""
+        df = DataFrame.from_dict({})
+
+        transposed = df.transpose()
+
+        assert transposed.columns == []
+        assert transposed.data == []
+
+    def test_transpose_mixed_types(self) -> None:
+        """Transpose with mixed data types."""
+        df = DataFrame.from_dict({"name": ["Alice", "Bob"], "age": [25, 30], "active": [True, False]})
+
+        transposed = df.transpose()
+
+        assert transposed.columns == ["index", "Alice", "Bob"]
+        assert transposed.data == [
+            ["age", 25, 30],
+            ["active", True, False],
+        ]
+
+    def test_transpose_large_dataset(self) -> None:
+        """Transpose larger DataFrame."""
+        df = DataFrame.from_dict(
+            {
+                "quarter": ["Q1", "Q2", "Q3", "Q4"],
+                "north": [100, 110, 120, 130],
+                "south": [200, 210, 220, 230],
+                "east": [150, 160, 170, 180],
+                "west": [180, 190, 200, 210],
+            }
+        )
+
+        transposed = df.transpose()
+
+        assert transposed.columns == ["index", "Q1", "Q2", "Q3", "Q4"]
+        assert len(transposed.data) == 4  # 4 regions
+        assert transposed.data[0] == ["north", 100, 110, 120, 130]
+        assert transposed.data[3] == ["west", 180, 190, 200, 210]
+
+    def test_transpose_maintains_order(self) -> None:
+        """Transpose maintains row/column order."""
+        df = DataFrame.from_dict({"key": ["x", "y", "z"], "col1": [1, 2, 3], "col2": [4, 5, 6], "col3": [7, 8, 9]})
+
+        transposed = df.transpose()
+
+        # Check order is preserved
+        assert transposed.data[0][0] == "col1"
+        assert transposed.data[1][0] == "col2"
+        assert transposed.data[2][0] == "col3"
+        assert transposed.data[0] == ["col1", 1, 2, 3]
+        assert transposed.data[1] == ["col2", 4, 5, 6]
+        assert transposed.data[2] == ["col3", 7, 8, 9]

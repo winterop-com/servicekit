@@ -832,6 +832,133 @@ df_restored = df_long.pivot(index='id', columns='variable', values='value')
 - **Validation:** Raises `KeyError` for non-existent column names
 - **Stdlib only:** No external dependencies
 
+### transpose() - Swap Rows and Columns
+
+The `transpose()` method swaps rows and columns (matrix transpose). The first column becomes column headers, and column names become the first column values.
+
+#### Basic transpose() Usage
+
+```python
+from servicekit.data import DataFrame
+
+# Metrics as rows
+df = DataFrame.from_dict({
+    'metric': ['revenue', 'profit', 'growth'],
+    '2023': [1000, 200, 0.10],
+    '2024': [1200, 250, 0.20]
+})
+
+# Transpose to have metrics as columns
+df_t = df.transpose()
+
+# Result:
+# index | revenue | profit | growth
+# 2023  | 1000    | 200    | 0.10
+# 2024  | 1200    | 250    | 0.20
+```
+
+#### Transpose Use Cases
+
+**Report Formatting:**
+```python
+# API returns quarterly metrics by region
+data = DataFrame.from_dict({
+    'region': ['North', 'South', 'East', 'West'],
+    'Q1': [100, 200, 150, 180],
+    'Q2': [110, 210, 160, 190],
+    'Q3': [120, 220, 170, 200],
+    'Q4': [130, 230, 180, 210]
+})
+
+# Transpose for quarterly view
+quarterly = data.transpose()
+# index | North | South | East | West
+# Q1    | 100   | 200   | 150  | 180
+# Q2    | 110   | 210   | 160  | 190
+# ...
+```
+
+**Rotating Time Series:**
+```python
+# Monthly sales by product (wide format)
+monthly = DataFrame.from_dict({
+    'product': ['Widget', 'Gadget', 'Tool'],
+    'jan': [100, 80, 60],
+    'feb': [110, 85, 65],
+    'mar': [120, 90, 70]
+})
+
+# Transpose to have products as columns
+by_month = monthly.transpose()
+# index | Widget | Gadget | Tool
+# jan   | 100    | 80     | 60
+# feb   | 110    | 85     | 65
+# mar   | 120    | 90     | 70
+```
+
+**Preparing for Visualization:**
+```python
+# Data with entities as rows
+entities = DataFrame.from_dict({
+    'entity': ['Team A', 'Team B', 'Team C'],
+    'score': [85, 92, 78],
+    'rank': [2, 1, 3]
+})
+
+# Transpose for chart libraries expecting columns as series
+chart_data = entities.transpose()
+# index | Team A | Team B | Team C
+# score | 85     | 92     | 78
+# rank  | 2      | 1      | 3
+```
+
+#### Combining with Other Operations
+
+**Transpose + Filter + Transpose:**
+```python
+# Start with wide format
+df = DataFrame.from_dict({
+    'id': [1, 2, 3],
+    'metric_a': [100, 200, 300],
+    'metric_b': [10, 20, 30],
+    'metric_c': [5, 15, 25]
+})
+
+# Transpose to work with metrics as rows
+df_t = df.transpose()
+
+# Filter for specific IDs (now columns)
+# Then transpose back
+filtered = df_t.filter(lambda row: row['1'] > 50)
+result = filtered.transpose()
+```
+
+**Transpose for Aggregation:**
+```python
+# Quarterly data by product
+df = DataFrame.from_dict({
+    'product': ['Widget', 'Gadget'],
+    'Q1': [100, 80],
+    'Q2': [110, 85],
+    'Q3': [120, 90],
+    'Q4': [130, 95]
+})
+
+# Transpose and melt for time series analysis
+df_t = df.transpose()
+# Now can use melt() or groupby() on transposed data
+```
+
+#### transpose() Design Notes
+
+- **First column as index:** First column values become new column names (converted to strings)
+- **Column names as data:** Original column names (except first) become first column values
+- **Immutable:** Returns new DataFrame, original unchanged
+- **None values:** Preserved during transformation
+- **Empty handling:** Empty DataFrames return empty result
+- **Round-trip:** Transposing twice restores original structure (with potential column name changes)
+- **Stdlib only:** No external dependencies
+
 ## Combining DataFrames
 
 ### merge() - Database-Style Joins
