@@ -660,6 +660,183 @@ class DataFrame(BaseModel):
 
         return self.__class__(columns=new_columns, data=melted_data)
 
+    def pivot(self, index: str, columns: str, values: str) -> Self:
+        """Pivot DataFrame from long to wide format."""
+        # Validate columns exist
+        for col_name, param in [(index, "index"), (columns, "columns"), (values, "values")]:
+            if col_name not in self.columns:
+                raise KeyError(f"Column '{col_name}' not found in DataFrame (parameter: {param})")
+
+        # Get column indices
+        index_idx = self.columns.index(index)
+        columns_idx = self.columns.index(columns)
+        values_idx = self.columns.index(values)
+
+        # Build pivot structure: dict[index_value, dict[column_value, value]]
+        pivot_dict: dict[Any, dict[Any, Any]] = {}
+        column_values_set: set[Any] = set()
+
+        for row in self.data:
+            idx_val = row[index_idx]
+            col_val = row[columns_idx]
+            val = row[values_idx]
+
+            # Track column values for final column list
+            column_values_set.add(col_val)
+
+            # Initialize nested dict if needed
+            if idx_val not in pivot_dict:
+                pivot_dict[idx_val] = {}
+
+            # Check for duplicates
+            if col_val in pivot_dict[idx_val]:
+                raise ValueError(
+                    f"Duplicate entries found for index='{idx_val}' and columns='{col_val}'. "
+                    f"Cannot reshape with duplicate index/column combinations. "
+                    f"Consider using aggregation or removing duplicates first."
+                )
+
+            pivot_dict[idx_val] = {**pivot_dict[idx_val], col_val: val}
+
+        # Sort column values for consistent ordering
+        column_values = sorted(column_values_set, key=lambda x: (x is None, x))
+
+        # Build result columns: [index_column, col1, col2, ...]
+        result_columns = [index] + column_values
+
+        # Build result data
+        result_data: list[list[Any]] = []
+        for idx_val in sorted(pivot_dict.keys(), key=lambda x: (x is None, x)):
+            row_dict = pivot_dict[idx_val]
+            # Build row: [index_value, value_for_col1, value_for_col2, ...]
+            row = [idx_val] + [row_dict.get(col_val, None) for col_val in column_values]
+            result_data.append(row)
+
+        return self.__class__(columns=result_columns, data=result_data)
+
+    def merge(
+        self,
+        other: Self,
+        on: str | list[str] | None = None,
+        how: Literal["inner", "left", "right", "outer"] = "inner",
+        left_on: str | list[str] | None = None,
+        right_on: str | list[str] | None = None,
+        suffixes: tuple[str, str] = ("_x", "_y"),
+    ) -> Self:
+        """Merge DataFrames using database-style join."""
+        # Determine join keys
+        if on is not None:
+            if left_on is not None or right_on is not None:
+                raise ValueError("Cannot specify both 'on' and 'left_on'/'right_on'")
+            left_keys = [on] if isinstance(on, str) else on
+            right_keys = left_keys
+        elif left_on is not None and right_on is not None:
+            left_keys = [left_on] if isinstance(left_on, str) else left_on
+            right_keys = [right_on] if isinstance(right_on, str) else right_on
+            if len(left_keys) != len(right_keys):
+                raise ValueError("left_on and right_on must have same length")
+        else:
+            raise ValueError("Must specify either 'on' or both 'left_on' and 'right_on'")
+
+        # Validate join keys exist
+        for key in left_keys:
+            if key not in self.columns:
+                raise KeyError(f"Join key '{key}' not found in left DataFrame")
+        for key in right_keys:
+            if key not in other.columns:
+                raise KeyError(f"Join key '{key}' not found in right DataFrame")
+
+        # Get indices for join keys
+        left_key_indices = [self.columns.index(k) for k in left_keys]
+        right_key_indices = [other.columns.index(k) for k in right_keys]
+
+        # Build lookup dict for right DataFrame: key_tuple -> list[row_indices]
+        right_lookup: dict[tuple[Any, ...], list[int]] = {}
+        for row_idx, row in enumerate(other.data):
+            key_tuple = tuple(row[idx] for idx in right_key_indices)
+            if key_tuple not in right_lookup:
+                right_lookup[key_tuple] = []
+            right_lookup[key_tuple].append(row_idx)
+
+        # Determine result columns
+        left_suffix, right_suffix = suffixes
+
+        # Start with left DataFrame columns
+        result_columns = self.columns.copy()
+
+        # Add right DataFrame columns (excluding join keys if using 'on')
+        for col in other.columns:
+            if on is not None and col in left_keys:
+                # Skip join key columns from right when using 'on'
+                continue
+
+            if col in result_columns:
+                # Handle collision with suffix
+                result_columns.append(f"{col}{right_suffix}")
+                # Also need to rename left column
+                left_col_idx = result_columns.index(col)
+                result_columns[left_col_idx] = f"{col}{left_suffix}"
+            else:
+                result_columns.append(col)
+
+        # Get indices of right columns to include
+        right_col_indices = []
+        for col in other.columns:
+            if on is not None and col in right_keys:
+                continue
+            right_col_indices.append(other.columns.index(col))
+
+        # Perform join
+        result_data: list[list[Any]] = []
+        matched_right_indices: set[int] = set()
+
+        for left_row in self.data:
+            # Extract key from left row
+            left_key_tuple = tuple(left_row[idx] for idx in left_key_indices)
+
+            # Find matching rows in right DataFrame
+            right_matches = right_lookup.get(left_key_tuple, [])
+
+            if right_matches:
+                # Join matched rows
+                for right_idx in right_matches:
+                    matched_right_indices.add(right_idx)
+                    right_row = other.data[right_idx]
+
+                    # Build result row: left columns + right columns (excluding join keys)
+                    result_row = left_row.copy()
+                    for col_idx in right_col_indices:
+                        result_row.append(right_row[col_idx])
+
+                    result_data.append(result_row)
+            else:
+                # No match
+                if how in ("left", "outer"):
+                    # Include left row with None for right columns
+                    result_row = left_row.copy()
+                    result_row.extend([None] * len(right_col_indices))
+                    result_data.append(result_row)
+
+        # Handle right/outer joins - add unmatched right rows
+        if how in ("right", "outer"):
+            for right_idx, right_row in enumerate(other.data):
+                if right_idx not in matched_right_indices:
+                    # Build row with None for left columns
+                    result_row = [None] * len(self.columns)
+
+                    # Fill in join key values if using 'on'
+                    if on is not None:
+                        for left_idx, right_idx_key in zip(left_key_indices, right_key_indices):
+                            result_row[left_idx] = right_row[right_idx_key]
+
+                    # Add right columns
+                    for col_idx in right_col_indices:
+                        result_row.append(right_row[col_idx])
+
+                    result_data.append(result_row)
+
+        return self.__class__(columns=result_columns, data=result_data)
+
     # Statistical methods
 
     def describe(self) -> Self:

@@ -1987,3 +1987,388 @@ class TestDataFrameMelt:
         assert melted.data[0] == ["Alice", "score", 90]
         assert melted.data[1] == ["Alice", "passed", True]
         assert melted.data[2] == ["Alice", "grade", "A"]
+
+
+class TestDataFramePivot:
+    """Test DataFrame.pivot() method."""
+
+    def test_pivot_basic(self) -> None:
+        """Pivot DataFrame from long to wide format."""
+        df = DataFrame.from_dict(
+            {
+                "date": ["2024-01", "2024-01", "2024-02", "2024-02"],
+                "metric": ["sales", "profit", "sales", "profit"],
+                "value": [1000, 200, 1100, 220],
+            }
+        )
+
+        pivoted = df.pivot(index="date", columns="metric", values="value")
+
+        assert pivoted.columns == ["date", "profit", "sales"]
+        assert pivoted.data == [
+            ["2024-01", 200, 1000],
+            ["2024-02", 220, 1100],
+        ]
+
+    def test_pivot_student_grades(self) -> None:
+        """Pivot student grades from long to wide format."""
+        df_long = DataFrame.from_dict(
+            {
+                "student": ["Alice", "Alice", "Alice", "Bob", "Bob", "Bob"],
+                "subject": ["math", "science", "history", "math", "science", "history"],
+                "score": [90, 85, 88, 78, 92, 81],
+            }
+        )
+
+        df_wide = df_long.pivot(index="student", columns="subject", values="score")
+
+        assert df_wide.columns == ["student", "history", "math", "science"]
+        assert df_wide.data == [
+            ["Alice", 88, 90, 85],
+            ["Bob", 81, 78, 92],
+        ]
+
+    def test_pivot_with_none_values(self) -> None:
+        """Pivot handles None values in data."""
+        df = DataFrame.from_dict(
+            {
+                "id": [1, 1, 2, 2],
+                "category": ["a", "b", "a", "b"],
+                "value": [10, None, 20, 30],
+            }
+        )
+
+        pivoted = df.pivot(index="id", columns="category", values="value")
+
+        assert pivoted.data == [
+            [1, 10, None],
+            [2, 20, 30],
+        ]
+
+    def test_pivot_sparse_data(self) -> None:
+        """Pivot with missing combinations fills None."""
+        df = DataFrame.from_dict(
+            {
+                "id": [1, 1, 2],
+                "category": ["a", "b", "a"],
+                "value": [10, 20, 30],
+            }
+        )
+
+        pivoted = df.pivot(index="id", columns="category", values="value")
+
+        assert pivoted.columns == ["id", "a", "b"]
+        assert pivoted.data == [
+            [1, 10, 20],
+            [2, 30, None],  # Missing 'b' for id=2
+        ]
+
+    def test_pivot_numeric_index(self) -> None:
+        """Pivot with numeric index values."""
+        df = DataFrame.from_dict(
+            {
+                "week": [1, 1, 2, 2],
+                "day": ["mon", "tue", "mon", "tue"],
+                "hours": [8, 7, 9, 8],
+            }
+        )
+
+        pivoted = df.pivot(index="week", columns="day", values="hours")
+
+        assert pivoted.columns == ["week", "mon", "tue"]
+        assert pivoted.data == [
+            [1, 8, 7],
+            [2, 9, 8],
+        ]
+
+    def test_pivot_duplicate_error(self) -> None:
+        """Pivot raises ValueError for duplicate index/column combinations."""
+        df = DataFrame.from_dict(
+            {
+                "id": [1, 1, 2],
+                "category": ["a", "a", "b"],  # Duplicate: id=1, category=a
+                "value": [10, 20, 30],
+            }
+        )
+
+        with pytest.raises(ValueError, match="Duplicate entries found"):
+            df.pivot(index="id", columns="category", values="value")
+
+    def test_pivot_nonexistent_index(self) -> None:
+        """Pivot raises KeyError for nonexistent index column."""
+        df = DataFrame.from_dict({"a": [1, 2], "b": [3, 4], "c": [5, 6]})
+
+        with pytest.raises(KeyError, match="Column 'nonexistent' not found.*parameter: index"):
+            df.pivot(index="nonexistent", columns="b", values="c")
+
+    def test_pivot_nonexistent_columns(self) -> None:
+        """Pivot raises KeyError for nonexistent columns parameter."""
+        df = DataFrame.from_dict({"a": [1, 2], "b": [3, 4], "c": [5, 6]})
+
+        with pytest.raises(KeyError, match="Column 'nonexistent' not found.*parameter: columns"):
+            df.pivot(index="a", columns="nonexistent", values="c")
+
+    def test_pivot_nonexistent_values(self) -> None:
+        """Pivot raises KeyError for nonexistent values parameter."""
+        df = DataFrame.from_dict({"a": [1, 2], "b": [3, 4], "c": [5, 6]})
+
+        with pytest.raises(KeyError, match="Column 'nonexistent' not found.*parameter: values"):
+            df.pivot(index="a", columns="b", values="nonexistent")
+
+    def test_pivot_single_row(self) -> None:
+        """Pivot with single row."""
+        df = DataFrame.from_dict(
+            {
+                "id": [1, 1, 1],
+                "metric": ["a", "b", "c"],
+                "value": [10, 20, 30],
+            }
+        )
+
+        pivoted = df.pivot(index="id", columns="metric", values="value")
+
+        assert pivoted.data == [[1, 10, 20, 30]]
+
+    def test_pivot_mixed_types(self) -> None:
+        """Pivot with mixed data types."""
+        df = DataFrame.from_dict(
+            {
+                "id": ["x", "x", "y", "y"],
+                "field": ["count", "active", "count", "active"],
+                "value": [5, True, 10, False],
+            }
+        )
+
+        pivoted = df.pivot(index="id", columns="field", values="value")
+
+        assert pivoted.columns == ["id", "active", "count"]
+        assert pivoted.data == [
+            ["x", True, 5],
+            ["y", False, 10],
+        ]
+
+    def test_pivot_column_ordering(self) -> None:
+        """Pivot sorts columns consistently."""
+        df = DataFrame.from_dict(
+            {
+                "id": [1, 1, 1, 1],
+                "category": ["d", "b", "c", "a"],
+                "value": [4, 2, 3, 1],
+            }
+        )
+
+        pivoted = df.pivot(index="id", columns="category", values="value")
+
+        # Columns should be sorted
+        assert pivoted.columns == ["id", "a", "b", "c", "d"]
+        assert pivoted.data == [[1, 1, 2, 3, 4]]
+
+
+class TestDataFrameMerge:
+    """Test DataFrame.merge() method."""
+
+    def test_merge_inner_basic(self) -> None:
+        """Inner join keeps only matching rows."""
+        left = DataFrame.from_dict({"key": [1, 2, 3], "left_val": ["a", "b", "c"]})
+        right = DataFrame.from_dict({"key": [1, 2, 4], "right_val": ["x", "y", "z"]})
+
+        result = left.merge(right, on="key", how="inner")
+
+        assert result.columns == ["key", "left_val", "right_val"]
+        assert result.data == [
+            [1, "a", "x"],
+            [2, "b", "y"],
+        ]
+
+    def test_merge_left(self) -> None:
+        """Left join keeps all left rows."""
+        left = DataFrame.from_dict({"key": [1, 2, 3], "left_val": ["a", "b", "c"]})
+        right = DataFrame.from_dict({"key": [1, 2, 4], "right_val": ["x", "y", "z"]})
+
+        result = left.merge(right, on="key", how="left")
+
+        assert result.columns == ["key", "left_val", "right_val"]
+        assert result.data == [
+            [1, "a", "x"],
+            [2, "b", "y"],
+            [3, "c", None],  # No match in right
+        ]
+
+    def test_merge_right(self) -> None:
+        """Right join keeps all right rows."""
+        left = DataFrame.from_dict({"key": [1, 2, 3], "left_val": ["a", "b", "c"]})
+        right = DataFrame.from_dict({"key": [1, 2, 4], "right_val": ["x", "y", "z"]})
+
+        result = left.merge(right, on="key", how="right")
+
+        assert result.columns == ["key", "left_val", "right_val"]
+        assert result.data == [
+            [1, "a", "x"],
+            [2, "b", "y"],
+            [4, None, "z"],  # No match in left
+        ]
+
+    def test_merge_outer(self) -> None:
+        """Outer join keeps all rows from both DataFrames."""
+        left = DataFrame.from_dict({"key": [1, 2, 3], "left_val": ["a", "b", "c"]})
+        right = DataFrame.from_dict({"key": [1, 2, 4], "right_val": ["x", "y", "z"]})
+
+        result = left.merge(right, on="key", how="outer")
+
+        assert result.columns == ["key", "left_val", "right_val"]
+        assert sorted(result.data, key=lambda x: x[0]) == [
+            [1, "a", "x"],
+            [2, "b", "y"],
+            [3, "c", None],
+            [4, None, "z"],
+        ]
+
+    def test_merge_multiple_matches(self) -> None:
+        """Merge handles one-to-many relationships."""
+        users = DataFrame.from_dict({"user_id": [1, 2, 3], "name": ["Alice", "Bob", "Charlie"]})
+        orders = DataFrame.from_dict({"user_id": [1, 1, 2, 3], "amount": [100, 150, 200, 75]})
+
+        result = orders.merge(users, on="user_id", how="left")
+
+        assert result.columns == ["user_id", "amount", "name"]
+        assert result.data == [
+            [1, 100, "Alice"],
+            [1, 150, "Alice"],
+            [2, 200, "Bob"],
+            [3, 75, "Charlie"],
+        ]
+
+    def test_merge_left_on_right_on(self) -> None:
+        """Merge with different column names."""
+        left = DataFrame.from_dict({"left_key": [1, 2, 3], "left_val": ["a", "b", "c"]})
+        right = DataFrame.from_dict({"right_key": [1, 2, 4], "right_val": ["x", "y", "z"]})
+
+        result = left.merge(right, left_on="left_key", right_on="right_key", how="inner")
+
+        assert result.columns == ["left_key", "left_val", "right_key", "right_val"]
+        assert result.data == [
+            [1, "a", 1, "x"],
+            [2, "b", 2, "y"],
+        ]
+
+    def test_merge_multiple_keys(self) -> None:
+        """Merge on multiple columns."""
+        left = DataFrame.from_dict({"key1": [1, 1, 2], "key2": ["a", "b", "a"], "left_val": [10, 20, 30]})
+        right = DataFrame.from_dict({"key1": [1, 1, 2], "key2": ["a", "b", "b"], "right_val": [100, 200, 300]})
+
+        result = left.merge(right, on=["key1", "key2"], how="inner")
+
+        assert result.columns == ["key1", "key2", "left_val", "right_val"]
+        assert result.data == [
+            [1, "a", 10, 100],
+            [1, "b", 20, 200],
+        ]
+
+    def test_merge_column_name_collision(self) -> None:
+        """Merge handles column name collisions with suffixes."""
+        left = DataFrame.from_dict({"key": [1, 2], "value": [10, 20]})
+        right = DataFrame.from_dict({"key": [1, 2], "value": [100, 200]})
+
+        result = left.merge(right, on="key", how="inner")
+
+        assert result.columns == ["key", "value_x", "value_y"]
+        assert result.data == [
+            [1, 10, 100],
+            [2, 20, 200],
+        ]
+
+    def test_merge_custom_suffixes(self) -> None:
+        """Merge with custom suffixes."""
+        left = DataFrame.from_dict({"key": [1, 2], "value": [10, 20]})
+        right = DataFrame.from_dict({"key": [1, 2], "value": [100, 200]})
+
+        result = left.merge(right, on="key", how="inner", suffixes=("_left", "_right"))
+
+        assert result.columns == ["key", "value_left", "value_right"]
+        assert result.data == [
+            [1, 10, 100],
+            [2, 20, 200],
+        ]
+
+    def test_merge_empty_left(self) -> None:
+        """Merge with empty left DataFrame."""
+        left = DataFrame.from_dict({"key": [], "left_val": []})
+        right = DataFrame.from_dict({"key": [1, 2], "right_val": ["x", "y"]})
+
+        result = left.merge(right, on="key", how="inner")
+
+        assert result.columns == ["key", "left_val", "right_val"]
+        assert result.data == []
+
+    def test_merge_empty_right(self) -> None:
+        """Merge with empty right DataFrame."""
+        left = DataFrame.from_dict({"key": [1, 2], "left_val": ["a", "b"]})
+        right = DataFrame.from_dict({"key": [], "right_val": []})
+
+        result = left.merge(right, on="key", how="left")
+
+        assert result.columns == ["key", "left_val", "right_val"]
+        assert result.data == [
+            [1, "a", None],
+            [2, "b", None],
+        ]
+
+    def test_merge_with_none_keys(self) -> None:
+        """Merge handles None in join keys."""
+        left = DataFrame.from_dict({"key": [1, None, 3], "left_val": ["a", "b", "c"]})
+        right = DataFrame.from_dict({"key": [1, None, 4], "right_val": ["x", "y", "z"]})
+
+        result = left.merge(right, on="key", how="inner")
+
+        # None matches None
+        assert [1, "a", "x"] in result.data
+        assert [None, "b", "y"] in result.data
+
+    def test_merge_no_matches(self) -> None:
+        """Merge with no matching keys."""
+        left = DataFrame.from_dict({"key": [1, 2, 3], "left_val": ["a", "b", "c"]})
+        right = DataFrame.from_dict({"key": [4, 5, 6], "right_val": ["x", "y", "z"]})
+
+        result = left.merge(right, on="key", how="inner")
+
+        assert result.data == []
+
+    def test_merge_error_no_keys(self) -> None:
+        """Merge raises ValueError when no keys specified."""
+        left = DataFrame.from_dict({"a": [1, 2]})
+        right = DataFrame.from_dict({"b": [3, 4]})
+
+        with pytest.raises(ValueError, match="Must specify either"):
+            left.merge(right)
+
+    def test_merge_error_both_on_and_left_on(self) -> None:
+        """Merge raises ValueError when both 'on' and 'left_on' specified."""
+        left = DataFrame.from_dict({"a": [1, 2]})
+        right = DataFrame.from_dict({"a": [3, 4]})
+
+        with pytest.raises(ValueError, match="Cannot specify both"):
+            left.merge(right, on="a", left_on="a")
+
+    def test_merge_error_left_key_not_found(self) -> None:
+        """Merge raises KeyError for nonexistent left key."""
+        left = DataFrame.from_dict({"a": [1, 2]})
+        right = DataFrame.from_dict({"b": [3, 4]})
+
+        with pytest.raises(KeyError, match="Join key 'nonexistent' not found in left"):
+            left.merge(right, left_on="nonexistent", right_on="b")
+
+    def test_merge_error_right_key_not_found(self) -> None:
+        """Merge raises KeyError for nonexistent right key."""
+        left = DataFrame.from_dict({"a": [1, 2]})
+        right = DataFrame.from_dict({"b": [3, 4]})
+
+        with pytest.raises(KeyError, match="Join key 'nonexistent' not found in right"):
+            left.merge(right, left_on="a", right_on="nonexistent")
+
+    def test_merge_error_key_length_mismatch(self) -> None:
+        """Merge raises ValueError for mismatched key lengths."""
+        left = DataFrame.from_dict({"a": [1, 2], "b": [3, 4]})
+        right = DataFrame.from_dict({"c": [5, 6], "d": [7, 8]})
+
+        with pytest.raises(ValueError, match="left_on and right_on must have same length"):
+            left.merge(right, left_on=["a", "b"], right_on=["c"])

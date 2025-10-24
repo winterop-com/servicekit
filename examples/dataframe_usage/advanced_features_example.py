@@ -426,3 +426,169 @@ region_performance = high_sales.groupby("region").count()
 print("\nHigh-performing quarters by region:")
 for row in region_performance:
     print(f"  {row['region']}: {row['count']} quarters")
+
+print("\n=== Pivoting Data (Long to Wide) ===")
+# Inverse of melt() - transform long format to wide format
+df_long_metrics = DataFrame.from_dict(
+    {
+        "date": ["2024-01", "2024-01", "2024-02", "2024-02", "2024-03", "2024-03"],
+        "metric": ["sales", "profit", "sales", "profit", "sales", "profit"],
+        "value": [1000, 200, 1100, 220, 1200, 240],
+    }
+)
+
+print("Long format (metrics in rows):")
+for row in df_long_metrics:
+    print(f"  {row['date']} - {row['metric']}: {row['value']}")
+
+# Pivot to wide format
+df_wide_metrics = df_long_metrics.pivot(index="date", columns="metric", values="value")
+
+print("\nWide format (metrics in columns):")
+for row in df_wide_metrics:
+    print(f"  {row['date']}: Sales={row['sales']}, Profit={row['profit']}")
+
+print("\n=== Round-trip: Melt then Pivot ===")
+# Start with wide format
+original = DataFrame.from_dict({"id": [1, 2, 3], "metric_a": [100, 200, 300], "metric_b": [10, 20, 30]})
+
+print("Original (wide):")
+for row in original:
+    print(f"  ID {row['id']}: A={row['metric_a']}, B={row['metric_b']}")
+
+# Melt to long format
+melted_temp = original.melt(id_vars=["id"], value_vars=["metric_a", "metric_b"])
+print(f"\nAfter melt (long): {len(melted_temp.data)} rows")
+
+# Pivot back to wide format
+restored = melted_temp.pivot(index="id", columns="variable", values="value")
+print("\nRestored (wide):")
+for row in restored:
+    print(f"  ID {row['id']}: metric_a={row['metric_a']}, metric_b={row['metric_b']}")
+
+print("\n=== Merging DataFrames (Inner Join) ===")
+# Users from one service
+users = DataFrame.from_dict({"user_id": [1, 2, 3, 4], "name": ["Alice", "Bob", "Charlie", "Dave"]})
+
+# Orders from another service
+orders = DataFrame.from_dict({"order_id": [101, 102, 103], "user_id": [1, 2, 1], "amount": [50, 75, 100]})
+
+print("Users:")
+for row in users:
+    print(f"  {row['user_id']}: {row['name']}")
+
+print("\nOrders:")
+for row in orders:
+    print(f"  Order {row['order_id']}: user={row['user_id']}, amount=${row['amount']}")
+
+# Inner join - only users with orders
+joined = orders.merge(users, on="user_id", how="inner")
+
+print("\nJoined (inner - users with orders):")
+for row in joined:
+    print(f"  Order {row['order_id']}: {row['name']} - ${row['amount']}")
+
+print("\n=== Merging with Left Join ===")
+# Left join - all orders, even if user not found
+joined_left = orders.merge(users, on="user_id", how="left")
+
+print("Joined (left - all orders):")
+for row in joined_left:
+    user_name = row["name"] if row["name"] is not None else "Unknown"
+    print(f"  Order {row['order_id']}: {user_name} - ${row['amount']}")
+
+print("\n=== Merging with Different Column Names ===")
+products = DataFrame.from_dict(
+    {
+        "product_id": [1, 2, 3],
+        "product_name": ["Widget", "Gadget", "Tool"],
+        "price": [10.0, 15.0, 20.0],
+    }
+)
+
+sales_data = DataFrame.from_dict({"sale_id": [1, 2, 3, 4], "item_id": [1, 2, 1, 3], "quantity": [5, 3, 2, 4]})
+
+print("Products:")
+for row in products:
+    print(f"  {row['product_id']}: {row['product_name']} - ${row['price']}")
+
+print("\nSales:")
+for row in sales_data:
+    print(f"  Sale {row['sale_id']}: item={row['item_id']}, qty={row['quantity']}")
+
+# Merge on different column names
+enriched_sales = sales_data.merge(products, left_on="item_id", right_on="product_id", how="left")
+
+print("\nEnriched sales data:")
+for row in enriched_sales:
+    revenue = row["quantity"] * row["price"]
+    print(f"  Sale {row['sale_id']}: {row['product_name']} x {row['quantity']} = ${revenue:.2f}")
+
+print("\n=== Merging with Multiple Keys ===")
+# Join on composite keys (region + product)
+inventory = DataFrame.from_dict(
+    {
+        "region": ["North", "North", "South", "South"],
+        "product": ["Widget", "Gadget", "Widget", "Gadget"],
+        "stock": [100, 50, 150, 75],
+    }
+)
+
+demand = DataFrame.from_dict(
+    {
+        "region": ["North", "North", "South"],
+        "product": ["Widget", "Gadget", "Widget"],
+        "demand": [80, 60, 120],
+    }
+)
+
+print("Inventory:")
+for row in inventory:
+    print(f"  {row['region']} - {row['product']}: {row['stock']} units")
+
+print("\nDemand:")
+for row in demand:
+    print(f"  {row['region']} - {row['product']}: {row['demand']} units")
+
+# Merge on multiple columns
+supply_status = inventory.merge(demand, on=["region", "product"], how="left")
+
+print("\nSupply status:")
+for row in supply_status:
+    if row["demand"] is not None:
+        surplus = row["stock"] - row["demand"]
+        status = "OK" if surplus >= 0 else "SHORTAGE"
+        print(
+            f"  {row['region']} - {row['product']}: "
+            f"stock={row['stock']}, demand={row['demand']}, surplus={surplus} ({status})"
+        )
+    else:
+        print(f"  {row['region']} - {row['product']}: stock={row['stock']}, demand=N/A (no demand data)")
+
+print("\n=== Complex Pipeline: Melt + Filter + Pivot ===")
+# Start with quarterly performance
+performance = DataFrame.from_dict(
+    {
+        "employee": ["Alice", "Alice", "Bob", "Bob", "Charlie", "Charlie"],
+        "quarter": ["Q1", "Q2", "Q1", "Q2", "Q1", "Q2"],
+        "score": [85, 92, 78, 82, 95, 98],
+    }
+)
+
+print("Raw performance data:")
+for row in performance:
+    print(f"  {row['employee']} {row['quarter']}: {row['score']}")
+
+# Filter for high performers (score >= 85)
+high_performers = performance.filter(lambda row: row["score"] >= 85)
+
+print(f"\nHigh performers (score >= 85): {len(high_performers.data)} records")
+
+# Pivot for reporting
+report = high_performers.pivot(index="employee", columns="quarter", values="score")
+
+print("\nPerformance report (high performers only):")
+for row in report:
+    q1_score = f"{row['Q1']}" if row["Q1"] is not None else "N/A"
+    q2_score = f"{row['Q2']}" if row["Q2"] is not None else "N/A"
+    print(f"  {row['employee']}: Q1={q1_score}, Q2={q2_score}")

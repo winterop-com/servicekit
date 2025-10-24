@@ -722,13 +722,272 @@ high_sales = melted.filter(lambda row: row['value'] > 1000)
 summary = high_sales.groupby('product').count()
 ```
 
-### Design Notes
+### melt() Design Notes
 
 - **Stdlib only:** No external dependencies, pure Python implementation
 - **Immutable:** Returns new DataFrame, original unchanged
 - **None values:** Preserved during transformation
 - **Column order:** Results maintain row order and value_vars order
 - **Validation:** Raises `KeyError` for non-existent columns, `ValueError` for name conflicts
+
+### pivot() - Long to Wide Format
+
+The `pivot()` method is the inverse of `melt()` - it transforms data from long format to wide format by spreading row values into columns.
+
+#### Basic pivot() Usage
+
+```python
+from servicekit.data import DataFrame
+
+# Long format data
+df_long = DataFrame.from_dict({
+    'date': ['2024-01', '2024-01', '2024-02', '2024-02'],
+    'metric': ['sales', 'profit', 'sales', 'profit'],
+    'value': [1000, 200, 1100, 220]
+})
+
+# Pivot to wide format
+df_wide = df_long.pivot(index='date', columns='metric', values='value')
+
+# Result:
+# date    | profit | sales
+# 2024-01 | 200    | 1000
+# 2024-02 | 220    | 1100
+```
+
+#### pivot() Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `index` | `str` | Column to use as row index in result |
+| `columns` | `str` | Column whose unique values become new columns |
+| `values` | `str` | Column containing values to fill pivoted table |
+
+#### Pivot Use Cases
+
+**Report Generation:**
+```python
+# Student grades in long format
+df_long = DataFrame.from_dict({
+    'student': ['Alice', 'Alice', 'Alice', 'Bob', 'Bob', 'Bob'],
+    'subject': ['math', 'science', 'history', 'math', 'science', 'history'],
+    'score': [90, 85, 88, 78, 92, 81]
+})
+
+# Pivot for report card
+report = df_long.pivot(index='student', columns='subject', values='score')
+# student | history | math | science
+# Alice   | 88      | 90   | 85
+# Bob     | 81      | 78   | 92
+```
+
+**Time Series Restructuring:**
+```python
+# API returns time series in long format
+time_series = DataFrame.from_dict({
+    'week': [1, 1, 2, 2],
+    'day': ['mon', 'tue', 'mon', 'tue'],
+    'hours': [8, 7, 9, 8]
+})
+
+# Pivot for weekly view
+weekly = time_series.pivot(index='week', columns='day', values='hours')
+# week | mon | tue
+# 1    | 8   | 7
+# 2    | 9   | 8
+```
+
+#### Combining melt() and pivot()
+
+These operations are inverses - you can round-trip data:
+
+```python
+# Start with wide format
+df_wide = DataFrame.from_dict({
+    'id': [1, 2],
+    'a': [10, 20],
+    'b': [30, 40]
+})
+
+# Melt to long format
+df_long = df_wide.melt(id_vars=['id'], value_vars=['a', 'b'])
+# id | variable | value
+# 1  | a        | 10
+# 1  | b        | 30
+# 2  | a        | 20
+# 2  | b        | 40
+
+# Pivot back to wide format
+df_restored = df_long.pivot(index='id', columns='variable', values='value')
+# id | a  | b
+# 1  | 10 | 30
+# 2  | 20 | 40
+```
+
+#### pivot() Design Notes
+
+- **Duplicate detection:** Raises `ValueError` if index/column combinations are duplicated
+- **Sparse data:** Missing combinations filled with `None`
+- **Column ordering:** Result columns are sorted alphabetically
+- **Validation:** Raises `KeyError` for non-existent column names
+- **Stdlib only:** No external dependencies
+
+## Combining DataFrames
+
+### merge() - Database-Style Joins
+
+The `merge()` method combines two DataFrames using SQL-like join operations (inner, left, right, outer).
+
+#### Basic merge() Usage
+
+```python
+from servicekit.data import DataFrame
+
+# Users data
+users = DataFrame.from_dict({
+    'user_id': [1, 2, 3],
+    'name': ['Alice', 'Bob', 'Charlie']
+})
+
+# Orders data
+orders = DataFrame.from_dict({
+    'user_id': [1, 1, 2],
+    'amount': [100, 150, 200]
+})
+
+# Join to get user names with orders
+result = orders.merge(users, on='user_id', how='left')
+# user_id | amount | name
+# 1       | 100    | Alice
+# 1       | 150    | Alice
+# 2       | 200    | Bob
+```
+
+#### merge() Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `other` | `DataFrame` | - | DataFrame to merge with |
+| `on` | `str \| list[str]` | `None` | Column(s) to join on (must exist in both) |
+| `how` | `"inner" \| "left" \| "right" \| "outer"` | `"inner"` | Type of join to perform |
+| `left_on` | `str \| list[str]` | `None` | Column(s) from left DataFrame to join on |
+| `right_on` | `str \| list[str]` | `None` | Column(s) from right DataFrame to join on |
+| `suffixes` | `tuple[str, str]` | `("_x", "_y")` | Suffixes for overlapping column names |
+
+#### Join Types
+
+**Inner Join (default):** Only rows with matching keys in both DataFrames
+```python
+left = DataFrame.from_dict({'key': [1, 2, 3], 'left_val': ['a', 'b', 'c']})
+right = DataFrame.from_dict({'key': [1, 2, 4], 'right_val': ['x', 'y', 'z']})
+
+result = left.merge(right, on='key', how='inner')
+# key | left_val | right_val
+# 1   | a        | x
+# 2   | b        | y
+```
+
+**Left Join:** All rows from left, matched rows from right (None if no match)
+```python
+result = left.merge(right, on='key', how='left')
+# key | left_val | right_val
+# 1   | a        | x
+# 2   | b        | y
+# 3   | c        | None
+```
+
+**Right Join:** All rows from right, matched rows from left (None if no match)
+```python
+result = left.merge(right, on='key', how='right')
+# key | left_val | right_val
+# 1   | a        | x
+# 2   | b        | y
+# 4   | None     | z
+```
+
+**Outer Join:** All rows from both DataFrames
+```python
+result = left.merge(right, on='key', how='outer')
+# key | left_val | right_val
+# 1   | a        | x
+# 2   | b        | y
+# 3   | c        | None
+# 4   | None     | z
+```
+
+#### Common Merge Patterns
+
+**Enriching Data from Another Service:**
+```python
+# Orders from one service
+orders = DataFrame.from_dict({
+    'order_id': [101, 102, 103],
+    'user_id': [1, 2, 1],
+    'amount': [50, 75, 100]
+})
+
+# User details from another service
+users = DataFrame.from_dict({
+    'user_id': [1, 2, 3],
+    'name': ['Alice', 'Bob', 'Charlie'],
+    'tier': ['gold', 'silver', 'gold']
+})
+
+# Enrich orders with user data
+enriched = orders.merge(users, on='user_id', how='left')
+# order_id | user_id | amount | name  | tier
+# 101      | 1       | 50     | Alice | gold
+# 102      | 2       | 75     | Bob   | silver
+# 103      | 1       | 100    | Alice | gold
+```
+
+**Different Column Names:**
+```python
+products = DataFrame.from_dict({
+    'product_id': [1, 2, 3],
+    'product_name': ['Widget', 'Gadget', 'Tool']
+})
+
+sales = DataFrame.from_dict({
+    'item_id': [1, 2, 1],
+    'quantity': [10, 5, 8]
+})
+
+# Join on different column names
+result = sales.merge(
+    products,
+    left_on='item_id',
+    right_on='product_id',
+    how='left'
+)
+```
+
+**Multiple Join Keys:**
+```python
+# Join on multiple columns for composite keys
+result = df1.merge(df2, on=['region', 'product'], how='inner')
+```
+
+**Handling Column Conflicts:**
+```python
+# Both DataFrames have 'value' column
+left = DataFrame.from_dict({'key': [1, 2], 'value': [10, 20]})
+right = DataFrame.from_dict({'key': [1, 2], 'value': [100, 200]})
+
+# Use suffixes to distinguish
+result = left.merge(right, on='key', suffixes=('_old', '_new'))
+# key | value_old | value_new
+# 1   | 10        | 100
+# 2   | 20        | 200
+```
+
+#### merge() Design Notes
+
+- **One-to-many joins:** Cartesian product of matching rows
+- **None handling:** None values in keys can match None
+- **Validation:** Raises `KeyError` for non-existent columns, `ValueError` for invalid parameters
+- **Performance:** Uses dict-based lookup for efficient joins
+- **Stdlib only:** No external dependencies
 
 ## Missing Data Operations
 
