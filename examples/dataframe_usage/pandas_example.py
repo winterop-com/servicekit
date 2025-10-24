@@ -102,3 +102,7 @@ restored = intermediate.to_pandas()
 print("Original and restored are equal:", original.equals(restored))
 print("Original dtypes:", original.dtypes.to_dict())
 print("Restored dtypes:", restored.dtypes.to_dict())
+
+# Export variables for testing
+df = pdf
+df_back = pdf_back

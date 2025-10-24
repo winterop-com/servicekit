@@ -111,3 +111,6 @@ final_pdf = intermediate.to_pandas()
 print("Final pandas DataFrame from xarray:")
 print(final_pdf)
 print(f"Shape preserved: {final_pdf.shape} (from {original_da.shape})")
+
+# Export variables for testing
+df = pdf

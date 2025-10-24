@@ -120,3 +120,7 @@ restored = intermediate.to_polars()
 print("Original and restored are equal:", original.equals(restored))
 print("Original schema:", original.schema)
 print("Restored schema:", restored.schema)
+
+# Export variables for testing
+df = pldf
+df_back = pldf_back

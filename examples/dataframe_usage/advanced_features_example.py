@@ -4,12 +4,14 @@ from servicekit.data import DataFrame
 
 print("=== Row Filtering ===")
 # Create sample data with adults and minors
-df_people = DataFrame.from_dict({
-    "name": ["Alice", "Bob", "Charlie", "Dave", "Eve"],
-    "age": [25, 17, 30, 16, 35],
-    "active": [True, True, False, True, True],
-    "score": [95, 87, 92, 78, 88],
-})
+df_people = DataFrame.from_dict(
+    {
+        "name": ["Alice", "Bob", "Charlie", "Dave", "Eve"],
+        "age": [25, 17, 30, 16, 35],
+        "active": [True, True, False, True, True],
+        "score": [95, 87, 92, 78, 88],
+    }
+)
 
 # Filter for adults only
 adults = df_people.filter(lambda row: row["age"] >= 18)
@@ -54,11 +56,13 @@ print()
 
 print("=== Remove Duplicates ===")
 # Create data with duplicates
-df_dup = DataFrame.from_dict({
-    "user_id": [1, 2, 1, 3, 2],
-    "name": ["Alice", "Bob", "Alice", "Charlie", "Bob"],
-    "timestamp": ["09:00", "09:05", "09:10", "09:15", "09:20"],
-})
+df_dup = DataFrame.from_dict(
+    {
+        "user_id": [1, 2, 1, 3, 2],
+        "name": ["Alice", "Bob", "Alice", "Charlie", "Bob"],
+        "timestamp": ["09:00", "09:05", "09:10", "09:15", "09:20"],
+    }
+)
 
 print("Original data with duplicates:")
 for row in df_dup:
@@ -72,11 +76,13 @@ print()
 
 print("=== Fill Missing Values ===")
 # Create data with None values
-df_missing = DataFrame.from_dict({
-    "name": ["Alice", "Bob", None, "Dave"],
-    "age": [25, None, 30, None],
-    "city": ["NYC", "LA", "Chicago", None],
-})
+df_missing = DataFrame.from_dict(
+    {
+        "name": ["Alice", "Bob", None, "Dave"],
+        "age": [25, None, 30, None],
+        "city": ["NYC", "LA", "Chicago", None],
+    }
+)
 
 print("Data with missing values:")
 nulls = df_missing.has_nulls()
@@ -103,11 +109,13 @@ print()
 
 print("=== Statistical Summary ===")
 # Create numeric dataset
-df_sales = DataFrame.from_dict({
-    "product": ["Widget", "Gadget", "Tool", "Device", "Widget"],
-    "price": [10.50, 25.00, 15.75, 30.00, 10.50],
-    "quantity": [100, 50, 75, 25, 120],
-})
+df_sales = DataFrame.from_dict(
+    {
+        "product": ["Widget", "Gadget", "Tool", "Device", "Widget"],
+        "price": [10.50, 25.00, 15.75, 30.00, 10.50],
+        "quantity": [100, 50, 75, 25, 120],
+    }
+)
 
 stats = df_sales.describe()
 print("Statistics for numeric columns:")
@@ -140,12 +148,14 @@ print()
 
 print("=== Complete Pipeline ===")
 # Demonstrate chaining multiple operations
-df_raw = DataFrame.from_dict({
-    "name": ["alice", "BOB", "alice", "CHARLIE", "dave", None],
-    "age": [25, None, 25, 30, 16, 28],
-    "score": [95, 87, 95, 92, 78, None],
-    "active": [True, True, True, False, True, True],
-})
+df_raw = DataFrame.from_dict(
+    {
+        "name": ["alice", "BOB", "alice", "CHARLIE", "dave", None],
+        "age": [25, None, 25, 30, 16, 28],
+        "score": [95, 87, 95, 92, 78, None],
+        "active": [True, True, True, False, True, True],
+    }
+)
 
 print("Processing pipeline:")
 print(f"  Starting with: {df_raw.shape[0]} rows")
