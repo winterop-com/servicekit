@@ -85,8 +85,8 @@ print("=== Type Handling ===")
 float_data = np.array([[1.1, 2.2, 3.3], [4.4, 5.5, 6.6]], dtype=np.float64)
 int_data = np.array([[1, 2, 3], [4, 5, 6]], dtype=np.int32)
 
-float_da = xr.DataArray(float_data, dims=["x", "y"])
-int_da = xr.DataArray(int_data, dims=["x", "y"])
+float_da = xr.DataArray(float_data, dims=["x", "y"], coords={"y": ["col1", "col2", "col3"]})
+int_da = xr.DataArray(int_data, dims=["x", "y"], coords={"y": ["col1", "col2", "col3"]})
 
 float_df = DataFrame.from_xarray(float_da)
 int_df = DataFrame.from_xarray(int_da)
