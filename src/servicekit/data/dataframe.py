@@ -121,5 +121,25 @@ class DataFrame(BaseModel):
     from_dataframe = from_pandas
     to_dataframe = to_pandas
 
+    @property
+    def shape(self) -> tuple[int, int]:
+        """Return tuple representing dimensionality of the DataFrame."""
+        return (len(self.data), len(self.columns))
+
+    @property
+    def empty(self) -> bool:
+        """Indicator whether DataFrame is empty."""
+        return len(self.data) == 0 or len(self.columns) == 0
+
+    @property
+    def size(self) -> int:
+        """Return int representing number of elements in this object."""
+        return len(self.data) * len(self.columns)
+
+    @property
+    def ndim(self) -> int:
+        """Return int representing number of axes/array dimensions."""
+        return 2
+
 
 __all__ = ["DataFrame"]

@@ -179,3 +179,72 @@ class TestDataFrameTypeErrors:
 
         with pytest.raises(ValueError, match="Only 2D DataArrays supported"):
             DataFrame.from_xarray(da)
+
+
+class TestDataFrameProperties:
+    """Test DataFrame utility properties."""
+
+    def test_shape_basic(self) -> None:
+        """shape property returns correct dimensions."""
+        df = DataFrame(columns=["a", "b"], data=[[1, 2], [3, 4]])
+        assert df.shape == (2, 2)
+
+    def test_shape_empty(self) -> None:
+        """shape property handles empty DataFrame."""
+        df = DataFrame(columns=[], data=[])
+        assert df.shape == (0, 0)
+
+    def test_shape_no_rows(self) -> None:
+        """shape property with columns but no rows."""
+        df = DataFrame(columns=["a", "b"], data=[])
+        assert df.shape == (0, 2)
+
+    def test_shape_rectangular(self) -> None:
+        """shape property with different row and column counts."""
+        df = DataFrame(columns=["a", "b", "c"], data=[[1, 2, 3], [4, 5, 6]])
+        assert df.shape == (2, 3)
+
+    def test_empty_true_no_rows(self) -> None:
+        """empty returns True when no rows."""
+        df = DataFrame(columns=["a"], data=[])
+        assert df.empty is True
+
+    def test_empty_true_no_columns(self) -> None:
+        """empty returns True when no columns."""
+        df = DataFrame(columns=[], data=[])
+        assert df.empty is True
+
+    def test_empty_false_with_data(self) -> None:
+        """empty returns False when DataFrame has data."""
+        df = DataFrame(columns=["a"], data=[[1], [2]])
+        assert df.empty is False
+
+    def test_size_basic(self) -> None:
+        """size property returns total element count."""
+        df = DataFrame(columns=["a", "b"], data=[[1, 2], [3, 4]])
+        assert df.size == 4
+
+    def test_size_empty(self) -> None:
+        """size property returns 0 for empty DataFrame."""
+        df = DataFrame(columns=[], data=[])
+        assert df.size == 0
+
+    def test_size_single_column(self) -> None:
+        """size property with single column."""
+        df = DataFrame(columns=["a"], data=[[1], [2], [3]])
+        assert df.size == 3
+
+    def test_size_rectangular(self) -> None:
+        """size property with non-square DataFrame."""
+        df = DataFrame(columns=["a", "b", "c"], data=[[1, 2, 3], [4, 5, 6]])
+        assert df.size == 6
+
+    def test_ndim(self) -> None:
+        """ndim property always returns 2."""
+        df = DataFrame(columns=["a", "b"], data=[[1, 2]])
+        assert df.ndim == 2
+
+    def test_ndim_empty(self) -> None:
+        """ndim returns 2 even for empty DataFrame."""
+        df = DataFrame(columns=[], data=[])
+        assert df.ndim == 2
