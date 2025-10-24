@@ -30,6 +30,20 @@ Servicekit is a framework-agnostic core library providing foundational infrastru
 pip install servicekit
 ```
 
+## CLI Tools
+
+Servicekit provides command-line tools for common tasks:
+
+```bash
+# Initialize database migrations
+servicekit migrations init
+
+# View available commands
+servicekit --help
+```
+
+See the [Database Migrations guide](https://winterop-com.github.io/servicekit/guides/database-migrations/) for details.
+
 ## Quick Start
 
 ```python
