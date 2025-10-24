@@ -358,6 +358,7 @@ class TestDataFrameCSV:
         csv_string = df.to_csv()
 
         # Empty DataFrame produces only a newline character
+        assert csv_string is not None
         assert csv_string.strip() == ""
 
     def test_to_csv_file_basic(self, tmp_path: Path) -> None:
@@ -407,3 +408,272 @@ class TestDataFrameCSV:
         # CSV conversion makes all values strings
         assert restored.columns == original.columns
         assert restored.data == [["1", "2"], ["3", "4"]]
+
+
+class TestDataFrameInspection:
+    """Test DataFrame data inspection methods."""
+
+    def test_head_default(self) -> None:
+        """head() returns first 5 rows by default."""
+        df = DataFrame(columns=["x"], data=[[i] for i in range(10)])
+        result = df.head()
+
+        assert result.columns == ["x"]
+        assert result.data == [[0], [1], [2], [3], [4]]
+
+    def test_head_custom_n(self) -> None:
+        """head() returns first n rows."""
+        df = DataFrame(columns=["x"], data=[[i] for i in range(10)])
+        result = df.head(3)
+
+        assert result.data == [[0], [1], [2]]
+
+    def test_head_negative(self) -> None:
+        """head() with negative n returns all except last |n| rows."""
+        df = DataFrame(columns=["x"], data=[[i] for i in range(10)])
+        result = df.head(-3)
+
+        assert result.data == [[0], [1], [2], [3], [4], [5], [6]]
+
+    def test_head_exceeds_length(self) -> None:
+        """head() with n > row count returns all rows."""
+        df = DataFrame(columns=["x"], data=[[1], [2]])
+        result = df.head(100)
+
+        assert result.data == [[1], [2]]
+
+    def test_tail_default(self) -> None:
+        """tail() returns last 5 rows by default."""
+        df = DataFrame(columns=["x"], data=[[i] for i in range(10)])
+        result = df.tail()
+
+        assert result.columns == ["x"]
+        assert result.data == [[5], [6], [7], [8], [9]]
+
+    def test_tail_custom_n(self) -> None:
+        """tail() returns last n rows."""
+        df = DataFrame(columns=["x"], data=[[i] for i in range(10)])
+        result = df.tail(3)
+
+        assert result.data == [[7], [8], [9]]
+
+    def test_tail_negative(self) -> None:
+        """tail() with negative n returns all except first |n| rows."""
+        df = DataFrame(columns=["x"], data=[[i] for i in range(10)])
+        result = df.tail(-3)
+
+        assert result.data == [[3], [4], [5], [6], [7], [8], [9]]
+
+    def test_tail_exceeds_length(self) -> None:
+        """tail() with n > row count returns all rows."""
+        df = DataFrame(columns=["x"], data=[[1], [2]])
+        result = df.tail(100)
+
+        assert result.data == [[1], [2]]
+
+    def test_sample_n(self) -> None:
+        """sample() with n returns specified number of rows."""
+        df = DataFrame(columns=["x"], data=[[i] for i in range(100)])
+        result = df.sample(n=10, random_state=42)
+
+        assert len(result.data) == 10
+        assert result.columns == ["x"]
+
+    def test_sample_frac(self) -> None:
+        """sample() with frac returns fractional sample."""
+        df = DataFrame(columns=["x"], data=[[i] for i in range(100)])
+        result = df.sample(frac=0.1, random_state=42)
+
+        assert len(result.data) == 10
+
+    def test_sample_random_state(self) -> None:
+        """sample() with random_state gives reproducible results."""
+        df = DataFrame(columns=["x"], data=[[i] for i in range(100)])
+
+        result1 = df.sample(n=10, random_state=42)
+        result2 = df.sample(n=10, random_state=42)
+
+        assert result1.data == result2.data
+
+    def test_sample_both_n_and_frac_error(self) -> None:
+        """sample() raises ValueError when both n and frac provided."""
+        df = DataFrame(columns=["x"], data=[[1], [2], [3]])
+
+        with pytest.raises(ValueError, match="mutually exclusive"):
+            df.sample(n=2, frac=0.5)
+
+    def test_sample_neither_error(self) -> None:
+        """sample() raises ValueError when neither n nor frac provided."""
+        df = DataFrame(columns=["x"], data=[[1], [2], [3]])
+
+        with pytest.raises(ValueError, match="Either n or frac must be provided"):
+            df.sample()
+
+    def test_sample_frac_too_large(self) -> None:
+        """sample() raises ValueError when frac > 1.0."""
+        df = DataFrame(columns=["x"], data=[[1], [2], [3]])
+
+        with pytest.raises(ValueError, match="frac must be <= 1.0"):
+            df.sample(frac=1.5)
+
+
+class TestDataFrameColumnOps:
+    """Test DataFrame column operation methods."""
+
+    def test_select_basic(self) -> None:
+        """select() returns DataFrame with only specified columns."""
+        df = DataFrame(columns=["a", "b", "c"], data=[[1, 2, 3], [4, 5, 6]])
+        result = df.select(["a", "c"])
+
+        assert result.columns == ["a", "c"]
+        assert result.data == [[1, 3], [4, 6]]
+
+    def test_select_single_column(self) -> None:
+        """select() works with single column."""
+        df = DataFrame(columns=["a", "b", "c"], data=[[1, 2, 3]])
+        result = df.select(["b"])
+
+        assert result.columns == ["b"]
+        assert result.data == [[2]]
+
+    def test_select_column_not_found(self) -> None:
+        """select() raises KeyError for non-existent column."""
+        df = DataFrame(columns=["a", "b"], data=[[1, 2]])
+
+        with pytest.raises(KeyError, match="Column 'z' not found"):
+            df.select(["a", "z"])
+
+    def test_drop_basic(self) -> None:
+        """drop() returns DataFrame without specified columns."""
+        df = DataFrame(columns=["a", "b", "c"], data=[[1, 2, 3], [4, 5, 6]])
+        result = df.drop(["b"])
+
+        assert result.columns == ["a", "c"]
+        assert result.data == [[1, 3], [4, 6]]
+
+    def test_drop_multiple_columns(self) -> None:
+        """drop() can remove multiple columns."""
+        df = DataFrame(columns=["a", "b", "c", "d"], data=[[1, 2, 3, 4]])
+        result = df.drop(["b", "d"])
+
+        assert result.columns == ["a", "c"]
+        assert result.data == [[1, 3]]
+
+    def test_drop_column_not_found(self) -> None:
+        """drop() raises KeyError for non-existent column."""
+        df = DataFrame(columns=["a", "b"], data=[[1, 2]])
+
+        with pytest.raises(KeyError, match="Column 'z' not found"):
+            df.drop(["z"])
+
+    def test_rename_basic(self) -> None:
+        """rename() returns DataFrame with renamed columns."""
+        df = DataFrame(columns=["a", "b", "c"], data=[[1, 2, 3]])
+        result = df.rename({"a": "x", "c": "z"})
+
+        assert result.columns == ["x", "b", "z"]
+        assert result.data == [[1, 2, 3]]
+
+    def test_rename_partial(self) -> None:
+        """rename() only renames specified columns."""
+        df = DataFrame(columns=["a", "b", "c"], data=[[1, 2, 3]])
+        result = df.rename({"a": "x"})
+
+        assert result.columns == ["x", "b", "c"]
+
+    def test_rename_column_not_found(self) -> None:
+        """rename() raises KeyError for non-existent column."""
+        df = DataFrame(columns=["a", "b"], data=[[1, 2]])
+
+        with pytest.raises(KeyError, match="Column 'z' not found"):
+            df.rename({"z": "new_name"})
+
+    def test_rename_duplicate_names(self) -> None:
+        """rename() raises ValueError if renaming creates duplicates."""
+        df = DataFrame(columns=["a", "b", "c"], data=[[1, 2, 3]])
+
+        with pytest.raises(ValueError, match="duplicate column names"):
+            df.rename({"a": "b"})
+
+
+class TestDataFrameValidation:
+    """Test DataFrame validation methods."""
+
+    def test_validate_success(self) -> None:
+        """validate_structure() succeeds for valid DataFrame."""
+        df = DataFrame(columns=["a", "b"], data=[[1, 2], [3, 4]])
+        df.validate_structure()  # Should not raise
+
+    def test_validate_unequal_row_lengths(self) -> None:
+        """validate_structure() raises ValueError for rows with wrong length."""
+        df = DataFrame(columns=["a", "b"], data=[[1, 2], [3, 4, 5]])
+
+        with pytest.raises(ValueError, match="Row 1 has 3 values, expected 2"):
+            df.validate_structure()
+
+    def test_validate_duplicate_columns(self) -> None:
+        """validate_structure() raises ValueError for duplicate column names."""
+        df = DataFrame(columns=["a", "a", "b"], data=[[1, 2, 3]])
+
+        with pytest.raises(ValueError, match="Duplicate column names"):
+            df.validate_structure()
+
+    def test_validate_empty_column_name(self) -> None:
+        """validate_structure() raises ValueError for empty column name."""
+        df = DataFrame(columns=["a", "", "b"], data=[[1, 2, 3]])
+
+        with pytest.raises(ValueError, match="Column at index 1 is empty"):
+            df.validate_structure()
+
+    def test_infer_types_basic(self) -> None:
+        """infer_types() correctly identifies column types."""
+        df = DataFrame(columns=["int_col", "float_col", "str_col", "bool_col"], data=[[1, 2.5, "hello", True]])
+
+        result = df.infer_types()
+
+        assert result["int_col"] == "int"
+        assert result["float_col"] == "float"
+        assert result["str_col"] == "str"
+        assert result["bool_col"] == "bool"
+
+    def test_infer_types_mixed(self) -> None:
+        """infer_types() detects mixed types."""
+        df = DataFrame(columns=["mixed_col"], data=[[1], ["hello"], [3]])
+
+        result = df.infer_types()
+
+        assert result["mixed_col"] == "mixed"
+
+    def test_infer_types_int_and_float(self) -> None:
+        """infer_types() treats int+float columns as float."""
+        df = DataFrame(columns=["num_col"], data=[[1], [2.5], [3]])
+
+        result = df.infer_types()
+
+        assert result["num_col"] == "float"
+
+    def test_infer_types_null(self) -> None:
+        """infer_types() detects null columns."""
+        df = DataFrame(columns=["null_col"], data=[[None], [None]])
+
+        result = df.infer_types()
+
+        assert result["null_col"] == "null"
+
+    def test_has_nulls_true(self) -> None:
+        """has_nulls() detects columns with None values."""
+        df = DataFrame(columns=["a", "b"], data=[[1, None], [2, 3]])
+
+        result = df.has_nulls()
+
+        assert result["a"] is False
+        assert result["b"] is True
+
+    def test_has_nulls_false(self) -> None:
+        """has_nulls() returns False for columns without None values."""
+        df = DataFrame(columns=["a", "b"], data=[[1, 2], [3, 4]])
+
+        result = df.has_nulls()
+
+        assert result["a"] is False
+        assert result["b"] is False

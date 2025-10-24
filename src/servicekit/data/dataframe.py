@@ -2,6 +2,7 @@
 
 import csv
 import io
+import random
 from pathlib import Path
 from typing import Any, Literal, Self
 
@@ -257,6 +258,296 @@ class DataFrame(BaseModel):
     def ndim(self) -> int:
         """Return int representing number of axes/array dimensions."""
         return 2
+
+    def head(self, n: int = 5) -> Self:
+        """Return first n rows.
+
+        Args:
+            n: Number of rows to return (negative values return all except last |n| rows)
+
+        Returns:
+            New DataFrame with first n rows
+
+        Example:
+            >>> df.head(10)
+            >>> df.head(-3)  # All except last 3 rows
+        """
+        if n >= 0:
+            selected_data = self.data[:n]
+        else:
+            selected_data = self.data[:n] if n != 0 else self.data
+        return self.__class__(columns=self.columns, data=selected_data)
+
+    def tail(self, n: int = 5) -> Self:
+        """Return last n rows.
+
+        Args:
+            n: Number of rows to return (negative values return all except first |n| rows)
+
+        Returns:
+            New DataFrame with last n rows
+
+        Example:
+            >>> df.tail(10)
+            >>> df.tail(-3)  # All except first 3 rows
+        """
+        if n >= 0:
+            selected_data = self.data[-n:] if n > 0 else []
+        else:
+            selected_data = self.data[abs(n) :]
+        return self.__class__(columns=self.columns, data=selected_data)
+
+    def sample(
+        self,
+        n: int | None = None,
+        frac: float | None = None,
+        *,
+        random_state: int | None = None,
+    ) -> Self:
+        """Return random sample of rows.
+
+        Args:
+            n: Number of rows to sample (mutually exclusive with frac)
+            frac: Fraction of rows to sample (mutually exclusive with n)
+            random_state: Random seed for reproducibility
+
+        Returns:
+            New DataFrame with sampled rows
+
+        Raises:
+            ValueError: If neither or both n and frac provided, or if frac > 1.0
+
+        Example:
+            >>> df.sample(n=100)
+            >>> df.sample(frac=0.1, random_state=42)
+        """
+        # Validate parameters
+        if n is None and frac is None:
+            raise ValueError("Either n or frac must be provided")
+        if n is not None and frac is not None:
+            raise ValueError("n and frac are mutually exclusive")
+
+        # Set random seed if provided
+        if random_state is not None:
+            random.seed(random_state)
+
+        # Calculate sample size
+        total_rows = len(self.data)
+        if frac is not None:
+            if frac > 1.0:
+                raise ValueError("frac must be <= 1.0")
+            sample_size = int(total_rows * frac)
+        else:
+            sample_size = min(n, total_rows) if n is not None else 0
+
+        # Sample indices
+        if sample_size >= total_rows:
+            sampled_indices = list(range(total_rows))
+            random.shuffle(sampled_indices)
+        else:
+            sampled_indices = random.sample(range(total_rows), sample_size)
+
+        # Extract sampled rows
+        sampled_data = [self.data[i] for i in sampled_indices]
+
+        return self.__class__(columns=self.columns, data=sampled_data)
+
+    def select(self, columns: list[str]) -> Self:
+        """Return DataFrame with only specified columns.
+
+        Args:
+            columns: List of column names to keep
+
+        Returns:
+            New DataFrame with selected columns
+
+        Raises:
+            KeyError: If any column does not exist
+
+        Example:
+            >>> df.select(["name", "age"])
+        """
+        # Validate all columns exist
+        for col in columns:
+            if col not in self.columns:
+                raise KeyError(f"Column '{col}' not found in DataFrame")
+
+        # Get column indices
+        indices = [self.columns.index(col) for col in columns]
+
+        # Extract data for selected columns
+        new_data = [[row[i] for i in indices] for row in self.data]
+
+        return self.__class__(columns=columns, data=new_data)
+
+    def drop(self, columns: list[str]) -> Self:
+        """Return DataFrame without specified columns.
+
+        Args:
+            columns: List of column names to drop
+
+        Returns:
+            New DataFrame without dropped columns
+
+        Raises:
+            KeyError: If any column does not exist
+
+        Example:
+            >>> df.drop(["temp_col"])
+        """
+        # Validate all columns exist
+        for col in columns:
+            if col not in self.columns:
+                raise KeyError(f"Column '{col}' not found in DataFrame")
+
+        # Get columns to keep
+        keep_cols = [c for c in self.columns if c not in columns]
+
+        # Get indices for columns to keep
+        indices = [self.columns.index(col) for col in keep_cols]
+
+        # Extract data for kept columns
+        new_data = [[row[i] for i in indices] for row in self.data]
+
+        return self.__class__(columns=keep_cols, data=new_data)
+
+    def rename(self, mapper: dict[str, str]) -> Self:
+        """Return DataFrame with renamed columns.
+
+        Args:
+            mapper: Dictionary mapping old names to new names
+
+        Returns:
+            New DataFrame with renamed columns
+
+        Raises:
+            KeyError: If any old column name does not exist
+            ValueError: If new names create duplicates
+
+        Example:
+            >>> df.rename({"old_name": "new_name"})
+        """
+        # Validate all old column names exist
+        for old_name in mapper:
+            if old_name not in self.columns:
+                raise KeyError(f"Column '{old_name}' not found in DataFrame")
+
+        # Create new column list
+        new_cols = [mapper.get(col, col) for col in self.columns]
+
+        # Check for duplicates
+        if len(new_cols) != len(set(new_cols)):
+            raise ValueError("Renaming would create duplicate column names")
+
+        return self.__class__(columns=new_cols, data=self.data)
+
+    def validate_structure(self) -> None:
+        """Validate DataFrame structure.
+
+        Checks:
+        - All rows have same length as columns
+        - Column names are unique
+        - No null/empty column names
+
+        Raises:
+            ValueError: If validation fails
+
+        Example:
+            >>> df.validate_structure()
+        """
+        # Check for empty column names
+        for i, col in enumerate(self.columns):
+            if col == "":
+                raise ValueError(f"Column at index {i} is empty")
+
+        # Check for duplicate column names
+        if len(self.columns) != len(set(self.columns)):
+            duplicates = [col for col in self.columns if self.columns.count(col) > 1]
+            raise ValueError(f"Duplicate column names found: {set(duplicates)}")
+
+        # Check all rows have same length as columns
+        num_cols = len(self.columns)
+        for i, row in enumerate(self.data):
+            if len(row) != num_cols:
+                raise ValueError(f"Row {i} has {len(row)} values, expected {num_cols}")
+
+    def infer_types(self) -> dict[str, str]:
+        """Infer column data types.
+
+        Returns:
+            Dictionary mapping column names to type strings
+            Types: "int", "float", "str", "bool", "null", "mixed"
+
+        Example:
+            >>> df.infer_types()
+            {"age": "int", "name": "str", "score": "float"}
+        """
+        result: dict[str, str] = {}
+
+        for col_idx, col_name in enumerate(self.columns):
+            # Extract all values for this column
+            values = [row[col_idx] for row in self.data]
+
+            # Filter out None values for type checking
+            non_null_values = [v for v in values if v is not None]
+
+            if not non_null_values:
+                result[col_name] = "null"
+                continue
+
+            # Check types
+            types_found = set()
+            for val in non_null_values:
+                if isinstance(val, bool):
+                    types_found.add("bool")
+                elif isinstance(val, int):
+                    types_found.add("int")
+                elif isinstance(val, float):
+                    types_found.add("float")
+                elif isinstance(val, str):
+                    types_found.add("str")
+                else:
+                    types_found.add("other")
+
+            # Determine final type
+            if len(types_found) > 1:
+                # Special case: int and float can be treated as float
+                if types_found == {"int", "float"}:
+                    result[col_name] = "float"
+                else:
+                    result[col_name] = "mixed"
+            elif "bool" in types_found:
+                result[col_name] = "bool"
+            elif "int" in types_found:
+                result[col_name] = "int"
+            elif "float" in types_found:
+                result[col_name] = "float"
+            elif "str" in types_found:
+                result[col_name] = "str"
+            else:
+                result[col_name] = "mixed"
+
+        return result
+
+    def has_nulls(self) -> dict[str, bool]:
+        """Check for null values in each column.
+
+        Returns:
+            Dictionary mapping column names to boolean
+            True if column contains None values
+
+        Example:
+            >>> df.has_nulls()
+            {"age": False, "email": True}
+        """
+        result: dict[str, bool] = {}
+
+        for col_idx, col_name in enumerate(self.columns):
+            # Check if any value in this column is None
+            has_null = any(row[col_idx] is None for row in self.data)
+            result[col_name] = has_null
+
+        return result
 
 
 __all__ = ["DataFrame"]
