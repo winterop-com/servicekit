@@ -14,8 +14,9 @@ Example:
 
 # ruff: noqa: F401
 
-from .dataframe import DataFrame
+from .dataframe import DataFrame, GroupBy
 
 __all__ = [
     "DataFrame",
+    "GroupBy",
 ]
