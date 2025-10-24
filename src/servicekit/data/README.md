@@ -57,12 +57,58 @@ Universal schema for tabular data.
 
 **Instance Methods:**
 
+*Conversion:*
 | Method | Description | Requires |
 |--------|-------------|----------|
 | `to_pandas()` | Convert to pandas DataFrame | `pandas` |
 | `to_polars()` | Convert to Polars DataFrame | `polars` |
 | `to_dict(orient)` | Convert to dict (orient: dict/list/records) | - |
+| `to_csv(path)` | Export to CSV file or string | - |
+| `to_json(orient)` | Export as JSON string | - |
 | `to_dataframe()` | Alias for `to_pandas()` | `pandas` |
+
+*Data Manipulation:*
+| Method | Description | Requires |
+|--------|-------------|----------|
+| `filter(predicate)` | Filter rows using predicate function | - |
+| `apply(func, column)` | Apply function to column values | - |
+| `add_column(name, values)` | Add new column to DataFrame | - |
+| `drop_rows(indices)` | Drop rows by index | - |
+| `drop_duplicates(subset)` | Remove duplicate rows | - |
+| `fillna(value/dict)` | Replace None values | - |
+| `concat(other)` | Concatenate DataFrames vertically | - |
+
+*Missing Data:*
+| Method | Description | Requires |
+|--------|-------------|----------|
+| `isna()` | Return DataFrame of booleans showing None locations | - |
+| `notna()` | Return DataFrame of booleans showing non-None locations | - |
+| `dropna(axis, how)` | Remove rows or columns with None values | - |
+| `has_nulls()` | Check for None values per column | - |
+
+*Statistical Analysis:*
+| Method | Description | Requires |
+|--------|-------------|----------|
+| `describe()` | Generate summary statistics | - |
+| `groupby(column)` | Group by column values (returns GroupBy) | - |
+| `unique(column)` | Get unique values from column | - |
+| `value_counts(column)` | Count occurrences of each value | - |
+| `nunique(column)` | Count unique values in column | - |
+
+*Utilities:*
+| Method | Description | Requires |
+|--------|-------------|----------|
+| `equals(other)` | Check if two DataFrames are identical | - |
+| `deepcopy()` | Create independent copy of DataFrame | - |
+| `head(n)` | Return first n rows | - |
+| `tail(n)` | Return last n rows | - |
+| `sample(n, frac)` | Return random sample of rows | - |
+| `select(columns)` | Keep only specified columns | - |
+| `drop(columns)` | Remove specified columns | - |
+| `rename(mapper)` | Rename columns | - |
+| `sort(by, ascending)` | Sort DataFrame by column | - |
+| `validate_structure()` | Validate DataFrame integrity | - |
+| `infer_types()` | Infer column data types | - |
 
 ## Installation
 

@@ -62,6 +62,10 @@ dev = [
   "mkdocs>=1.6.0",
   "mkdocs-material>=9.5.0",
   "mkdocstrings[python]>=0.26.0",
+  "pandas>=2.3.3",
+  "polars>=1.34.0",
+  "xarray>=2025.10.1",
+  "numpy>=2.3.4",
 ]
 
 [build-system]
@@ -149,6 +153,7 @@ reportUnusedFunction = false
 reportUnusedTypeParameters = true
 reportUnknownMemberType = false
 reportUnknownArgumentType = false
+reportUnknownLambdaType = false
 reportUnknownParameterType = false
 reportUnknownVariableType = false
 reportMissingTypeArgument = false

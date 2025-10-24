@@ -4,28 +4,6 @@
 **Last Updated:** 2025-10-22
 **Status:** In Progress
 
-## Recently Completed
-
-### Phase 5.1: Transformation Service Pattern ✅ (October 2025)
-
-**Universal DataFrame Schema** - A library-agnostic data interchange format is now available in `servicekit.data`:
-
-- **Implementation**: `src/servicekit/data/dataframe.py` provides a Pydantic schema that works with pandas, polars, xarray, and plain Python
-- **Optional Dependencies**: Support for specific libraries via `servicekit[data]`, `servicekit[polars]`, `servicekit[xarray]`
-- **Test Coverage**: 100% coverage with comprehensive tests for all conversion methods
-- **API**: from_dict, from_records, to_dict methods work without any dependencies
-
-**Vega Visualization Example** - Complete proof-of-concept transformation service at `examples/vega_visualization/`:
-
-- **Chart Types**: line, bar, scatter, heatmap, boxplot, histogram
-- **Features**: Data aggregation, multi-format input via DataFrame schema, RESTful API
-- **Endpoints**: `POST /$generate` and `POST /$aggregate`
-- **Deployment**: Docker-ready with complete documentation
-- **Ready for**: Caching integration (Phase 2.2)
-
-See `examples/vega_visualization/README.md` for usage examples.
-
----
 
 ## Executive Summary
 
@@ -266,20 +244,18 @@ Visualization services often:
 
 **Goal:** Patterns for building specialized services (visualization, reporting, etc.)
 
-**Duration:** 2-3 weeks
-**Priority:** High (for visualization use case)
-**Status:** Phase 5.1 Completed ✅
+**Duration:** 1-2 weeks
+**Priority:** Medium
+**Status:** Not Started
 **Dependencies:** Phase 1, 2
 
-### 5.1 Transformation Service Pattern ✅ COMPLETED
+### 5.1 Transformation Service Pattern
 
-**Universal DataFrame schema** (`servicekit.data.DataFrame`) and **Vega visualization example** (`examples/vega_visualization/`) are now available.
-
-See "Recently Completed" section above for details.
-
-**Next steps:**
 - Extract `TransformationRouter` base class pattern from Vega example
 - Integrate caching support (Phase 2.2)
+- ~~Add PyArrow/Parquet support for DataFrame (optional - requires pyarrow dependency)~~
+
+**Note:** DataFrame enhancements completed separately (feat/dataframe-enhancements branch) with 15 new methods for data manipulation, missing data handling, and utilities. The DataFrame now provides comprehensive data interchange capabilities using stdlib only. PyArrow/Parquet support deferred - users can convert to pandas/polars for advanced I/O formats.
 
 ### 5.2 Schema Registry
 
@@ -303,25 +279,18 @@ See "Recently Completed" section above for details.
 
 ### 5.4 Implementation Tasks
 
-- [x] Create universal `DataFrame` schema in `servicekit.data` ✅
-- [x] Implement example Vega visualization service ✅
 - [ ] Extract `TransformationRouter` base class from Vega example
 - [ ] Add cache integration to `TransformationRouter`
 - [ ] Create `SchemaRegistry` for versioned schemas
 - [ ] Implement `EventBus` for publish/subscribe
 - [ ] Add webhook delivery system
-- [ ] Add comprehensive tests
-- [ ] Update documentation with extension patterns guide
+- [ ] Add PyArrow/Parquet support (optional)
 
 ### 5.5 Success Criteria
 
-- [x] Universal DataFrame schema works with multiple libraries ✅
 - [ ] `TransformationRouter` supports caching
-- [x] Vega service functional ✅ (caching pending Phase 2.2)
 - [ ] Schema registry tracks versions
 - [ ] Event bus publishes entity changes
-- [x] All tests pass (95%+ coverage) ✅
-- [x] Documentation shows how to build extensions ✅
 
 ---
 

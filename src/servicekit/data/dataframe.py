@@ -1,5 +1,10 @@
 """Universal DataFrame schema for servicekit services."""
 
+import csv
+import io
+import json
+import random
+from pathlib import Path
 from typing import Any, Literal, Self
 
 from pydantic import BaseModel
@@ -88,6 +93,53 @@ class DataFrame(BaseModel):
 
         return cls(columns=columns, data=data)
 
+    @classmethod
+    def from_csv(
+        cls,
+        path: str | Path | None = None,
+        *,
+        csv_string: str | None = None,
+        delimiter: str = ",",
+        has_header: bool = True,
+        encoding: str = "utf-8",
+    ) -> Self:
+        """Create DataFrame from CSV file or string."""
+        # Validate mutually exclusive parameters
+        if path is None and csv_string is None:
+            raise ValueError("Either path or csv_string must be provided")
+        if path is not None and csv_string is not None:
+            raise ValueError("path and csv_string are mutually exclusive")
+
+        # Read CSV data
+        if path is not None:
+            path_obj = Path(path)
+            if not path_obj.exists():
+                raise FileNotFoundError(f"File not found: {path}")
+            with path_obj.open("r", encoding=encoding, newline="") as f:
+                reader = csv.reader(f, delimiter=delimiter)
+                rows = list(reader)
+        else:
+            # csv_string is not None
+            string_io = io.StringIO(csv_string)
+            reader = csv.reader(string_io, delimiter=delimiter)
+            rows = list(reader)
+
+        # Handle empty CSV
+        if not rows:
+            return cls(columns=[], data=[])
+
+        # Extract columns and data
+        if has_header:
+            columns = rows[0]
+            data = rows[1:]
+        else:
+            # Generate column names
+            num_cols = len(rows[0]) if rows else 0
+            columns = [f"col_{i}" for i in range(num_cols)]
+            data = rows
+
+        return cls(columns=columns, data=data)
+
     def to_pandas(self) -> Any:
         """Convert schema to pandas DataFrame."""
         try:
@@ -117,9 +169,652 @@ class DataFrame(BaseModel):
         else:
             raise ValueError(f"Invalid orient: {orient}")
 
+    def to_csv(
+        self,
+        path: str | Path | None = None,
+        *,
+        delimiter: str = ",",
+        include_header: bool = True,
+        encoding: str = "utf-8",
+    ) -> str | None:
+        """Export DataFrame to CSV file or string."""
+        # Write to string buffer or file
+        if path is None:
+            # Return as string
+            output = io.StringIO()
+            writer = csv.writer(output, delimiter=delimiter)
+
+            if include_header:
+                writer.writerow(self.columns)
+
+            writer.writerows(self.data)
+
+            return output.getvalue()
+        else:
+            # Write to file
+            path_obj = Path(path)
+            with path_obj.open("w", encoding=encoding, newline="") as f:
+                writer = csv.writer(f, delimiter=delimiter)
+
+                if include_header:
+                    writer.writerow(self.columns)
+
+                writer.writerows(self.data)
+
+            return None
+
     # Convenience aliases
     from_dataframe = from_pandas
     to_dataframe = to_pandas
 
+    @property
+    def shape(self) -> tuple[int, int]:
+        """Return tuple representing dimensionality of the DataFrame."""
+        return (len(self.data), len(self.columns))
 
-__all__ = ["DataFrame"]
+    @property
+    def empty(self) -> bool:
+        """Indicator whether DataFrame is empty."""
+        return len(self.data) == 0 or len(self.columns) == 0
+
+    @property
+    def size(self) -> int:
+        """Return int representing number of elements in this object."""
+        return len(self.data) * len(self.columns)
+
+    @property
+    def ndim(self) -> int:
+        """Return int representing number of axes/array dimensions."""
+        return 2
+
+    def head(self, n: int = 5) -> Self:
+        """Return first n rows."""
+        if n >= 0:
+            selected_data = self.data[:n]
+        else:
+            selected_data = self.data[:n] if n != 0 else self.data
+        return self.__class__(columns=self.columns, data=selected_data)
+
+    def tail(self, n: int = 5) -> Self:
+        """Return last n rows."""
+        if n >= 0:
+            selected_data = self.data[-n:] if n > 0 else []
+        else:
+            selected_data = self.data[abs(n) :]
+        return self.__class__(columns=self.columns, data=selected_data)
+
+    def sample(
+        self,
+        n: int | None = None,
+        frac: float | None = None,
+        *,
+        random_state: int | None = None,
+    ) -> Self:
+        """Return random sample of rows."""
+        # Validate parameters
+        if n is None and frac is None:
+            raise ValueError("Either n or frac must be provided")
+        if n is not None and frac is not None:
+            raise ValueError("n and frac are mutually exclusive")
+
+        # Set random seed if provided
+        if random_state is not None:
+            random.seed(random_state)
+
+        # Calculate sample size
+        total_rows = len(self.data)
+        if frac is not None:
+            if frac > 1.0:
+                raise ValueError("frac must be <= 1.0")
+            sample_size = int(total_rows * frac)
+        else:
+            sample_size = min(n, total_rows) if n is not None else 0
+
+        # Sample indices
+        if sample_size >= total_rows:
+            sampled_indices = list(range(total_rows))
+            random.shuffle(sampled_indices)
+        else:
+            sampled_indices = random.sample(range(total_rows), sample_size)
+
+        # Extract sampled rows
+        sampled_data = [self.data[i] for i in sampled_indices]
+
+        return self.__class__(columns=self.columns, data=sampled_data)
+
+    def select(self, columns: list[str]) -> Self:
+        """Return DataFrame with only specified columns."""
+        # Validate all columns exist
+        for col in columns:
+            if col not in self.columns:
+                raise KeyError(f"Column '{col}' not found in DataFrame")
+
+        # Get column indices
+        indices = [self.columns.index(col) for col in columns]
+
+        # Extract data for selected columns
+        new_data = [[row[i] for i in indices] for row in self.data]
+
+        return self.__class__(columns=columns, data=new_data)
+
+    def drop(self, columns: list[str]) -> Self:
+        """Return DataFrame without specified columns."""
+        # Validate all columns exist
+        for col in columns:
+            if col not in self.columns:
+                raise KeyError(f"Column '{col}' not found in DataFrame")
+
+        # Get columns to keep
+        keep_cols = [c for c in self.columns if c not in columns]
+
+        # Get indices for columns to keep
+        indices = [self.columns.index(col) for col in keep_cols]
+
+        # Extract data for kept columns
+        new_data = [[row[i] for i in indices] for row in self.data]
+
+        return self.__class__(columns=keep_cols, data=new_data)
+
+    def rename(self, mapper: dict[str, str]) -> Self:
+        """Return DataFrame with renamed columns."""
+        # Validate all old column names exist
+        for old_name in mapper:
+            if old_name not in self.columns:
+                raise KeyError(f"Column '{old_name}' not found in DataFrame")
+
+        # Create new column list
+        new_cols = [mapper.get(col, col) for col in self.columns]
+
+        # Check for duplicates
+        if len(new_cols) != len(set(new_cols)):
+            raise ValueError("Renaming would create duplicate column names")
+
+        return self.__class__(columns=new_cols, data=self.data)
+
+    def validate_structure(self) -> None:
+        """Validate DataFrame structure."""
+        # Check for empty column names
+        for i, col in enumerate(self.columns):
+            if col == "":
+                raise ValueError(f"Column at index {i} is empty")
+
+        # Check for duplicate column names
+        if len(self.columns) != len(set(self.columns)):
+            duplicates = [col for col in self.columns if self.columns.count(col) > 1]
+            raise ValueError(f"Duplicate column names found: {set(duplicates)}")
+
+        # Check all rows have same length as columns
+        num_cols = len(self.columns)
+        for i, row in enumerate(self.data):
+            if len(row) != num_cols:
+                raise ValueError(f"Row {i} has {len(row)} values, expected {num_cols}")
+
+    def infer_types(self) -> dict[str, str]:
+        """Infer column data types."""
+        result: dict[str, str] = {}
+
+        for col_idx, col_name in enumerate(self.columns):
+            # Extract all values for this column
+            values = [row[col_idx] for row in self.data]
+
+            # Filter out None values for type checking
+            non_null_values = [v for v in values if v is not None]
+
+            if not non_null_values:
+                result[col_name] = "null"
+                continue
+
+            # Check types
+            types_found = set()
+            for val in non_null_values:
+                if isinstance(val, bool):
+                    types_found.add("bool")
+                elif isinstance(val, int):
+                    types_found.add("int")
+                elif isinstance(val, float):
+                    types_found.add("float")
+                elif isinstance(val, str):
+                    types_found.add("str")
+                else:
+                    types_found.add("other")
+
+            # Determine final type
+            if len(types_found) > 1:
+                # Special case: int and float can be treated as float
+                if types_found == {"int", "float"}:
+                    result[col_name] = "float"
+                else:
+                    result[col_name] = "mixed"
+            elif "bool" in types_found:
+                result[col_name] = "bool"
+            elif "int" in types_found:
+                result[col_name] = "int"
+            elif "float" in types_found:
+                result[col_name] = "float"
+            elif "str" in types_found:
+                result[col_name] = "str"
+            else:
+                result[col_name] = "mixed"
+
+        return result
+
+    def has_nulls(self) -> dict[str, bool]:
+        """Check for null values in each column."""
+        result: dict[str, bool] = {}
+
+        for col_idx, col_name in enumerate(self.columns):
+            # Check if any value in this column is None
+            has_null = any(row[col_idx] is None for row in self.data)
+            result[col_name] = has_null
+
+        return result
+
+    # Iteration and length
+
+    def __len__(self) -> int:
+        """Return number of rows."""
+        return len(self.data)
+
+    def __iter__(self) -> Any:
+        """Iterate over rows as dictionaries."""
+        for row in self.data:
+            yield dict(zip(self.columns, row))
+
+    # JSON support
+
+    @classmethod
+    def from_json(cls, json_string: str) -> Self:
+        """Create DataFrame from JSON string (array of objects)."""
+        records = json.loads(json_string)
+        if not isinstance(records, list):
+            raise ValueError("JSON must be an array of objects")
+        return cls.from_records(records)
+
+    def to_json(self, orient: Literal["records", "columns"] = "records") -> str:
+        """Export DataFrame as JSON string."""
+        # Map "columns" to "list" for to_dict()
+        dict_orient: Literal["dict", "list", "records"] = "list" if orient == "columns" else orient
+        return json.dumps(self.to_dict(orient=dict_orient))
+
+    # Column access
+
+    def get_column(self, column: str) -> list[Any]:
+        """Get all values for a column."""
+        if column not in self.columns:
+            raise KeyError(f"Column '{column}' not found in DataFrame")
+        idx = self.columns.index(column)
+        return [row[idx] for row in self.data]
+
+    def __getitem__(self, key: str | list[str]) -> list[Any] | Self:
+        """Support df['col'] and df[['col1', 'col2']]."""
+        if isinstance(key, str):
+            return self.get_column(key)
+        return self.select(key)
+
+    # Analytics methods
+
+    def unique(self, column: str) -> list[Any]:
+        """Get unique values from a column (preserves order)."""
+        if column not in self.columns:
+            raise KeyError(f"Column '{column}' not found in DataFrame")
+
+        col_idx = self.columns.index(column)
+        seen = set()
+        result = []
+        for row in self.data:
+            val = row[col_idx]
+            if val not in seen:
+                seen.add(val)
+                result.append(val)
+        return result
+
+    def value_counts(self, column: str) -> dict[Any, int]:
+        """Count occurrences of each unique value in column."""
+        if column not in self.columns:
+            raise KeyError(f"Column '{column}' not found in DataFrame")
+
+        col_idx = self.columns.index(column)
+        counts: dict[Any, int] = {}
+        for row in self.data:
+            val = row[col_idx]
+            counts[val] = counts.get(val, 0) + 1
+        return counts
+
+    def sort(self, by: str, ascending: bool = True) -> Self:
+        """Sort DataFrame by column."""
+        if by not in self.columns:
+            raise KeyError(f"Column '{by}' not found in DataFrame")
+
+        col_idx = self.columns.index(by)
+
+        # Sort with None values at the end
+        def sort_key(row: list[Any]) -> tuple[int, Any]:
+            val = row[col_idx]
+            if val is None:
+                # Use a tuple to ensure None sorts last
+                return (1, None) if ascending else (0, None)
+            return (0, val) if ascending else (1, val)
+
+        sorted_data = sorted(self.data, key=sort_key, reverse=not ascending)
+        return self.__class__(columns=self.columns, data=sorted_data)
+
+    # Row filtering and transformation
+
+    def filter(self, predicate: Any) -> Self:
+        """Filter rows using a predicate function."""
+        filtered_data = []
+        for row in self.data:
+            row_dict = dict(zip(self.columns, row))
+            if predicate(row_dict):
+                filtered_data.append(row)
+        return self.__class__(columns=self.columns, data=filtered_data)
+
+    def apply(self, func: Any, column: str) -> Self:
+        """Apply function to column values."""
+        if column not in self.columns:
+            raise KeyError(f"Column '{column}' not found in DataFrame")
+
+        col_idx = self.columns.index(column)
+        new_data = []
+        for row in self.data:
+            new_row = row.copy()
+            new_row[col_idx] = func(row[col_idx])
+            new_data.append(new_row)
+
+        return self.__class__(columns=self.columns, data=new_data)
+
+    def add_column(self, name: str, values: list[Any]) -> Self:
+        """Add new column to DataFrame."""
+        if name in self.columns:
+            raise ValueError(f"Column '{name}' already exists")
+
+        if len(values) != len(self.data):
+            raise ValueError(f"Values length ({len(values)}) must match row count ({len(self.data)})")
+
+        new_columns = self.columns + [name]
+        new_data = [row + [values[i]] for i, row in enumerate(self.data)]
+
+        return self.__class__(columns=new_columns, data=new_data)
+
+    def drop_rows(self, indices: list[int]) -> Self:
+        """Drop rows by index."""
+        indices_set = set(indices)
+        new_data = [row for i, row in enumerate(self.data) if i not in indices_set]
+        return self.__class__(columns=self.columns, data=new_data)
+
+    def drop_duplicates(self, subset: list[str] | None = None) -> Self:
+        """Remove duplicate rows."""
+        # Validate subset columns
+        if subset is not None:
+            for col in subset:
+                if col not in self.columns:
+                    raise KeyError(f"Column '{col}' not found in DataFrame")
+            col_indices = [self.columns.index(col) for col in subset]
+        else:
+            col_indices = list(range(len(self.columns)))
+
+        # Track seen values
+        seen = set()
+        new_data = []
+
+        for row in self.data:
+            # Create tuple of relevant column values
+            key = tuple(row[i] for i in col_indices)
+
+            if key not in seen:
+                seen.add(key)
+                new_data.append(row)
+
+        return self.__class__(columns=self.columns, data=new_data)
+
+    def fillna(self, value: Any | dict[str, Any]) -> Self:
+        """Replace None values."""
+        if isinstance(value, dict):
+            # Validate column names
+            for col in value:
+                if col not in self.columns:
+                    raise KeyError(f"Column '{col}' not found in DataFrame")
+
+            # Create mapping of column index to fill value
+            fill_map = {self.columns.index(col): val for col, val in value.items()}
+
+            # Fill values
+            new_data = []
+            for row in self.data:
+                new_row = [fill_map[i] if i in fill_map and val is None else val for i, val in enumerate(row)]
+                new_data.append(new_row)
+        else:
+            # Single fill value for all None
+            new_data = [[value if val is None else val for val in row] for row in self.data]
+
+        return self.__class__(columns=self.columns, data=new_data)
+
+    def concat(self, other: Self) -> Self:
+        """Concatenate DataFrames vertically (stack rows)."""
+        if self.columns != other.columns:
+            raise ValueError(f"Column mismatch: {self.columns} != {other.columns}")
+
+        combined_data = self.data + other.data
+        return self.__class__(columns=self.columns, data=combined_data)
+
+    # Statistical methods
+
+    def describe(self) -> Self:
+        """Generate statistical summary for numeric columns."""
+        import statistics
+
+        stats_rows: list[list[Any]] = []
+        stat_names = ["count", "mean", "std", "min", "25%", "50%", "75%", "max"]
+
+        for col_idx in range(len(self.columns)):
+            # Extract numeric values (filter None and non-numeric)
+            values = []
+            for row in self.data:
+                val = row[col_idx]
+                if val is not None and isinstance(val, (int, float)) and not isinstance(val, bool):
+                    values.append(float(val))
+
+            if not values:
+                # Non-numeric column - fill with None
+                stats_rows.append([None] * len(stat_names))
+                continue
+
+            # Calculate statistics
+            count = len(values)
+            mean = statistics.mean(values)
+            std = statistics.stdev(values) if count > 1 else 0.0
+            min_val = min(values)
+            max_val = max(values)
+
+            # Quantiles
+            sorted_vals = sorted(values)
+            try:
+                q25 = statistics.quantiles(sorted_vals, n=4)[0] if count > 1 else sorted_vals[0]
+                q50 = statistics.median(sorted_vals)
+                q75 = statistics.quantiles(sorted_vals, n=4)[2] if count > 1 else sorted_vals[0]
+            except statistics.StatisticsError:
+                q25 = q50 = q75 = sorted_vals[0] if sorted_vals else 0.0
+
+            stats_rows.append([count, mean, std, min_val, q25, q50, q75, max_val])
+
+        # Transpose to make stats the rows and columns the columns
+        transposed_data = [
+            [stats_rows[col_idx][stat_idx] for col_idx in range(len(self.columns))]
+            for stat_idx in range(len(stat_names))
+        ]
+
+        return self.__class__(columns=self.columns, data=transposed_data).add_column("stat", stat_names)
+
+    def groupby(self, by: str) -> "GroupBy":
+        """Group DataFrame by column values."""
+        if by not in self.columns:
+            raise KeyError(f"Column '{by}' not found in DataFrame")
+
+        return GroupBy(self, by)
+
+    # Utility methods
+
+    def equals(self, other: Any) -> bool:
+        """Check if two DataFrames are identical."""
+        if not isinstance(other, DataFrame):
+            return False
+        return self.columns == other.columns and self.data == other.data
+
+    def deepcopy(self) -> Self:
+        """Create a deep copy of the DataFrame."""
+        import copy
+
+        return self.__class__(columns=self.columns.copy(), data=copy.deepcopy(self.data))
+
+    def isna(self) -> Self:
+        """Return DataFrame of booleans showing None locations."""
+        null_data = [[val is None for val in row] for row in self.data]
+        return self.__class__(columns=self.columns, data=null_data)
+
+    def notna(self) -> Self:
+        """Return DataFrame of booleans showing non-None locations."""
+        not_null_data = [[val is not None for val in row] for row in self.data]
+        return self.__class__(columns=self.columns, data=not_null_data)
+
+    def dropna(self, axis: Literal[0, 1] = 0, how: Literal["any", "all"] = "any") -> Self:
+        """Drop rows or columns with None values."""
+        if axis == 0:
+            # Drop rows
+            if how == "any":
+                # Drop rows with any None
+                new_data = [row for row in self.data if not any(val is None for val in row)]
+            else:
+                # Drop rows with all None
+                new_data = [row for row in self.data if not all(val is None for val in row)]
+            return self.__class__(columns=self.columns, data=new_data)
+        else:
+            # Drop columns (axis=1)
+            cols_to_keep = []
+            indices_to_keep = []
+
+            for col_idx, col_name in enumerate(self.columns):
+                col_values = [row[col_idx] for row in self.data]
+
+                if how == "any":
+                    # Keep column if no None values
+                    if not any(val is None for val in col_values):
+                        cols_to_keep.append(col_name)
+                        indices_to_keep.append(col_idx)
+                else:
+                    # Keep column if not all None
+                    if not all(val is None for val in col_values):
+                        cols_to_keep.append(col_name)
+                        indices_to_keep.append(col_idx)
+
+            # Extract data for kept columns
+            new_data = [[row[i] for i in indices_to_keep] for row in self.data]
+            return self.__class__(columns=cols_to_keep, data=new_data)
+
+    def nunique(self, column: str) -> int:
+        """Count number of unique values in column."""
+        if column not in self.columns:
+            raise KeyError(f"Column '{column}' not found in DataFrame")
+
+        col_idx = self.columns.index(column)
+        unique_values = set()
+        for row in self.data:
+            val = row[col_idx]
+            # Count None as a unique value
+            unique_values.add(val)
+        return len(unique_values)
+
+
+class GroupBy:
+    """GroupBy helper for aggregations."""
+
+    def __init__(self, dataframe: DataFrame, by: str):
+        """Initialize GroupBy helper."""
+        self.dataframe = dataframe
+        self.by = by
+        self.by_idx = dataframe.columns.index(by)
+
+        # Build groups
+        self.groups: dict[Any, list[list[Any]]] = {}
+        for row in dataframe.data:
+            key = row[self.by_idx]
+            if key not in self.groups:
+                self.groups[key] = []
+            self.groups[key].append(row)
+
+    def count(self) -> DataFrame:
+        """Count rows per group."""
+        data = [[key, len(rows)] for key, rows in self.groups.items()]
+        return DataFrame(columns=[self.by, "count"], data=data)
+
+    def sum(self, column: str) -> DataFrame:
+        """Sum numeric column per group."""
+        if column not in self.dataframe.columns:
+            raise KeyError(f"Column '{column}' not found in DataFrame")
+
+        col_idx = self.dataframe.columns.index(column)
+        data = []
+
+        for key, rows in self.groups.items():
+            values = [
+                row[col_idx] for row in rows if row[col_idx] is not None and isinstance(row[col_idx], (int, float))
+            ]
+            total = sum(values) if values else None
+            data.append([key, total])
+
+        return DataFrame(columns=[self.by, f"{column}_sum"], data=data)
+
+    def mean(self, column: str) -> DataFrame:
+        """Calculate mean of numeric column per group."""
+        if column not in self.dataframe.columns:
+            raise KeyError(f"Column '{column}' not found in DataFrame")
+
+        import statistics
+
+        col_idx = self.dataframe.columns.index(column)
+        data = []
+
+        for key, rows in self.groups.items():
+            values = [
+                row[col_idx] for row in rows if row[col_idx] is not None and isinstance(row[col_idx], (int, float))
+            ]
+            avg = statistics.mean(values) if values else None
+            data.append([key, avg])
+
+        return DataFrame(columns=[self.by, f"{column}_mean"], data=data)
+
+    def min(self, column: str) -> DataFrame:
+        """Find minimum of numeric column per group."""
+        if column not in self.dataframe.columns:
+            raise KeyError(f"Column '{column}' not found in DataFrame")
+
+        col_idx = self.dataframe.columns.index(column)
+        data = []
+
+        for key, rows in self.groups.items():
+            values = [
+                row[col_idx] for row in rows if row[col_idx] is not None and isinstance(row[col_idx], (int, float))
+            ]
+            minimum = min(values) if values else None
+            data.append([key, minimum])
+
+        return DataFrame(columns=[self.by, f"{column}_min"], data=data)
+
+    def max(self, column: str) -> DataFrame:
+        """Find maximum of numeric column per group."""
+        if column not in self.dataframe.columns:
+            raise KeyError(f"Column '{column}' not found in DataFrame")
+
+        col_idx = self.dataframe.columns.index(column)
+        data = []
+
+        for key, rows in self.groups.items():
+            values = [
+                row[col_idx] for row in rows if row[col_idx] is not None and isinstance(row[col_idx], (int, float))
+            ]
+            maximum = max(values) if values else None
+            data.append([key, maximum])
+
+        return DataFrame(columns=[self.by, f"{column}_max"], data=data)
+
+
+__all__ = ["DataFrame", "GroupBy"]
