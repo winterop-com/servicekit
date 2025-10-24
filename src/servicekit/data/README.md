@@ -110,6 +110,7 @@ Universal schema for tabular data.
 | `select(columns)` | Keep only specified columns | - |
 | `drop(columns)` | Remove specified columns | - |
 | `rename(mapper)` | Rename columns | - |
+| `rename_columns(mapper)` | Rename columns (alias for rename) | - |
 | `sort(by, ascending)` | Sort DataFrame by column | - |
 | `validate_structure()` | Validate DataFrame integrity | - |
 | `infer_types()` | Infer column data types | - |

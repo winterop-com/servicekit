@@ -706,3 +706,164 @@ for row in final_result:
     print(f"  {row['index']}: ", end="")
     scores = [f"{k}={v}" for k, v in row.items() if k != "index"]
     print(", ".join(scores))
+
+print("\n=== Column Renaming ===")
+# Example 1: Basic column renaming for better readability
+raw_data = DataFrame.from_dict(
+    {
+        "usr_id": [101, 102, 103],
+        "usr_nm": ["Alice", "Bob", "Charlie"],
+        "usr_age": [25, 30, 35],
+        "usr_dept": ["Sales", "Engineering", "Marketing"],
+    }
+)
+
+print("Original columns (abbreviated):")
+print(f"  {raw_data.columns}")
+
+# Rename to more readable column names
+clean_data = raw_data.rename_columns(
+    {
+        "usr_id": "user_id",
+        "usr_nm": "name",
+        "usr_age": "age",
+        "usr_dept": "department",
+    }
+)
+
+print("\nRenamed columns (readable):")
+print(f"  {clean_data.columns}")
+print("\nData:")
+for row in clean_data:
+    print(f"  ID {row['user_id']}: {row['name']}, {row['age']}, {row['department']}")
+
+# Example 2: Partial renaming (only some columns)
+sales_data = DataFrame.from_dict(
+    {
+        "product": ["Widget", "Gadget", "Doohickey"],
+        "q1": [100, 150, 200],
+        "q2": [120, 160, 210],
+        "q3": [110, 155, 205],
+        "q4": [130, 170, 220],
+    }
+)
+
+print("\n\nPartial renaming (rename Q1 only):")
+print(f"Before: {sales_data.columns}")
+
+renamed_sales = sales_data.rename_columns({"q1": "Q1_2024"})
+
+print(f"After:  {renamed_sales.columns}")
+
+# Example 3: Using rename_columns in a processing pipeline
+print("\n\nRenaming in a data pipeline:")
+sensor_data = DataFrame.from_dict(
+    {
+        "ts": [1000, 2000, 3000, 4000],
+        "tmp": [20.5, 21.0, 22.5, 19.8],
+        "hmd": [45, 47, 50, 43],
+        "prs": [1013, 1014, 1012, 1013],
+    }
+)
+
+print("Processing pipeline:")
+print("  1. Start with abbreviated column names")
+print(f"     {sensor_data.columns}")
+
+# Rename for clarity
+processed = sensor_data.rename_columns(
+    {
+        "ts": "timestamp",
+        "tmp": "temperature_c",
+        "hmd": "humidity_pct",
+        "prs": "pressure_hpa",
+    }
+)
+
+print("  2. Rename columns for clarity")
+print(f"     {processed.columns}")
+
+# Filter for high temperature readings
+high_temp = processed.filter(lambda row: row["temperature_c"] > 21.0)
+
+print(f"  3. Filter for high temperatures: {len(high_temp.data)} readings")
+for row in high_temp:
+    print(f"     Time {row['timestamp']}: {row['temperature_c']}°C")
+
+# Example 4: Standardizing column names from multiple sources
+print("\n\nStandardizing column names from different sources:")
+
+# Two datasets with different naming conventions
+source_a = DataFrame.from_dict(
+    {
+        "CustomerID": [1, 2],
+        "FirstName": ["Alice", "Bob"],
+        "EmailAddress": ["alice@example.com", "bob@example.com"],
+    }
+)
+
+source_b = DataFrame.from_dict(
+    {
+        "cust_id": [3, 4],
+        "first_name": ["Charlie", "Dave"],
+        "email_addr": ["charlie@example.com", "dave@example.com"],
+    }
+)
+
+print("Source A columns:", source_a.columns)
+print("Source B columns:", source_b.columns)
+
+# Standardize both to the same naming convention
+standard_a = source_a.rename_columns(
+    {
+        "CustomerID": "customer_id",
+        "FirstName": "first_name",
+        "EmailAddress": "email_address",
+    }
+)
+
+standard_b = source_b.rename_columns(
+    {
+        "cust_id": "customer_id",
+        "email_addr": "email_address",
+    }
+)
+
+print("\nStandardized columns:")
+print("  Source A:", standard_a.columns)
+print("  Source B:", standard_b.columns)
+
+# Now both can be combined since column names match
+combined = standard_a.concat(standard_b)
+print(f"\nCombined dataset: {len(combined.data)} customers")
+for row in combined:
+    print(f"  {row['customer_id']}: {row['first_name']} ({row['email_address']})")
+
+# Example 5: Preparing data for export with descriptive names
+print("\n\nPreparing data for export with descriptive names:")
+
+metrics = DataFrame.from_dict(
+    {
+        "m": ["Revenue", "Profit", "Growth"],
+        "v": [1000000, 150000, 0.15],
+        "u": ["USD", "USD", "Percentage"],
+    }
+)
+
+print("Internal column names (abbreviated):")
+print(f"  {metrics.columns}")
+
+# Rename for human-readable export
+export_ready = metrics.rename_columns(
+    {
+        "m": "Metric",
+        "v": "Value",
+        "u": "Unit",
+    }
+)
+
+print("\nExport-ready column names (descriptive):")
+print(f"  {export_ready.columns}")
+print("\nData ready for CSV/JSON export:")
+for row in export_ready:
+    print(f"  {row['Metric']}: {row['Value']} {row['Unit']}")

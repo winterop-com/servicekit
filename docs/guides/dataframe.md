@@ -301,7 +301,12 @@ df_renamed = df.rename({
 
 # Partial rename (other columns unchanged)
 df_renamed = df.rename({"age": "years"})
+
+# Alternative: use rename_columns() (same behavior)
+df_renamed = df.rename_columns({"age": "years"})
 ```
+
+The `rename_columns()` method is an alias for `rename()`, provided for improved code readability and discoverability.
 
 ## Validation and Type Inference
 

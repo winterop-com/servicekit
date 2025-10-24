@@ -331,6 +331,10 @@ class DataFrame(BaseModel):
 
         return self.__class__(columns=new_cols, data=self.data)
 
+    def rename_columns(self, mapper: dict[str, str]) -> Self:
+        """Return DataFrame with renamed columns (alias for rename)."""
+        return self.rename(mapper)
+
     def validate_structure(self) -> None:
         """Validate DataFrame structure."""
         # Check for empty column names

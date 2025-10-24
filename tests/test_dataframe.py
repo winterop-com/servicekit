@@ -595,6 +595,51 @@ class TestDataFrameColumnOps:
         with pytest.raises(ValueError, match="duplicate column names"):
             df.rename({"a": "b"})
 
+    def test_rename_columns_basic(self) -> None:
+        """rename_columns() returns DataFrame with renamed columns."""
+        df = DataFrame(columns=["a", "b", "c"], data=[[1, 2, 3]])
+        result = df.rename_columns({"a": "x", "c": "z"})
+
+        assert result.columns == ["x", "b", "z"]
+        assert result.data == [[1, 2, 3]]
+
+    def test_rename_columns_partial(self) -> None:
+        """rename_columns() only renames specified columns."""
+        df = DataFrame(columns=["a", "b", "c"], data=[[1, 2, 3]])
+        result = df.rename_columns({"a": "x"})
+
+        assert result.columns == ["x", "b", "c"]
+
+    def test_rename_columns_column_not_found(self) -> None:
+        """rename_columns() raises KeyError for non-existent column."""
+        df = DataFrame(columns=["a", "b"], data=[[1, 2]])
+
+        with pytest.raises(KeyError, match="Column 'z' not found"):
+            df.rename_columns({"z": "new_name"})
+
+    def test_rename_columns_duplicate_names(self) -> None:
+        """rename_columns() raises ValueError if renaming creates duplicates."""
+        df = DataFrame(columns=["a", "b", "c"], data=[[1, 2, 3]])
+
+        with pytest.raises(ValueError, match="duplicate column names"):
+            df.rename_columns({"a": "b"})
+
+    def test_rename_columns_immutability(self) -> None:
+        """rename_columns() returns new instance without modifying original."""
+        df = DataFrame(columns=["a", "b"], data=[[1, 2]])
+        result = df.rename_columns({"a": "x"})
+
+        assert df.columns == ["a", "b"]
+        assert result.columns == ["x", "b"]
+
+    def test_rename_columns_empty_mapper(self) -> None:
+        """rename_columns() with empty mapper returns DataFrame unchanged."""
+        df = DataFrame(columns=["a", "b"], data=[[1, 2]])
+        result = df.rename_columns({})
+
+        assert result.columns == ["a", "b"]
+        assert result.data == [[1, 2]]
+
 
 class TestDataFrameValidation:
     """Test DataFrame validation methods."""
