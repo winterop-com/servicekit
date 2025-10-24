@@ -1,8 +1,19 @@
 # Servicekit Enhancement Roadmap
 
-**Version:** 1.1
-**Last Updated:** 2025-10-22
+**Version:** 1.2
+**Last Updated:** 2025-10-24
 **Status:** In Progress
+
+## Recent Updates
+
+**2025-10-24:**
+- DataFrame implementation completed with 40+ methods (merged to main)
+- Added comprehensive data manipulation: melt, pivot, merge, transpose
+- Added missing data handling: dropna, fillna, isna, notna
+- Added statistical analysis: groupby, describe, value_counts
+- Added utilities: rename_columns, select, drop, sort, sample
+- All 606 tests passing, 93%+ coverage
+- PyArrow/Parquet support intentionally deferred
 
 
 ## Executive Summary
@@ -253,9 +264,8 @@ Visualization services often:
 
 - Extract `TransformationRouter` base class pattern from Vega example
 - Integrate caching support (Phase 2.2)
-- ~~Add PyArrow/Parquet support for DataFrame (optional - requires pyarrow dependency)~~
 
-**Note:** DataFrame enhancements completed separately (feat/dataframe-enhancements branch) with 15 new methods for data manipulation, missing data handling, and utilities. The DataFrame now provides comprehensive data interchange capabilities using stdlib only. PyArrow/Parquet support deferred - users can convert to pandas/polars for advanced I/O formats.
+**Note:** DataFrame implementation complete (merged to main) with 40+ methods including data manipulation (melt, pivot, merge, transpose), missing data handling (dropna, fillna, isna), statistical analysis (groupby, describe), and I/O (CSV, JSON, pandas, polars, xarray). PyArrow/Parquet support intentionally deferred - users can convert to pandas/polars for advanced I/O formats.
 
 ### 5.2 Schema Registry
 
