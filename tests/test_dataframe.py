@@ -1,5 +1,6 @@
 """Tests for DataFrame data interchange format."""
 
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -248,3 +249,161 @@ class TestDataFrameProperties:
         """ndim returns 2 even for empty DataFrame."""
         df = DataFrame(columns=[], data=[])
         assert df.ndim == 2
+
+
+class TestDataFrameCSV:
+    """Test DataFrame CSV methods."""
+
+    def test_from_csv_string_basic(self) -> None:
+        """Create DataFrame from CSV string."""
+        csv_string = "name,age\nAlice,25\nBob,30"
+        df = DataFrame.from_csv(csv_string=csv_string)
+
+        assert df.columns == ["name", "age"]
+        assert df.data == [["Alice", "25"], ["Bob", "30"]]
+
+    def test_from_csv_string_no_header(self) -> None:
+        """Create DataFrame from CSV string without header."""
+        csv_string = "Alice,25\nBob,30"
+        df = DataFrame.from_csv(csv_string=csv_string, has_header=False)
+
+        assert df.columns == ["col_0", "col_1"]
+        assert df.data == [["Alice", "25"], ["Bob", "30"]]
+
+    def test_from_csv_string_custom_delimiter(self) -> None:
+        """Create DataFrame from CSV string with custom delimiter."""
+        csv_string = "name;age\nAlice;25\nBob;30"
+        df = DataFrame.from_csv(csv_string=csv_string, delimiter=";")
+
+        assert df.columns == ["name", "age"]
+        assert df.data == [["Alice", "25"], ["Bob", "30"]]
+
+    def test_from_csv_string_empty(self) -> None:
+        """Create DataFrame from empty CSV string."""
+        df = DataFrame.from_csv(csv_string="")
+
+        assert df.columns == []
+        assert df.data == []
+
+    def test_from_csv_file_basic(self, tmp_path: Path) -> None:
+        """Create DataFrame from CSV file."""
+        csv_file = tmp_path / "test.csv"
+        csv_file.write_text("name,age\nAlice,25\nBob,30")
+
+        df = DataFrame.from_csv(path=csv_file)
+
+        assert df.columns == ["name", "age"]
+        assert df.data == [["Alice", "25"], ["Bob", "30"]]
+
+    def test_from_csv_file_not_found(self) -> None:
+        """from_csv raises FileNotFoundError for missing file."""
+        with pytest.raises(FileNotFoundError, match="File not found"):
+            DataFrame.from_csv(path="nonexistent.csv")
+
+    def test_from_csv_neither_path_nor_string(self) -> None:
+        """from_csv raises ValueError when neither path nor csv_string provided."""
+        with pytest.raises(ValueError, match="Either path or csv_string must be provided"):
+            DataFrame.from_csv()
+
+    def test_from_csv_both_path_and_string(self, tmp_path: Path) -> None:
+        """from_csv raises ValueError when both path and csv_string provided."""
+        csv_file = tmp_path / "test.csv"
+        csv_file.write_text("a,b\n1,2")
+
+        with pytest.raises(ValueError, match="mutually exclusive"):
+            DataFrame.from_csv(path=csv_file, csv_string="a,b\n1,2")
+
+    def test_from_csv_encoding(self, tmp_path: Path) -> None:
+        """Create DataFrame from CSV file with specific encoding."""
+        csv_file = tmp_path / "test.csv"
+        csv_file.write_text("name,city\nAlice,Zürich", encoding="utf-8")
+
+        df = DataFrame.from_csv(path=csv_file, encoding="utf-8")
+
+        assert df.columns == ["name", "city"]
+        assert df.data == [["Alice", "Zürich"]]
+
+    def test_to_csv_string_basic(self) -> None:
+        """Export DataFrame to CSV string."""
+        df = DataFrame(columns=["name", "age"], data=[["Alice", 25], ["Bob", 30]])
+        csv_string = df.to_csv()
+
+        assert csv_string is not None
+        assert "name,age" in csv_string
+        assert "Alice,25" in csv_string
+        assert "Bob,30" in csv_string
+
+    def test_to_csv_string_no_header(self) -> None:
+        """Export DataFrame to CSV string without header."""
+        df = DataFrame(columns=["name", "age"], data=[["Alice", 25], ["Bob", 30]])
+        csv_string = df.to_csv(include_header=False)
+
+        assert csv_string is not None
+        assert "name,age" not in csv_string
+        assert "Alice,25" in csv_string
+        assert "Bob,30" in csv_string
+
+    def test_to_csv_string_custom_delimiter(self) -> None:
+        """Export DataFrame to CSV string with custom delimiter."""
+        df = DataFrame(columns=["name", "age"], data=[["Alice", 25], ["Bob", 30]])
+        csv_string = df.to_csv(delimiter=";")
+
+        assert csv_string is not None
+        assert "name;age" in csv_string
+        assert "Alice;25" in csv_string
+
+    def test_to_csv_string_empty(self) -> None:
+        """Export empty DataFrame to CSV string."""
+        df = DataFrame(columns=[], data=[])
+        csv_string = df.to_csv()
+
+        # Empty DataFrame produces only a newline character
+        assert csv_string.strip() == ""
+
+    def test_to_csv_file_basic(self, tmp_path: Path) -> None:
+        """Export DataFrame to CSV file."""
+        df = DataFrame(columns=["name", "age"], data=[["Alice", 25], ["Bob", 30]])
+        csv_file = tmp_path / "output.csv"
+
+        result = df.to_csv(path=csv_file)
+
+        assert result is None
+        assert csv_file.exists()
+
+        content = csv_file.read_text()
+        assert "name,age" in content
+        assert "Alice,25" in content
+        assert "Bob,30" in content
+
+    def test_to_csv_file_encoding(self, tmp_path: Path) -> None:
+        """Export DataFrame to CSV file with specific encoding."""
+        df = DataFrame(columns=["name", "city"], data=[["Alice", "Zürich"]])
+        csv_file = tmp_path / "output.csv"
+
+        df.to_csv(path=csv_file, encoding="utf-8")
+
+        content = csv_file.read_text(encoding="utf-8")
+        assert "Zürich" in content
+
+    def test_csv_roundtrip_string(self) -> None:
+        """Round-trip DataFrame through CSV string."""
+        original = DataFrame(columns=["name", "age"], data=[["Alice", 25], ["Bob", 30]])
+
+        csv_string = original.to_csv()
+        restored = DataFrame.from_csv(csv_string=csv_string)
+
+        # Note: CSV conversion makes all values strings
+        assert restored.columns == original.columns
+        assert restored.data == [["Alice", "25"], ["Bob", "30"]]
+
+    def test_csv_roundtrip_file(self, tmp_path: Path) -> None:
+        """Round-trip DataFrame through CSV file."""
+        original = DataFrame(columns=["x", "y"], data=[[1, 2], [3, 4]])
+        csv_file = tmp_path / "roundtrip.csv"
+
+        original.to_csv(path=csv_file)
+        restored = DataFrame.from_csv(path=csv_file)
+
+        # CSV conversion makes all values strings
+        assert restored.columns == original.columns
+        assert restored.data == [["1", "2"], ["3", "4"]]
