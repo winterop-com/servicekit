@@ -103,26 +103,7 @@ class DataFrame(BaseModel):
         has_header: bool = True,
         encoding: str = "utf-8",
     ) -> Self:
-        r"""Create DataFrame from CSV file or string.
-
-        Args:
-            path: Path to CSV file (mutually exclusive with csv_string)
-            csv_string: CSV data as string (mutually exclusive with path)
-            delimiter: Column delimiter (default: comma)
-            has_header: First row contains column names
-            encoding: File encoding
-
-        Returns:
-            DataFrame instance
-
-        Raises:
-            ValueError: If neither or both path and csv_string provided
-            FileNotFoundError: If path does not exist
-
-        Example:
-            >>> df = DataFrame.from_csv("data.csv")
-            >>> df = DataFrame.from_csv(csv_string="a,b\n1,2\n3,4")
-        """
+        """Create DataFrame from CSV file or string."""
         # Validate mutually exclusive parameters
         if path is None and csv_string is None:
             raise ValueError("Either path or csv_string must be provided")
@@ -196,21 +177,7 @@ class DataFrame(BaseModel):
         include_header: bool = True,
         encoding: str = "utf-8",
     ) -> str | None:
-        """Export DataFrame to CSV file or string.
-
-        Args:
-            path: Path to write CSV file (if None, returns string)
-            delimiter: Column delimiter
-            include_header: Include column names in first row
-            encoding: File encoding
-
-        Returns:
-            CSV string if path is None, otherwise None
-
-        Example:
-            >>> df.to_csv("output.csv")
-            >>> csv_str = df.to_csv()  # Returns string
-        """
+        """Export DataFrame to CSV file or string."""
         # Write to string buffer or file
         if path is None:
             # Return as string
@@ -261,18 +228,7 @@ class DataFrame(BaseModel):
         return 2
 
     def head(self, n: int = 5) -> Self:
-        """Return first n rows.
-
-        Args:
-            n: Number of rows to return (negative values return all except last |n| rows)
-
-        Returns:
-            New DataFrame with first n rows
-
-        Example:
-            >>> df.head(10)
-            >>> df.head(-3)  # All except last 3 rows
-        """
+        """Return first n rows."""
         if n >= 0:
             selected_data = self.data[:n]
         else:
@@ -280,18 +236,7 @@ class DataFrame(BaseModel):
         return self.__class__(columns=self.columns, data=selected_data)
 
     def tail(self, n: int = 5) -> Self:
-        """Return last n rows.
-
-        Args:
-            n: Number of rows to return (negative values return all except first |n| rows)
-
-        Returns:
-            New DataFrame with last n rows
-
-        Example:
-            >>> df.tail(10)
-            >>> df.tail(-3)  # All except first 3 rows
-        """
+        """Return last n rows."""
         if n >= 0:
             selected_data = self.data[-n:] if n > 0 else []
         else:
@@ -305,23 +250,7 @@ class DataFrame(BaseModel):
         *,
         random_state: int | None = None,
     ) -> Self:
-        """Return random sample of rows.
-
-        Args:
-            n: Number of rows to sample (mutually exclusive with frac)
-            frac: Fraction of rows to sample (mutually exclusive with n)
-            random_state: Random seed for reproducibility
-
-        Returns:
-            New DataFrame with sampled rows
-
-        Raises:
-            ValueError: If neither or both n and frac provided, or if frac > 1.0
-
-        Example:
-            >>> df.sample(n=100)
-            >>> df.sample(frac=0.1, random_state=42)
-        """
+        """Return random sample of rows."""
         # Validate parameters
         if n is None and frac is None:
             raise ValueError("Either n or frac must be provided")
@@ -354,20 +283,7 @@ class DataFrame(BaseModel):
         return self.__class__(columns=self.columns, data=sampled_data)
 
     def select(self, columns: list[str]) -> Self:
-        """Return DataFrame with only specified columns.
-
-        Args:
-            columns: List of column names to keep
-
-        Returns:
-            New DataFrame with selected columns
-
-        Raises:
-            KeyError: If any column does not exist
-
-        Example:
-            >>> df.select(["name", "age"])
-        """
+        """Return DataFrame with only specified columns."""
         # Validate all columns exist
         for col in columns:
             if col not in self.columns:
@@ -382,20 +298,7 @@ class DataFrame(BaseModel):
         return self.__class__(columns=columns, data=new_data)
 
     def drop(self, columns: list[str]) -> Self:
-        """Return DataFrame without specified columns.
-
-        Args:
-            columns: List of column names to drop
-
-        Returns:
-            New DataFrame without dropped columns
-
-        Raises:
-            KeyError: If any column does not exist
-
-        Example:
-            >>> df.drop(["temp_col"])
-        """
+        """Return DataFrame without specified columns."""
         # Validate all columns exist
         for col in columns:
             if col not in self.columns:
@@ -413,21 +316,7 @@ class DataFrame(BaseModel):
         return self.__class__(columns=keep_cols, data=new_data)
 
     def rename(self, mapper: dict[str, str]) -> Self:
-        """Return DataFrame with renamed columns.
-
-        Args:
-            mapper: Dictionary mapping old names to new names
-
-        Returns:
-            New DataFrame with renamed columns
-
-        Raises:
-            KeyError: If any old column name does not exist
-            ValueError: If new names create duplicates
-
-        Example:
-            >>> df.rename({"old_name": "new_name"})
-        """
+        """Return DataFrame with renamed columns."""
         # Validate all old column names exist
         for old_name in mapper:
             if old_name not in self.columns:
@@ -443,19 +332,7 @@ class DataFrame(BaseModel):
         return self.__class__(columns=new_cols, data=self.data)
 
     def validate_structure(self) -> None:
-        """Validate DataFrame structure.
-
-        Checks:
-        - All rows have same length as columns
-        - Column names are unique
-        - No null/empty column names
-
-        Raises:
-            ValueError: If validation fails
-
-        Example:
-            >>> df.validate_structure()
-        """
+        """Validate DataFrame structure."""
         # Check for empty column names
         for i, col in enumerate(self.columns):
             if col == "":
@@ -473,16 +350,7 @@ class DataFrame(BaseModel):
                 raise ValueError(f"Row {i} has {len(row)} values, expected {num_cols}")
 
     def infer_types(self) -> dict[str, str]:
-        """Infer column data types.
-
-        Returns:
-            Dictionary mapping column names to type strings
-            Types: "int", "float", "str", "bool", "null", "mixed"
-
-        Example:
-            >>> df.infer_types()
-            {"age": "int", "name": "str", "score": "float"}
-        """
+        """Infer column data types."""
         result: dict[str, str] = {}
 
         for col_idx, col_name in enumerate(self.columns):
@@ -531,16 +399,7 @@ class DataFrame(BaseModel):
         return result
 
     def has_nulls(self) -> dict[str, bool]:
-        """Check for null values in each column.
-
-        Returns:
-            Dictionary mapping column names to boolean
-            True if column contains None values
-
-        Example:
-            >>> df.has_nulls()
-            {"age": False, "email": True}
-        """
+        """Check for null values in each column."""
         result: dict[str, bool] = {}
 
         for col_idx, col_name in enumerate(self.columns):
@@ -565,40 +424,14 @@ class DataFrame(BaseModel):
 
     @classmethod
     def from_json(cls, json_string: str) -> Self:
-        """Create DataFrame from JSON string (array of objects).
-
-        Args:
-            json_string: JSON array of objects
-
-        Returns:
-            DataFrame instance
-
-        Raises:
-            ValueError: If JSON is not a list of objects
-
-        Example:
-            >>> df = DataFrame.from_json('[{"a": 1, "b": 2}, {"a": 3, "b": 4}]')
-        """
+        """Create DataFrame from JSON string (array of objects)."""
         records = json.loads(json_string)
         if not isinstance(records, list):
             raise ValueError("JSON must be an array of objects")
         return cls.from_records(records)
 
     def to_json(self, orient: Literal["records", "columns"] = "records") -> str:
-        """Export DataFrame as JSON string.
-
-        Args:
-            orient: "records" for list of objects, "columns" for dict of arrays
-
-        Returns:
-            JSON string
-
-        Example:
-            >>> df.to_json()
-            '[{"a": 1}, {"a": 2}]'
-            >>> df.to_json(orient="columns")
-            '{"a": [1, 2]}'
-        """
+        """Export DataFrame as JSON string."""
         # Map "columns" to "list" for to_dict()
         dict_orient: Literal["dict", "list", "records"] = "list" if orient == "columns" else orient
         return json.dumps(self.to_dict(orient=dict_orient))
@@ -606,39 +439,14 @@ class DataFrame(BaseModel):
     # Column access
 
     def get_column(self, column: str) -> list[Any]:
-        """Get all values for a column.
-
-        Args:
-            column: Column name
-
-        Returns:
-            List of values
-
-        Raises:
-            KeyError: If column does not exist
-
-        Example:
-            >>> df.get_column("age")
-            [25, 30, 35]
-        """
+        """Get all values for a column."""
         if column not in self.columns:
             raise KeyError(f"Column '{column}' not found in DataFrame")
         idx = self.columns.index(column)
         return [row[idx] for row in self.data]
 
     def __getitem__(self, key: str | list[str]) -> list[Any] | Self:
-        """Support df['col'] and df[['col1', 'col2']].
-
-        Args:
-            key: Column name or list of column names
-
-        Returns:
-            List of values for single column, or DataFrame for multiple columns
-
-        Example:
-            >>> df["age"]  # Returns list
-            >>> df[["name", "age"]]  # Returns DataFrame
-        """
+        """Support df['col'] and df[['col1', 'col2']]."""
         if isinstance(key, str):
             return self.get_column(key)
         return self.select(key)
@@ -646,21 +454,7 @@ class DataFrame(BaseModel):
     # Analytics methods
 
     def unique(self, column: str) -> list[Any]:
-        """Get unique values from a column (preserves order).
-
-        Args:
-            column: Column name
-
-        Returns:
-            List of unique values in order of first appearance
-
-        Raises:
-            KeyError: If column does not exist
-
-        Example:
-            >>> df.unique("category")
-            ['A', 'B', 'C']
-        """
+        """Get unique values from a column (preserves order)."""
         if column not in self.columns:
             raise KeyError(f"Column '{column}' not found in DataFrame")
 
@@ -675,21 +469,7 @@ class DataFrame(BaseModel):
         return result
 
     def value_counts(self, column: str) -> dict[Any, int]:
-        """Count occurrences of each unique value in column.
-
-        Args:
-            column: Column name
-
-        Returns:
-            Dictionary mapping values to counts
-
-        Raises:
-            KeyError: If column does not exist
-
-        Example:
-            >>> df.value_counts("category")
-            {'A': 3, 'B': 2, 'C': 1}
-        """
+        """Count occurrences of each unique value in column."""
         if column not in self.columns:
             raise KeyError(f"Column '{column}' not found in DataFrame")
 
@@ -701,22 +481,7 @@ class DataFrame(BaseModel):
         return counts
 
     def sort(self, by: str, ascending: bool = True) -> Self:
-        """Sort DataFrame by column.
-
-        Args:
-            by: Column name to sort by
-            ascending: Sort in ascending order (default True)
-
-        Returns:
-            New sorted DataFrame
-
-        Raises:
-            KeyError: If column does not exist
-
-        Example:
-            >>> df.sort("age")
-            >>> df.sort("score", ascending=False)
-        """
+        """Sort DataFrame by column."""
         if by not in self.columns:
             raise KeyError(f"Column '{by}' not found in DataFrame")
 
@@ -736,18 +501,7 @@ class DataFrame(BaseModel):
     # Row filtering and transformation
 
     def filter(self, predicate: Any) -> Self:
-        """Filter rows using a predicate function.
-
-        Args:
-            predicate: Callable that takes a row dict and returns bool
-
-        Returns:
-            New DataFrame with filtered rows
-
-        Example:
-            >>> df.filter(lambda row: row["age"] > 25)
-            >>> df.filter(lambda row: row["score"] >= 90 and row["active"])
-        """
+        """Filter rows using a predicate function."""
         filtered_data = []
         for row in self.data:
             row_dict = dict(zip(self.columns, row))
@@ -756,22 +510,7 @@ class DataFrame(BaseModel):
         return self.__class__(columns=self.columns, data=filtered_data)
 
     def apply(self, func: Any, column: str) -> Self:
-        """Apply function to column values.
-
-        Args:
-            func: Callable that takes a value and returns transformed value
-            column: Column name to apply function to
-
-        Returns:
-            New DataFrame with transformed column
-
-        Raises:
-            KeyError: If column does not exist
-
-        Example:
-            >>> df.apply(str.upper, "name")
-            >>> df.apply(lambda x: x * 2, "price")
-        """
+        """Apply function to column values."""
         if column not in self.columns:
             raise KeyError(f"Column '{column}' not found in DataFrame")
 
@@ -785,22 +524,7 @@ class DataFrame(BaseModel):
         return self.__class__(columns=self.columns, data=new_data)
 
     def add_column(self, name: str, values: list[Any]) -> Self:
-        """Add new column to DataFrame.
-
-        Args:
-            name: Column name
-            values: List of values (must match row count)
-
-        Returns:
-            New DataFrame with added column
-
-        Raises:
-            ValueError: If values length doesn't match row count
-            ValueError: If column name already exists
-
-        Example:
-            >>> df.add_column("total", [10, 20, 30])
-        """
+        """Add new column to DataFrame."""
         if name in self.columns:
             raise ValueError(f"Column '{name}' already exists")
 
@@ -813,37 +537,13 @@ class DataFrame(BaseModel):
         return self.__class__(columns=new_columns, data=new_data)
 
     def drop_rows(self, indices: list[int]) -> Self:
-        """Drop rows by index.
-
-        Args:
-            indices: List of row indices to drop
-
-        Returns:
-            New DataFrame without dropped rows
-
-        Example:
-            >>> df.drop_rows([0, 5, 10])
-        """
+        """Drop rows by index."""
         indices_set = set(indices)
         new_data = [row for i, row in enumerate(self.data) if i not in indices_set]
         return self.__class__(columns=self.columns, data=new_data)
 
     def drop_duplicates(self, subset: list[str] | None = None) -> Self:
-        """Remove duplicate rows.
-
-        Args:
-            subset: Column names to consider for duplicates (None = all columns)
-
-        Returns:
-            New DataFrame with duplicates removed (keeps first occurrence)
-
-        Raises:
-            KeyError: If any column in subset does not exist
-
-        Example:
-            >>> df.drop_duplicates()  # All columns
-            >>> df.drop_duplicates(["user_id"])  # By specific columns
-        """
+        """Remove duplicate rows."""
         # Validate subset columns
         if subset is not None:
             for col in subset:
@@ -868,21 +568,7 @@ class DataFrame(BaseModel):
         return self.__class__(columns=self.columns, data=new_data)
 
     def fillna(self, value: Any | dict[str, Any]) -> Self:
-        """Replace None values.
-
-        Args:
-            value: Single value or dict mapping column names to fill values
-
-        Returns:
-            New DataFrame with None values replaced
-
-        Raises:
-            KeyError: If dict key is not a valid column name
-
-        Example:
-            >>> df.fillna(0)  # Replace all None with 0
-            >>> df.fillna({"age": 0, "name": "Unknown"})  # Column-specific
-        """
+        """Replace None values."""
         if isinstance(value, dict):
             # Validate column names
             for col in value:
@@ -904,20 +590,7 @@ class DataFrame(BaseModel):
         return self.__class__(columns=self.columns, data=new_data)
 
     def concat(self, other: Self) -> Self:
-        """Concatenate DataFrames vertically (stack rows).
-
-        Args:
-            other: DataFrame to concatenate
-
-        Returns:
-            New DataFrame with combined rows
-
-        Raises:
-            ValueError: If columns don't match
-
-        Example:
-            >>> df1.concat(df2)
-        """
+        """Concatenate DataFrames vertically (stack rows)."""
         if self.columns != other.columns:
             raise ValueError(f"Column mismatch: {self.columns} != {other.columns}")
 
@@ -927,14 +600,7 @@ class DataFrame(BaseModel):
     # Statistical methods
 
     def describe(self) -> Self:
-        """Generate statistical summary for numeric columns.
-
-        Returns:
-            DataFrame with statistics (count, mean, std, min, 25%, 50%, 75%, max)
-
-        Example:
-            >>> df.describe()
-        """
+        """Generate statistical summary for numeric columns."""
         import statistics
 
         stats_rows: list[list[Any]] = []
@@ -980,21 +646,7 @@ class DataFrame(BaseModel):
         return self.__class__(columns=self.columns, data=transposed_data).add_column("stat", stat_names)
 
     def groupby(self, by: str) -> "GroupBy":
-        """Group DataFrame by column values.
-
-        Args:
-            by: Column name to group by
-
-        Returns:
-            GroupBy object with aggregation methods
-
-        Raises:
-            KeyError: If column does not exist
-
-        Example:
-            >>> df.groupby("category").count()
-            >>> df.groupby("region").mean("sales")
-        """
+        """Group DataFrame by column values."""
         if by not in self.columns:
             raise KeyError(f"Column '{by}' not found in DataFrame")
 
@@ -1019,32 +671,12 @@ class GroupBy:
             self.groups[key].append(row)
 
     def count(self) -> DataFrame:
-        """Count rows per group.
-
-        Returns:
-            DataFrame with group values and counts
-
-        Example:
-            >>> df.groupby("category").count()
-        """
+        """Count rows per group."""
         data = [[key, len(rows)] for key, rows in self.groups.items()]
         return DataFrame(columns=[self.by, "count"], data=data)
 
     def sum(self, column: str) -> DataFrame:
-        """Sum numeric column per group.
-
-        Args:
-            column: Column to sum
-
-        Returns:
-            DataFrame with group values and sums
-
-        Raises:
-            KeyError: If column does not exist
-
-        Example:
-            >>> df.groupby("category").sum("sales")
-        """
+        """Sum numeric column per group."""
         if column not in self.dataframe.columns:
             raise KeyError(f"Column '{column}' not found in DataFrame")
 
@@ -1061,20 +693,7 @@ class GroupBy:
         return DataFrame(columns=[self.by, f"{column}_sum"], data=data)
 
     def mean(self, column: str) -> DataFrame:
-        """Calculate mean of numeric column per group.
-
-        Args:
-            column: Column to average
-
-        Returns:
-            DataFrame with group values and means
-
-        Raises:
-            KeyError: If column does not exist
-
-        Example:
-            >>> df.groupby("category").mean("price")
-        """
+        """Calculate mean of numeric column per group."""
         if column not in self.dataframe.columns:
             raise KeyError(f"Column '{column}' not found in DataFrame")
 
@@ -1093,20 +712,7 @@ class GroupBy:
         return DataFrame(columns=[self.by, f"{column}_mean"], data=data)
 
     def min(self, column: str) -> DataFrame:
-        """Find minimum of numeric column per group.
-
-        Args:
-            column: Column to find minimum
-
-        Returns:
-            DataFrame with group values and minimums
-
-        Raises:
-            KeyError: If column does not exist
-
-        Example:
-            >>> df.groupby("category").min("price")
-        """
+        """Find minimum of numeric column per group."""
         if column not in self.dataframe.columns:
             raise KeyError(f"Column '{column}' not found in DataFrame")
 
@@ -1123,20 +729,7 @@ class GroupBy:
         return DataFrame(columns=[self.by, f"{column}_min"], data=data)
 
     def max(self, column: str) -> DataFrame:
-        """Find maximum of numeric column per group.
-
-        Args:
-            column: Column to find maximum
-
-        Returns:
-            DataFrame with group values and maximums
-
-        Raises:
-            KeyError: If column does not exist
-
-        Example:
-            >>> df.groupby("category").max("price")
-        """
+        """Find maximum of numeric column per group."""
         if column not in self.dataframe.columns:
             raise KeyError(f"Column '{column}' not found in DataFrame")
 
