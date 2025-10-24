@@ -1,7 +1,7 @@
 # Servicekit
 
 [![CI](https://img.shields.io/badge/CI-passing-brightgreen)](https://github.com/winterop-com/servicekit/actions/workflows/ci.yml)
-[![codecov](https://img.shields.io/badge/coverage-83%25-brightgreen)](https://codecov.io/gh/winterop-com/servicekit)
+[![codecov](https://codecov.io/gh/winterop-com/servicekit/branch/main/graph/badge.svg)](https://codecov.io/gh/winterop-com/servicekit)
 [![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
