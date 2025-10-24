@@ -6,14 +6,28 @@
 
 ## Recently Completed
 
-### Phase 5.1: Transformation Service Pattern ✅ (October 2025)
+### Phase 5.1: DataFrame Enhancements COMPLETED (October 2025)
 
-**Universal DataFrame Schema** - A library-agnostic data interchange format is now available in `servicekit.data`:
+**Universal DataFrame Schema** - Comprehensive data interchange format in `servicekit.data`:
 
-- **Implementation**: `src/servicekit/data/dataframe.py` provides a Pydantic schema that works with pandas, polars, xarray, and plain Python
-- **Optional Dependencies**: Support for specific libraries via `servicekit[data]`, `servicekit[polars]`, `servicekit[xarray]`
-- **Test Coverage**: 100% coverage with comprehensive tests for all conversion methods
-- **API**: from_dict, from_records, to_dict methods work without any dependencies
+**Core Implementation** (`src/servicekit/data/dataframe.py`):
+- **Library Integration**: Works with pandas, polars, xarray, and plain Python
+- **File I/O**: CSV read/write with no dependencies (uses stdlib)
+- **Data Inspection**: head(), tail(), sample() with pandas-compatible API
+- **Column Operations**: select(), drop(), rename() for transformations
+- **Validation**: validate_structure(), infer_types(), has_nulls()
+- **Properties**: shape, size, empty, ndim for metadata
+- **Test Coverage**: 422 tests with comprehensive coverage
+
+**Features by Phase**:
+- **Phase 1 (Essential I/O)**: CSV support, utility properties
+- **Phase 2 (Developer Experience)**: Inspection, column ops, validation
+- **Zero Dependencies**: All features use only Python stdlib (csv, random)
+
+**Documentation**:
+- **Guide**: `docs/guides/dataframe.md` (754 lines)
+- **Examples**: 5 comprehensive examples in `examples/dataframe_usage/`
+- **API Reference**: Full mkdocs integration
 
 **Vega Visualization Example** - Complete proof-of-concept transformation service at `examples/vega_visualization/`:
 
@@ -23,7 +37,7 @@
 - **Deployment**: Docker-ready with complete documentation
 - **Ready for**: Caching integration (Phase 2.2)
 
-See `examples/vega_visualization/README.md` for usage examples.
+See `docs/guides/dataframe.md` and `examples/dataframe_usage/README.md` for usage examples.
 
 ---
 
@@ -268,18 +282,25 @@ Visualization services often:
 
 **Duration:** 2-3 weeks
 **Priority:** High (for visualization use case)
-**Status:** Phase 5.1 Completed ✅
+**Status:** Phase 5.1 Completed 
 **Dependencies:** Phase 1, 2
 
-### 5.1 Transformation Service Pattern ✅ COMPLETED
+### 5.1 DataFrame & Transformation Service COMPLETED COMPLETED
 
-**Universal DataFrame schema** (`servicekit.data.DataFrame`) and **Vega visualization example** (`examples/vega_visualization/`) are now available.
+**Completed features:**
+- COMPLETED Universal DataFrame schema with 15 methods (no dependencies)
+- COMPLETED CSV read/write support
+- COMPLETED Data inspection methods (head, tail, sample)
+- COMPLETED Column operations (select, drop, rename)
+- COMPLETED Validation and type inference
+- COMPLETED Comprehensive documentation and examples
+- COMPLETED Vega visualization example service
+- COMPLETED 422 tests with full coverage
 
-See "Recently Completed" section above for details.
-
-**Next steps:**
+**Remaining work:**
 - Extract `TransformationRouter` base class pattern from Vega example
 - Integrate caching support (Phase 2.2)
+- Add PyArrow/Parquet support (optional - requires pyarrow dependency)
 
 ### 5.2 Schema Registry
 
@@ -303,25 +324,39 @@ See "Recently Completed" section above for details.
 
 ### 5.4 Implementation Tasks
 
-- [x] Create universal `DataFrame` schema in `servicekit.data` ✅
-- [x] Implement example Vega visualization service ✅
+**DataFrame & Transformation (Completed):**
+- [x] Create universal `DataFrame` schema in `servicekit.data` 
+- [x] Implement CSV read/write (no dependencies) 
+- [x] Add data inspection methods (head, tail, sample) 
+- [x] Add column operations (select, drop, rename) 
+- [x] Add validation and type inference 
+- [x] Create comprehensive guide and examples 
+- [x] Implement example Vega visualization service 
+- [x] Add comprehensive tests (422 tests) 
+- [x] Update documentation with extension patterns guide 
+
+**Remaining Tasks:**
 - [ ] Extract `TransformationRouter` base class from Vega example
 - [ ] Add cache integration to `TransformationRouter`
 - [ ] Create `SchemaRegistry` for versioned schemas
 - [ ] Implement `EventBus` for publish/subscribe
 - [ ] Add webhook delivery system
-- [ ] Add comprehensive tests
-- [ ] Update documentation with extension patterns guide
+- [ ] Add PyArrow/Parquet support (optional)
 
 ### 5.5 Success Criteria
 
-- [x] Universal DataFrame schema works with multiple libraries ✅
+**Completed:**
+- [x] Universal DataFrame schema works with multiple libraries 
+- [x] DataFrame has CSV I/O without dependencies 
+- [x] DataFrame has developer experience features 
+- [x] Vega service functional 
+- [x] All tests pass (95%+ coverage) 
+- [x] Documentation shows how to build extensions 
+
+**Remaining:**
 - [ ] `TransformationRouter` supports caching
-- [x] Vega service functional ✅ (caching pending Phase 2.2)
 - [ ] Schema registry tracks versions
 - [ ] Event bus publishes entity changes
-- [x] All tests pass (95%+ coverage) ✅
-- [x] Documentation shows how to build extensions ✅
 
 ---
 

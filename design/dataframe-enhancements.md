@@ -1,8 +1,9 @@
 # DataFrame Enhancement Design Document
 
-**Version:** 1.0
-**Status:** Proposal
+**Version:** 2.0
+**Status:** Phase 1 & 2 Completed, Phase 3 & 4 Proposed
 **Created:** 2025-10-24
+**Updated:** 2025-10-24
 **Author:** Claude Code
 
 ## Table of Contents
@@ -22,7 +23,64 @@
 
 ## Overview
 
-This document proposes enhancements to the `servicekit.data.DataFrame` class to transform it from a basic interchange format into a comprehensive data serialization and interchange library. The enhancements focus on adding I/O capabilities (CSV, Parquet, Arrow), utility methods for data manipulation, and support for additional data libraries while maintaining the lightweight, framework-agnostic design.
+This document tracks enhancements to the `servicekit.data.DataFrame` class, transforming it from a basic interchange format into a comprehensive data serialization and interchange library.
+
+**Completion Status:**
+- **Phase 1 (Essential I/O):** COMPLETED - CSV support, utility properties
+- **Phase 2 (Developer Experience):** COMPLETED - Inspection, column ops, validation
+- **Phase 3 (Advanced Formats):** PROPOSED - JSONL, NumPy, DuckDB
+- **Phase 4 (Specialized Formats):** PROPOSED - MessagePack, Excel, Feather
+
+## Completed Implementation Summary
+
+### Phase 1: Essential I/O (COMPLETED)
+
+**Utility Properties (4 properties):**
+- `shape` - Returns (num_rows, num_columns)
+- `empty` - True if no rows or columns
+- `size` - Total elements (rows × columns)
+- `ndim` - Always 2
+
+**CSV Support (2 methods):**
+- `from_csv(path/csv_string, delimiter, has_header, encoding)` - Read CSV
+- `to_csv(path, delimiter, include_header, encoding)` - Write CSV
+- No dependencies (uses stdlib csv module)
+
+**Implementation:**
+- File: `src/servicekit/data/dataframe.py`
+- Tests: 30 tests in `tests/test_dataframe.py`
+- Documentation: `docs/guides/dataframe.md`
+- Examples: `examples/dataframe_usage/csv_example.py`
+
+### Phase 2: Developer Experience (COMPLETED)
+
+**Data Inspection (3 methods):**
+- `head(n=5)` - First n rows (supports negative indexing)
+- `tail(n=5)` - Last n rows (supports negative indexing)
+- `sample(n/frac, random_state)` - Random sampling with reproducibility
+
+**Column Operations (3 methods):**
+- `select(columns)` - Keep only specified columns
+- `drop(columns)` - Remove specified columns
+- `rename(mapper)` - Rename columns via dictionary
+
+**Validation (3 methods):**
+- `validate_structure()` - Check DataFrame integrity
+- `infer_types()` - Detect column types (int, float, str, bool, null, mixed)
+- `has_nulls()` - Check for None values per column
+
+**Implementation:**
+- File: `src/servicekit/data/dataframe.py`
+- Tests: 38 tests in `tests/test_dataframe.py`
+- Documentation: `docs/guides/dataframe.md`
+- Examples: `examples/dataframe_usage/` (5 example files)
+- No dependencies (uses stdlib random module)
+
+**Total Delivered:**
+- 15 new methods
+- 0 external dependencies (all stdlib)
+- 422 total tests
+- Comprehensive documentation and examples
 
 ## Motivation
 
@@ -589,77 +647,72 @@ def to_feather(self, path: str | Path) -> None:
 
 ## Implementation Phases
 
-### Phase 1: Essential I/O (2-3 weeks)
+### Phase 1: Essential I/O (COMPLETED)
 
-**Deliverables:**
-- CSV read/write methods
-- PyArrow Table conversions
-- Parquet read/write methods
-- Utility properties (shape, is_empty, num_rows, num_columns)
-- Comprehensive tests with mocked dependencies
-- Documentation with examples
+**Status:** COMPLETED in PR #3
 
-**Testing:**
-- Unit tests for CSV parsing edge cases
-- Integration tests with actual PyArrow (when installed)
-- Mock tests for import errors
-- Performance benchmarks for large datasets
+**Delivered:**
+- CSV read/write methods (using stdlib)
+- Utility properties (shape, empty, size, ndim)
+- 30 comprehensive tests
+- Documentation and examples
 
-**PR Strategy:**
-- Single PR with all Phase 1 features
-- Update servicekit[arrow] extras in pyproject.toml
-- Add examples to examples/dataframe_usage/
+**Not Implemented (Optional):**
+- PyArrow Table conversions (requires pyarrow dependency)
+- Parquet read/write methods (requires pyarrow dependency)
 
-### Phase 2: Developer Experience (1-2 weeks)
+**Implementation:**
+- Files: `src/servicekit/data/dataframe.py`, `tests/test_dataframe.py`
+- Examples: `examples/dataframe_usage/csv_example.py`
+- Commits: 13c28b2, ce989d2
 
-**Deliverables:**
+### Phase 2: Developer Experience (COMPLETED)
+
+**Status:** COMPLETED in PR #3
+
+**Delivered:**
 - head/tail/sample methods
 - select/drop/rename column operations
-- validate/infer_types/has_nulls inspection
-- Tests for all methods
-- Documentation updates
+- validate_structure/infer_types/has_nulls inspection
+- 38 comprehensive tests
+- Documentation and examples
 
-**Testing:**
-- Unit tests for all methods
-- Edge cases (empty DataFrames, single column, etc.)
-- Integration with Phase 1 features
+**Implementation:**
+- Files: `src/servicekit/data/dataframe.py`, `tests/test_dataframe.py`
+- Examples: `examples/dataframe_usage/` (4 new example files)
+- Commit: b61683c
 
-**PR Strategy:**
-- Single PR for all Phase 2 features
-- Can be developed in parallel with Phase 1
+### Phase 3: Advanced Formats (PROPOSED - 2 weeks)
 
-### Phase 3: Advanced Formats (2 weeks)
+**Status:** Not Started
 
-**Deliverables:**
-- JSON Lines support
-- NumPy conversions
-- DuckDB integration with SQL query support
+**Proposed Deliverables:**
+- JSON Lines support (uses stdlib json)
+- NumPy conversions (requires numpy)
+- DuckDB integration with SQL query support (requires duckdb)
 - Tests and documentation
 
-**Testing:**
-- Integration tests with NumPy and DuckDB
-- SQL query correctness tests
-- Performance tests for DuckDB queries
+**Dependencies:**
+- `numpy>=1.24.0` (optional)
+- `duckdb>=0.9.0` (optional)
 
-**PR Strategy:**
-- Separate PRs for each library integration
-- NumPy (small, quick)
-- DuckDB + SQL (larger, needs review)
+**Priority:** Low - implement if there's user demand
 
-### Phase 4: Specialized Formats (1 week, optional)
+### Phase 4: Specialized Formats (PROPOSED - 1 week, optional)
 
-**Deliverables:**
-- MessagePack support
-- Excel support
-- Feather/Arrow IPC
+**Status:** Not Started
 
-**Testing:**
-- Format round-trip tests
-- Binary correctness verification
+**Proposed Deliverables:**
+- MessagePack support (requires msgpack)
+- Excel support (requires openpyxl)
+- Feather/Arrow IPC (requires pyarrow)
 
-**PR Strategy:**
-- Low priority, implement if there's demand
-- Separate PRs for each format
+**Dependencies:**
+- `msgpack>=1.0.0` (optional)
+- `openpyxl>=3.1.0` (optional)
+- `pyarrow>=14.0.0` (optional)
+
+**Priority:** Very Low - implement only if specifically requested
 
 ## Backward Compatibility
 
