@@ -941,3 +941,130 @@ class TestDataFrameSort:
 
         with pytest.raises(KeyError, match="Column 'b' not found"):
             df.sort("b")
+
+
+class TestDataFramePandasIntegration:
+    """Test DataFrame integration with pandas."""
+
+    def test_from_pandas_basic(self) -> None:
+        """Convert pandas DataFrame to servicekit DataFrame."""
+        pd = pytest.importorskip("pandas")
+
+        pdf = pd.DataFrame({"name": ["Alice", "Bob"], "age": [25, 30]})
+        df = DataFrame.from_pandas(pdf)
+
+        assert df.columns == ["name", "age"]
+        assert df.data == [["Alice", 25], ["Bob", 30]]
+
+    def test_to_pandas_basic(self) -> None:
+        """Convert servicekit DataFrame to pandas DataFrame."""
+        pytest.importorskip("pandas")
+
+        df = DataFrame(columns=["name", "age"], data=[["Alice", 25], ["Bob", 30]])
+        pdf = df.to_pandas()
+
+        assert list(pdf.columns) == ["name", "age"]
+        assert pdf.values.tolist() == [["Alice", 25], ["Bob", 30]]
+
+    def test_pandas_roundtrip(self) -> None:
+        """Round-trip conversion with pandas preserves data."""
+        pd = pytest.importorskip("pandas")
+
+        original_pdf = pd.DataFrame({"x": [1, 2, 3], "y": [4.0, 5.0, 6.0], "z": ["a", "b", "c"]})
+
+        df = DataFrame.from_pandas(original_pdf)
+        restored_pdf = df.to_pandas()
+
+        pd.testing.assert_frame_equal(original_pdf, restored_pdf)
+
+    def test_pandas_with_none(self) -> None:
+        """Pandas conversion handles None values."""
+        pd = pytest.importorskip("pandas")
+        import numpy as np
+
+        pdf = pd.DataFrame({"a": [1, np.nan, 3], "b": ["x", None, "z"]})
+        df = DataFrame.from_pandas(pdf)
+
+        # np.nan stays as np.nan in the data (not automatically converted to None)
+        assert isinstance(df.data[1][0], float) and np.isnan(df.data[1][0])
+        assert df.data[1][1] is None  # None -> None
+
+
+class TestDataFramePolarsIntegration:
+    """Test DataFrame integration with Polars."""
+
+    def test_from_polars_basic(self) -> None:
+        """Convert Polars DataFrame to servicekit DataFrame."""
+        pl = pytest.importorskip("polars")
+
+        pldf = pl.DataFrame({"name": ["Alice", "Bob"], "age": [25, 30]})
+        df = DataFrame.from_polars(pldf)
+
+        assert df.columns == ["name", "age"]
+        assert df.data == [["Alice", 25], ["Bob", 30]]
+
+    def test_to_polars_basic(self) -> None:
+        """Convert servicekit DataFrame to Polars DataFrame."""
+        pytest.importorskip("polars")
+
+        df = DataFrame(columns=["name", "age"], data=[["Alice", 25], ["Bob", 30]])
+        pldf = df.to_polars()
+
+        assert pldf.columns == ["name", "age"]
+        assert pldf.rows() == [("Alice", 25), ("Bob", 30)]
+
+    def test_polars_roundtrip(self) -> None:
+        """Round-trip conversion with Polars preserves data."""
+        pl = pytest.importorskip("polars")
+
+        original_pldf = pl.DataFrame({"x": [1, 2, 3], "y": [4.0, 5.0, 6.0], "z": ["a", "b", "c"]})
+
+        df = DataFrame.from_polars(original_pldf)
+        restored_pldf = df.to_polars()
+
+        assert original_pldf.equals(restored_pldf)
+
+    def test_polars_with_none(self) -> None:
+        """Polars conversion handles None values."""
+        pl = pytest.importorskip("polars")
+
+        pldf = pl.DataFrame({"a": [1, None, 3], "b": ["x", None, "z"]})
+        df = DataFrame.from_polars(pldf)
+
+        assert df.data[1][0] is None
+        assert df.data[1][1] is None
+
+
+class TestDataFrameXarrayIntegration:
+    """Test DataFrame integration with xarray."""
+
+    def test_from_xarray_basic(self) -> None:
+        """Convert xarray DataArray to servicekit DataFrame."""
+        xr = pytest.importorskip("xarray")
+        pytest.importorskip("pandas")
+        import numpy as np
+
+        # xarray with named coordinates produces string column names
+        da = xr.DataArray(np.array([[1, 2], [3, 4], [5, 6]]), dims=["x", "y"], coords={"y": ["col1", "col2"]})
+        df = DataFrame.from_xarray(da)
+
+        assert df.shape == (3, 2)
+        assert df.columns == ["col1", "col2"]
+        assert len(df.data) == 3
+
+    def test_xarray_via_pandas(self) -> None:
+        """Xarray conversion goes through pandas."""
+        xr = pytest.importorskip("xarray")
+        pytest.importorskip("pandas")
+        import numpy as np
+
+        # Create 2D DataArray with named dimensions
+        da = xr.DataArray(
+            np.array([[1.0, 2.0], [3.0, 4.0]]), dims=["row", "col"], coords={"row": [0, 1], "col": ["a", "b"]}
+        )
+
+        df = DataFrame.from_xarray(da)
+
+        # Should have 2 rows (from row dimension) and 2 columns (from col dimension)
+        assert df.shape == (2, 2)
+        assert df.data == [[1.0, 2.0], [3.0, 4.0]]
