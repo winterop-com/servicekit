@@ -77,6 +77,7 @@ Universal schema for tabular data.
 | `drop_duplicates(subset)` | Remove duplicate rows | - |
 | `fillna(value/dict)` | Replace None values | - |
 | `concat(other)` | Concatenate DataFrames vertically | - |
+| `melt(id_vars, value_vars, var_name, value_name)` | Unpivot DataFrame from wide to long format | - |
 
 *Missing Data:*
 | Method | Description | Requires |

@@ -597,6 +597,69 @@ class DataFrame(BaseModel):
         combined_data = self.data + other.data
         return self.__class__(columns=self.columns, data=combined_data)
 
+    def melt(
+        self,
+        id_vars: list[str] | None = None,
+        value_vars: list[str] | None = None,
+        var_name: str = "variable",
+        value_name: str = "value",
+    ) -> Self:
+        """Unpivot DataFrame from wide to long format."""
+        # Handle empty DataFrame
+        if not self.columns or not self.data:
+            return self.__class__(columns=[var_name, value_name], data=[])
+
+        # Default id_vars to empty list if not specified
+        if id_vars is None:
+            id_vars = []
+
+        # Validate id_vars exist
+        for col in id_vars:
+            if col not in self.columns:
+                raise KeyError(f"Column '{col}' not found in DataFrame")
+
+        # Default value_vars to all non-id columns
+        if value_vars is None:
+            value_vars = [col for col in self.columns if col not in id_vars]
+        else:
+            # Validate value_vars exist
+            for col in value_vars:
+                if col not in self.columns:
+                    raise KeyError(f"Column '{col}' not found in DataFrame")
+
+        # If no value_vars to melt, return empty result
+        if not value_vars:
+            # Return just id columns if all columns are id_vars
+            if id_vars:
+                return self.select(id_vars)
+            return self.__class__(columns=[var_name, value_name], data=[])
+
+        # Check for column name conflicts
+        new_columns = id_vars + [var_name, value_name]
+        if len(new_columns) != len(set(new_columns)):
+            raise ValueError(
+                f"Duplicate column names in result: {new_columns}. "
+                f"Choose different var_name or value_name to avoid conflicts."
+            )
+
+        # Get indices for id and value columns
+        id_indices = [self.columns.index(col) for col in id_vars]
+        value_indices = [(self.columns.index(col), col) for col in value_vars]
+
+        # Build melted data
+        melted_data: list[list[Any]] = []
+
+        for row in self.data:
+            # Extract id values for this row
+            id_values = [row[idx] for idx in id_indices]
+
+            # Create one new row for each value_var
+            for val_idx, var_col_name in value_indices:
+                new_row = id_values + [var_col_name, row[val_idx]]
+                melted_data.append(new_row)
+
+        return self.__class__(columns=new_columns, data=melted_data)
+
     # Statistical methods
 
     def describe(self) -> Self:

@@ -1731,3 +1731,259 @@ class TestDataFrameNunique:
 
         with pytest.raises(KeyError, match="Column 'b' not found"):
             df.nunique("b")
+
+
+class TestDataFrameMelt:
+    """Test DataFrame.melt() method."""
+
+    def test_melt_basic(self) -> None:
+        """Melt DataFrame with id_vars and value_vars."""
+        df = DataFrame.from_dict(
+            {
+                "name": ["Alice", "Bob"],
+                "math": [90, 78],
+                "science": [85, 92],
+            }
+        )
+
+        melted = df.melt(id_vars=["name"], value_vars=["math", "science"])
+
+        assert melted.columns == ["name", "variable", "value"]
+        assert melted.data == [
+            ["Alice", "math", 90],
+            ["Alice", "science", 85],
+            ["Bob", "math", 78],
+            ["Bob", "science", 92],
+        ]
+
+    def test_melt_custom_names(self) -> None:
+        """Melt with custom var_name and value_name."""
+        df = DataFrame.from_dict(
+            {
+                "product": ["Widget", "Gadget"],
+                "q1": [1000, 800],
+                "q2": [1100, 850],
+            }
+        )
+
+        melted = df.melt(
+            id_vars=["product"],
+            value_vars=["q1", "q2"],
+            var_name="quarter",
+            value_name="sales",
+        )
+
+        assert melted.columns == ["product", "quarter", "sales"]
+        assert melted.data == [
+            ["Widget", "q1", 1000],
+            ["Widget", "q2", 1100],
+            ["Gadget", "q1", 800],
+            ["Gadget", "q2", 850],
+        ]
+
+    def test_melt_no_id_vars(self) -> None:
+        """Melt without id_vars."""
+        df = DataFrame.from_dict(
+            {
+                "a": [1, 2],
+                "b": [3, 4],
+                "c": [5, 6],
+            }
+        )
+
+        melted = df.melt(value_vars=["a", "b"])
+
+        assert melted.columns == ["variable", "value"]
+        # Melt processes row-by-row: for each row, create entries for each value_var
+        assert melted.data == [
+            ["a", 1],  # row 0, column a
+            ["b", 3],  # row 0, column b
+            ["a", 2],  # row 1, column a
+            ["b", 4],  # row 1, column b
+        ]
+
+    def test_melt_no_value_vars(self) -> None:
+        """Melt with no value_vars defaults to all non-id columns."""
+        df = DataFrame.from_dict(
+            {
+                "id": [1, 2],
+                "x": [10, 20],
+                "y": [30, 40],
+            }
+        )
+
+        melted = df.melt(id_vars=["id"])
+
+        assert melted.columns == ["id", "variable", "value"]
+        assert melted.data == [
+            [1, "x", 10],
+            [1, "y", 30],
+            [2, "x", 20],
+            [2, "y", 40],
+        ]
+
+    def test_melt_multiple_id_vars(self) -> None:
+        """Melt with multiple id_vars."""
+        df = DataFrame.from_dict(
+            {
+                "region": ["North", "South"],
+                "product": ["Widget", "Gadget"],
+                "jan": [1000, 800],
+                "feb": [1100, 850],
+            }
+        )
+
+        melted = df.melt(
+            id_vars=["region", "product"],
+            value_vars=["jan", "feb"],
+        )
+
+        assert melted.columns == ["region", "product", "variable", "value"]
+        assert melted.data == [
+            ["North", "Widget", "jan", 1000],
+            ["North", "Widget", "feb", 1100],
+            ["South", "Gadget", "jan", 800],
+            ["South", "Gadget", "feb", 850],
+        ]
+
+    def test_melt_with_none_values(self) -> None:
+        """Melt preserves None values."""
+        df = DataFrame.from_dict(
+            {
+                "id": [1, 2],
+                "a": [10, None],
+                "b": [None, 40],
+            }
+        )
+
+        melted = df.melt(id_vars=["id"], value_vars=["a", "b"])
+
+        assert melted.data == [
+            [1, "a", 10],
+            [1, "b", None],
+            [2, "a", None],
+            [2, "b", 40],
+        ]
+
+    def test_melt_empty_dataframe(self) -> None:
+        """Melt empty DataFrame."""
+        df = DataFrame.from_dict({})
+
+        melted = df.melt()
+
+        assert melted.columns == ["variable", "value"]
+        assert melted.data == []
+
+    def test_melt_all_columns_as_id_vars(self) -> None:
+        """Melt with all columns as id_vars."""
+        df = DataFrame.from_dict(
+            {
+                "a": [1, 2],
+                "b": [3, 4],
+            }
+        )
+
+        melted = df.melt(id_vars=["a", "b"])
+
+        assert melted.columns == ["a", "b"]
+        assert melted.data == df.data
+
+    def test_melt_single_value_var(self) -> None:
+        """Melt with single value_var."""
+        df = DataFrame.from_dict(
+            {
+                "name": ["Alice", "Bob"],
+                "score": [90, 85],
+            }
+        )
+
+        melted = df.melt(id_vars=["name"], value_vars=["score"])
+
+        assert melted.columns == ["name", "variable", "value"]
+        assert melted.data == [
+            ["Alice", "score", 90],
+            ["Bob", "score", 85],
+        ]
+
+    def test_melt_nonexistent_id_var(self) -> None:
+        """Melt raises KeyError for nonexistent id_var."""
+        df = DataFrame.from_dict({"a": [1, 2], "b": [3, 4]})
+
+        with pytest.raises(KeyError, match="Column 'nonexistent' not found"):
+            df.melt(id_vars=["nonexistent"])
+
+    def test_melt_nonexistent_value_var(self) -> None:
+        """Melt raises KeyError for nonexistent value_var."""
+        df = DataFrame.from_dict({"a": [1, 2], "b": [3, 4]})
+
+        with pytest.raises(KeyError, match="Column 'nonexistent' not found"):
+            df.melt(value_vars=["nonexistent"])
+
+    def test_melt_column_name_conflict(self) -> None:
+        """Melt raises ValueError when var_name conflicts with id_vars."""
+        df = DataFrame.from_dict(
+            {
+                "id": [1, 2],
+                "variable": [10, 20],
+                "x": [30, 40],
+            }
+        )
+
+        with pytest.raises(ValueError, match="Duplicate column names"):
+            df.melt(id_vars=["id", "variable"], value_vars=["x"])
+
+    def test_melt_single_row(self) -> None:
+        """Melt DataFrame with single row."""
+        df = DataFrame.from_dict(
+            {
+                "id": [1],
+                "a": [10],
+                "b": [20],
+            }
+        )
+
+        melted = df.melt(id_vars=["id"], value_vars=["a", "b"])
+
+        assert melted.data == [
+            [1, "a", 10],
+            [1, "b", 20],
+        ]
+
+    def test_melt_preserves_order(self) -> None:
+        """Melt preserves row order and value_var order."""
+        df = DataFrame.from_dict(
+            {
+                "id": [3, 1, 2],
+                "z": [30, 10, 20],
+                "y": [33, 11, 22],
+                "x": [36, 12, 24],
+            }
+        )
+
+        melted = df.melt(id_vars=["id"], value_vars=["z", "y", "x"])
+
+        # Should process rows in order: 3, 1, 2
+        # Should process columns in order: z, y, x
+        assert melted.data[0] == [3, "z", 30]
+        assert melted.data[1] == [3, "y", 33]
+        assert melted.data[2] == [3, "x", 36]
+        assert melted.data[3] == [1, "z", 10]
+
+    def test_melt_mixed_types(self) -> None:
+        """Melt with mixed data types."""
+        df = DataFrame.from_dict(
+            {
+                "name": ["Alice", "Bob"],
+                "score": [90, 85],
+                "passed": [True, False],
+                "grade": ["A", "B"],
+            }
+        )
+
+        melted = df.melt(id_vars=["name"], value_vars=["score", "passed", "grade"])
+
+        assert melted.columns == ["name", "variable", "value"]
+        assert len(melted.data) == 6  # 2 rows * 3 value_vars
+        assert melted.data[0] == ["Alice", "score", 90]
+        assert melted.data[1] == ["Alice", "passed", True]
+        assert melted.data[2] == ["Alice", "grade", "A"]

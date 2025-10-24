@@ -268,3 +268,161 @@ print("\nValue counts:")
 product_counts = df_categories.value_counts("product")
 for product, count in product_counts.items():
     print(f"  {product}: {count}")
+
+print("\n=== Data Reshaping with melt() ===")
+# Create wide format data (student grades)
+df_grades = DataFrame.from_dict(
+    {
+        "student": ["Alice", "Bob", "Charlie"],
+        "math": [90, 78, 95],
+        "science": [85, 92, 89],
+        "history": [88, 81, 93],
+    }
+)
+
+print("Wide format (grades across subjects):")
+for row in df_grades:
+    print(f"  {row['student']}: Math={row['math']}, Science={row['science']}, History={row['history']}")
+
+# Melt to long format
+melted = df_grades.melt(
+    id_vars=["student"], value_vars=["math", "science", "history"], var_name="subject", value_name="score"
+)
+
+print("\nLong format (one row per subject):")
+for row in melted:
+    print(f"  {row['student']} - {row['subject']}: {row['score']}")
+
+print("\n=== Survey Data Analysis ===")
+# Survey responses in wide format
+survey = DataFrame.from_dict(
+    {
+        "respondent_id": [1, 2, 3, 4],
+        "age": [25, 30, 35, 28],
+        "q1_rating": [5, 4, 5, 3],
+        "q2_rating": [4, 4, 5, 4],
+        "q3_rating": [5, 3, 5, 5],
+    }
+)
+
+print("Survey responses (wide format):")
+for row in survey:
+    print(
+        f"  Respondent {row['respondent_id']} (age {row['age']}): "
+        f"Q1={row['q1_rating']}, Q2={row['q2_rating']}, Q3={row['q3_rating']}"
+    )
+
+# Melt for analysis
+responses = survey.melt(
+    id_vars=["respondent_id", "age"],
+    value_vars=["q1_rating", "q2_rating", "q3_rating"],
+    var_name="question",
+    value_name="rating",
+)
+
+print("\nMelted survey data:")
+print(f"  Total responses: {len(responses.data)}")
+
+# Average rating per question using groupby
+avg_by_question = responses.groupby("question").mean("rating")
+print("\nAverage rating per question:")
+for row in avg_by_question:
+    print(f"  {row['question']}: {row['rating_mean']:.2f}")
+
+print("\n=== Time Series Sales Data ===")
+# Monthly sales in wide format
+sales = DataFrame.from_dict(
+    {
+        "region": ["North", "South", "East"],
+        "product": ["Widget", "Widget", "Widget"],
+        "jan": [1000, 1200, 900],
+        "feb": [1100, 1300, 950],
+        "mar": [1200, 1400, 1000],
+    }
+)
+
+print("Sales by region (wide format):")
+for row in sales:
+    print(f"  {row['region']} {row['product']}: Jan={row['jan']}, Feb={row['feb']}, Mar={row['mar']}")
+
+# Melt to time series format
+time_series = sales.melt(
+    id_vars=["region", "product"], value_vars=["jan", "feb", "mar"], var_name="month", value_name="sales"
+)
+
+print("\nTime series format:")
+print(f"  Total records: {len(time_series.data)}")
+
+# Total sales by month
+monthly_totals = time_series.groupby("month").sum("sales")
+print("\nTotal sales by month:")
+for row in monthly_totals:
+    print(f"  {row['month']}: ${row['sales_sum']:,}")
+
+# Sales by region
+region_totals = time_series.groupby("region").sum("sales")
+print("\nTotal sales by region:")
+for row in region_totals:
+    print(f"  {row['region']}: ${row['sales_sum']:,}")
+
+print("\n=== Sensor Data Standardization ===")
+# API response with different metrics as columns
+sensor_data = DataFrame.from_dict(
+    {
+        "sensor_id": ["s1", "s2", "s3"],
+        "location": ["room_a", "room_b", "room_c"],
+        "temp_c": [22.5, 23.1, 21.8],
+        "humidity_pct": [45, 48, 42],
+        "pressure_kpa": [101.3, 101.2, 101.4],
+    }
+)
+
+print("Sensor readings (wide format):")
+for row in sensor_data:
+    print(
+        f"  {row['sensor_id']} ({row['location']}): {row['temp_c']}°C, {row['humidity_pct']}%, {row['pressure_kpa']}kPa"
+    )
+
+# Standardize to key-value format
+metrics = sensor_data.melt(
+    id_vars=["sensor_id", "location"],
+    value_vars=["temp_c", "humidity_pct", "pressure_kpa"],
+    var_name="metric_type",
+    value_name="metric_value",
+)
+
+print("\nStandardized metrics format:")
+for row in metrics:
+    print(f"  {row['sensor_id']} - {row['metric_type']}: {row['metric_value']}")
+
+print("\n=== Combined melt() + filter() + groupby() Pipeline ===")
+# Start with quarterly sales data
+quarterly_sales = DataFrame.from_dict(
+    {
+        "region": ["North", "North", "South", "South", "East", "East"],
+        "product": ["Widget", "Gadget", "Widget", "Gadget", "Widget", "Gadget"],
+        "q1": [1000, 800, 1200, 900, 950, 750],
+        "q2": [1100, 850, 1300, 950, 1000, 800],
+        "q3": [1200, 900, 1400, 1000, 1050, 850],
+    }
+)
+
+print("Quarterly sales data:")
+for row in quarterly_sales:
+    print(f"  {row['region']} - {row['product']}: Q1={row['q1']}, Q2={row['q2']}, Q3={row['q3']}")
+
+# Pipeline: melt -> filter -> groupby
+melted_sales = quarterly_sales.melt(
+    id_vars=["region", "product"], value_vars=["q1", "q2", "q3"], var_name="quarter", value_name="sales"
+)
+
+# Filter for high-performing quarters (sales > 1000)
+high_sales = melted_sales.filter(lambda row: row["sales"] > 1000)
+
+print(f"\nHigh-performing quarters (sales > 1000): {len(high_sales.data)} records")
+
+# Count high-performing quarters by region
+region_performance = high_sales.groupby("region").count()
+print("\nHigh-performing quarters by region:")
+for row in region_performance:
+    print(f"  {row['region']}: {row['count']} quarters")

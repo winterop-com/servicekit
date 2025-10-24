@@ -530,6 +530,206 @@ for df in dfs[1:]:
     result = result.concat(df)
 ```
 
+## Reshaping Operations
+
+The `melt()` method transforms DataFrames from wide format (many columns) to long format (fewer columns, more rows). This is essential for preparing data for analysis, visualization, or API interchange.
+
+### Understanding Wide vs Long Format
+
+**Wide Format:** Multiple measurement columns
+```python
+# Example: Student grades across subjects
+df_wide = DataFrame.from_dict({
+    'name': ['Alice', 'Bob', 'Charlie'],
+    'math': [90, 78, 95],
+    'science': [85, 92, 89],
+    'history': [88, 81, 93]
+})
+# name    | math | science | history
+# Alice   | 90   | 85      | 88
+# Bob     | 78   | 92      | 81
+# Charlie | 95   | 89      | 93
+```
+
+**Long Format:** Single measurement column with category identifier
+```python
+# Melt to long format
+df_long = df_wide.melt(
+    id_vars=['name'],
+    value_vars=['math', 'science', 'history'],
+    var_name='subject',
+    value_name='score'
+)
+# name    | subject | score
+# Alice   | math    | 90
+# Alice   | science | 85
+# Alice   | history | 88
+# Bob     | math    | 78
+# ...
+```
+
+### Basic melt() Usage
+
+```python
+from servicekit.data import DataFrame
+
+# Create wide format data
+df = DataFrame.from_dict({
+    'product': ['Widget', 'Gadget'],
+    'q1_sales': [1000, 800],
+    'q2_sales': [1100, 850],
+    'q3_sales': [1200, 900]
+})
+
+# Melt to long format
+melted = df.melt(
+    id_vars=['product'],           # Columns to keep as identifiers
+    value_vars=['q1_sales', 'q2_sales', 'q3_sales'],  # Columns to unpivot
+    var_name='quarter',            # Name for variable column
+    value_name='sales'             # Name for value column
+)
+
+# Result:
+# product | quarter   | sales
+# Widget  | q1_sales  | 1000
+# Widget  | q2_sales  | 1100
+# Widget  | q3_sales  | 1200
+# Gadget  | q1_sales  | 800
+# Gadget  | q2_sales  | 850
+# Gadget  | q3_sales  | 900
+```
+
+### melt() Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `id_vars` | `list[str] \| None` | `None` | Columns to keep as identifiers (not melted) |
+| `value_vars` | `list[str] \| None` | `None` | Columns to unpivot (if None, uses all non-id columns) |
+| `var_name` | `str` | `"variable"` | Name for the column containing former column names |
+| `value_name` | `str` | `"value"` | Name for the column containing values |
+
+### Common Use Cases
+
+#### Survey/Questionnaire Data
+
+```python
+# Wide format: each question is a column
+survey = DataFrame.from_dict({
+    'respondent_id': [1, 2, 3],
+    'age': [25, 30, 35],
+    'q1_rating': [5, 4, 5],
+    'q2_rating': [4, 4, 5],
+    'q3_rating': [5, 3, 5]
+})
+
+# Melt to long format for analysis
+responses = survey.melt(
+    id_vars=['respondent_id', 'age'],
+    value_vars=['q1_rating', 'q2_rating', 'q3_rating'],
+    var_name='question',
+    value_name='rating'
+)
+
+# Now easy to analyze: average rating per question
+avg_by_question = responses.groupby('question').mean('rating')
+```
+
+#### Time Series Data
+
+```python
+# Wide format: each month is a column
+sales = DataFrame.from_dict({
+    'region': ['North', 'South', 'East'],
+    'product': ['Widget', 'Widget', 'Widget'],
+    'jan': [1000, 1200, 900],
+    'feb': [1100, 1300, 950],
+    'mar': [1200, 1400, 1000]
+})
+
+# Melt to time series format
+time_series = sales.melt(
+    id_vars=['region', 'product'],
+    value_vars=['jan', 'feb', 'mar'],
+    var_name='month',
+    value_name='sales'
+)
+
+# Now can analyze trends over time
+total_by_month = time_series.groupby('month').sum('sales')
+```
+
+#### API Data Standardization
+
+```python
+# API returns different metrics as columns
+sensor_data = DataFrame.from_dict({
+    'sensor_id': ['s1', 's2'],
+    'location': ['room_a', 'room_b'],
+    'temp_c': [22.5, 23.1],
+    'humidity_pct': [45, 48],
+    'pressure_kpa': [101.3, 101.2]
+})
+
+# Standardize to key-value format
+metrics = sensor_data.melt(
+    id_vars=['sensor_id', 'location'],
+    value_vars=['temp_c', 'humidity_pct', 'pressure_kpa'],
+    var_name='metric_type',
+    value_name='metric_value'
+)
+
+# Easier to store/process uniform metric records
+```
+
+### Advanced Patterns
+
+#### Combining melt() with groupby()
+
+```python
+# Wide format sales data
+df = DataFrame.from_dict({
+    'region': ['North', 'North', 'South', 'South'],
+    'product': ['Widget', 'Gadget', 'Widget', 'Gadget'],
+    'q1': [1000, 800, 1200, 900],
+    'q2': [1100, 850, 1300, 950]
+})
+
+# Melt then aggregate
+melted = df.melt(
+    id_vars=['region', 'product'],
+    value_vars=['q1', 'q2'],
+    var_name='quarter',
+    value_name='sales'
+)
+
+# Total sales by region
+region_totals = melted.groupby('region').sum('sales')
+
+# Average sales by product
+product_avg = melted.groupby('product').mean('sales')
+```
+
+#### Filtering After melt()
+
+```python
+# Melt then filter for specific conditions
+melted = df.melt(id_vars=['product'], value_vars=['q1', 'q2', 'q3', 'q4'])
+
+# Only keep quarters with sales > 1000
+high_sales = melted.filter(lambda row: row['value'] > 1000)
+
+# Group filtered results
+summary = high_sales.groupby('product').count()
+```
+
+### Design Notes
+
+- **Stdlib only:** No external dependencies, pure Python implementation
+- **Immutable:** Returns new DataFrame, original unchanged
+- **None values:** Preserved during transformation
+- **Column order:** Results maintain row order and value_vars order
+- **Validation:** Raises `KeyError` for non-existent columns, `ValueError` for name conflicts
+
 ## Missing Data Operations
 
 ### Detecting Missing Values
