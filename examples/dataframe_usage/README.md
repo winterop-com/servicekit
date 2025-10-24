@@ -134,6 +134,11 @@ Shows how to:
 - Generate statistical summaries
 - Group by and aggregate
 - Chain operations in pipelines
+- Detect missing data with isna/notna
+- Clean data with dropna
+- Compare DataFrames with equals
+- Create independent copies
+- Count unique values with nunique
 
 ### Library Integration Examples
 
@@ -242,6 +247,17 @@ df = DataFrame(
 - `df.validate_structure()` - Validate DataFrame integrity
 - `df.infer_types()` - Infer column data types
 - `df.has_nulls()` - Check for None values per column
+
+#### Missing Data Operations
+- `df.isna()` - Return DataFrame of booleans showing None locations
+- `df.notna()` - Return DataFrame of booleans showing non-None locations
+- `df.dropna(axis, how)` - Remove rows or columns with None values
+- `df.fillna(value/dict)` - Fill None values
+
+#### DataFrame Utilities
+- `df.equals(other)` - Check if two DataFrames are identical
+- `df.deepcopy()` - Create deep copy of DataFrame
+- `df.nunique(column)` - Count unique values in column
 
 ### Type Support
 

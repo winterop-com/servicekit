@@ -652,6 +652,77 @@ class DataFrame(BaseModel):
 
         return GroupBy(self, by)
 
+    # Utility methods
+
+    def equals(self, other: Any) -> bool:
+        """Check if two DataFrames are identical."""
+        if not isinstance(other, DataFrame):
+            return False
+        return self.columns == other.columns and self.data == other.data
+
+    def deepcopy(self) -> Self:
+        """Create a deep copy of the DataFrame."""
+        import copy
+
+        return self.__class__(columns=self.columns.copy(), data=copy.deepcopy(self.data))
+
+    def isna(self) -> Self:
+        """Return DataFrame of booleans showing None locations."""
+        null_data = [[val is None for val in row] for row in self.data]
+        return self.__class__(columns=self.columns, data=null_data)
+
+    def notna(self) -> Self:
+        """Return DataFrame of booleans showing non-None locations."""
+        not_null_data = [[val is not None for val in row] for row in self.data]
+        return self.__class__(columns=self.columns, data=not_null_data)
+
+    def dropna(self, axis: Literal[0, 1] = 0, how: Literal["any", "all"] = "any") -> Self:
+        """Drop rows or columns with None values."""
+        if axis == 0:
+            # Drop rows
+            if how == "any":
+                # Drop rows with any None
+                new_data = [row for row in self.data if not any(val is None for val in row)]
+            else:
+                # Drop rows with all None
+                new_data = [row for row in self.data if not all(val is None for val in row)]
+            return self.__class__(columns=self.columns, data=new_data)
+        else:
+            # Drop columns (axis=1)
+            cols_to_keep = []
+            indices_to_keep = []
+
+            for col_idx, col_name in enumerate(self.columns):
+                col_values = [row[col_idx] for row in self.data]
+
+                if how == "any":
+                    # Keep column if no None values
+                    if not any(val is None for val in col_values):
+                        cols_to_keep.append(col_name)
+                        indices_to_keep.append(col_idx)
+                else:
+                    # Keep column if not all None
+                    if not all(val is None for val in col_values):
+                        cols_to_keep.append(col_name)
+                        indices_to_keep.append(col_idx)
+
+            # Extract data for kept columns
+            new_data = [[row[i] for i in indices_to_keep] for row in self.data]
+            return self.__class__(columns=cols_to_keep, data=new_data)
+
+    def nunique(self, column: str) -> int:
+        """Count number of unique values in column."""
+        if column not in self.columns:
+            raise KeyError(f"Column '{column}' not found in DataFrame")
+
+        col_idx = self.columns.index(column)
+        unique_values = set()
+        for row in self.data:
+            val = row[col_idx]
+            # Count None as a unique value
+            unique_values.add(val)
+        return len(unique_values)
+
 
 class GroupBy:
     """GroupBy helper for aggregations."""

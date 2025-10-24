@@ -1477,3 +1477,257 @@ class TestDataFrameGroupBy:
 
         with pytest.raises(KeyError, match="Column 'price' not found"):
             df.groupby("category").sum("price")
+
+
+class TestDataFrameEquals:
+    """Test DataFrame.equals() method."""
+
+    def test_equals_identical(self) -> None:
+        """Two identical DataFrames are equal."""
+        df1 = DataFrame.from_dict({"name": ["Alice", "Bob"], "age": [25, 30]})
+        df2 = DataFrame.from_dict({"name": ["Alice", "Bob"], "age": [25, 30]})
+
+        assert df1.equals(df2)
+
+    def test_equals_same_instance(self) -> None:
+        """DataFrame equals itself."""
+        df = DataFrame.from_dict({"name": ["Alice"], "age": [25]})
+
+        assert df.equals(df)
+
+    def test_equals_different_data(self) -> None:
+        """DataFrames with different data are not equal."""
+        df1 = DataFrame.from_dict({"name": ["Alice"], "age": [25]})
+        df2 = DataFrame.from_dict({"name": ["Bob"], "age": [30]})
+
+        assert not df1.equals(df2)
+
+    def test_equals_different_columns(self) -> None:
+        """DataFrames with different columns are not equal."""
+        df1 = DataFrame.from_dict({"name": ["Alice"], "age": [25]})
+        df2 = DataFrame.from_dict({"name": ["Alice"], "score": [95]})
+
+        assert not df1.equals(df2)
+
+    def test_equals_different_order(self) -> None:
+        """DataFrames with different row order are not equal."""
+        df1 = DataFrame.from_dict({"name": ["Alice", "Bob"], "age": [25, 30]})
+        df2 = DataFrame.from_dict({"name": ["Bob", "Alice"], "age": [30, 25]})
+
+        assert not df1.equals(df2)
+
+    def test_equals_empty_dataframes(self) -> None:
+        """Two empty DataFrames are equal."""
+        df1 = DataFrame.from_dict({})
+        df2 = DataFrame.from_dict({})
+
+        assert df1.equals(df2)
+
+    def test_equals_non_dataframe(self) -> None:
+        """DataFrame is not equal to non-DataFrame objects."""
+        df = DataFrame.from_dict({"name": ["Alice"], "age": [25]})
+
+        assert not df.equals({"name": ["Alice"], "age": [25]})
+        assert not df.equals([["Alice", 25]])
+        assert not df.equals(None)
+
+
+class TestDataFrameDeepCopy:
+    """Test DataFrame.deepcopy() method."""
+
+    def test_deepcopy_basic(self) -> None:
+        """Deepcopy creates identical but separate DataFrame."""
+        df = DataFrame.from_dict({"name": ["Alice", "Bob"], "age": [25, 30]})
+        df_copy = df.deepcopy()
+
+        assert df.equals(df_copy)
+        assert df is not df_copy
+        assert df.data is not df_copy.data
+        assert df.columns is not df_copy.columns
+
+    def test_deepcopy_mutation_independence(self) -> None:
+        """Modifying copy doesn't affect original."""
+        df = DataFrame.from_dict({"name": ["Alice"], "age": [25]})
+        df_copy = df.deepcopy()
+
+        # Modify copy's data
+        df_copy.data[0][0] = "Bob"
+
+        assert df.data[0][0] == "Alice"
+        assert df_copy.data[0][0] == "Bob"
+
+    def test_deepcopy_empty(self) -> None:
+        """Deepcopy works with empty DataFrame."""
+        df = DataFrame.from_dict({})
+        df_copy = df.deepcopy()
+
+        assert df.equals(df_copy)
+
+
+class TestDataFrameIsna:
+    """Test DataFrame.isna() method."""
+
+    def test_isna_basic(self) -> None:
+        """isna identifies None values."""
+        df = DataFrame.from_dict({"a": [1, None, 3], "b": [None, 2, 3]})
+        result = df.isna()
+
+        expected = DataFrame.from_dict({"a": [False, True, False], "b": [True, False, False]})
+        assert result.equals(expected)
+
+    def test_isna_no_nulls(self) -> None:
+        """isna returns all False when no None values."""
+        df = DataFrame.from_dict({"a": [1, 2, 3], "b": [4, 5, 6]})
+        result = df.isna()
+
+        expected = DataFrame.from_dict({"a": [False, False, False], "b": [False, False, False]})
+        assert result.equals(expected)
+
+    def test_isna_all_nulls(self) -> None:
+        """isna returns all True when all None values."""
+        df = DataFrame.from_dict({"a": [None, None], "b": [None, None]})
+        result = df.isna()
+
+        expected = DataFrame.from_dict({"a": [True, True], "b": [True, True]})
+        assert result.equals(expected)
+
+    def test_isna_empty(self) -> None:
+        """isna works with empty DataFrame."""
+        df = DataFrame.from_dict({})
+        result = df.isna()
+
+        assert result.equals(df)
+
+
+class TestDataFrameNotna:
+    """Test DataFrame.notna() method."""
+
+    def test_notna_basic(self) -> None:
+        """notna identifies non-None values."""
+        df = DataFrame.from_dict({"a": [1, None, 3], "b": [None, 2, 3]})
+        result = df.notna()
+
+        expected = DataFrame.from_dict({"a": [True, False, True], "b": [False, True, True]})
+        assert result.equals(expected)
+
+    def test_notna_no_nulls(self) -> None:
+        """notna returns all True when no None values."""
+        df = DataFrame.from_dict({"a": [1, 2, 3], "b": [4, 5, 6]})
+        result = df.notna()
+
+        expected = DataFrame.from_dict({"a": [True, True, True], "b": [True, True, True]})
+        assert result.equals(expected)
+
+    def test_notna_all_nulls(self) -> None:
+        """notna returns all False when all None values."""
+        df = DataFrame.from_dict({"a": [None, None], "b": [None, None]})
+        result = df.notna()
+
+        expected = DataFrame.from_dict({"a": [False, False], "b": [False, False]})
+        assert result.equals(expected)
+
+
+class TestDataFrameDropna:
+    """Test DataFrame.dropna() method."""
+
+    def test_dropna_rows_any(self) -> None:
+        """dropna removes rows with any None values."""
+        df = DataFrame.from_dict({"a": [1, None, 3, 4], "b": [5, 6, None, 8]})
+        result = df.dropna(axis=0, how="any")
+
+        expected = DataFrame.from_dict({"a": [1, 4], "b": [5, 8]})
+        assert result.equals(expected)
+
+    def test_dropna_rows_all(self) -> None:
+        """dropna with how='all' removes only rows with all None."""
+        df = DataFrame.from_dict({"a": [1, None, None, 4], "b": [5, 6, None, 8]})
+        result = df.dropna(axis=0, how="all")
+
+        expected = DataFrame.from_dict({"a": [1, None, 4], "b": [5, 6, 8]})
+        assert result.equals(expected)
+
+    def test_dropna_columns_any(self) -> None:
+        """dropna removes columns with any None values."""
+        df = DataFrame.from_dict({"a": [1, 2, 3], "b": [4, None, 6], "c": [7, 8, 9]})
+        result = df.dropna(axis=1, how="any")
+
+        expected = DataFrame.from_dict({"a": [1, 2, 3], "c": [7, 8, 9]})
+        assert result.equals(expected)
+
+    def test_dropna_columns_all(self) -> None:
+        """dropna with how='all' removes only columns with all None."""
+        df = DataFrame.from_dict({"a": [1, 2, 3], "b": [None, None, None], "c": [7, None, 9]})
+        result = df.dropna(axis=1, how="all")
+
+        expected = DataFrame.from_dict({"a": [1, 2, 3], "c": [7, None, 9]})
+        assert result.equals(expected)
+
+    def test_dropna_no_nulls(self) -> None:
+        """dropna returns same DataFrame when no None values."""
+        df = DataFrame.from_dict({"a": [1, 2, 3], "b": [4, 5, 6]})
+        result = df.dropna()
+
+        assert result.equals(df)
+
+    def test_dropna_all_rows_removed(self) -> None:
+        """dropna can remove all rows."""
+        df = DataFrame.from_dict({"a": [None, None], "b": [None, None]})
+        result = df.dropna(axis=0, how="any")
+
+        expected = DataFrame.from_dict({"a": [], "b": []})
+        assert result.equals(expected)
+
+    def test_dropna_all_columns_removed(self) -> None:
+        """dropna can remove all columns."""
+        df = DataFrame.from_dict({"a": [None, None], "b": [None, None]})
+        result = df.dropna(axis=1, how="any")
+
+        assert result.columns == []
+        assert result.data == [[], []]
+
+
+class TestDataFrameNunique:
+    """Test DataFrame.nunique() method."""
+
+    def test_nunique_basic(self) -> None:
+        """nunique counts unique values."""
+        df = DataFrame.from_dict({"category": ["A", "B", "A", "C", "B"]})
+
+        assert df.nunique("category") == 3
+
+    def test_nunique_all_unique(self) -> None:
+        """nunique with all unique values."""
+        df = DataFrame.from_dict({"id": [1, 2, 3, 4, 5]})
+
+        assert df.nunique("id") == 5
+
+    def test_nunique_all_same(self) -> None:
+        """nunique with all same values."""
+        df = DataFrame.from_dict({"status": ["active", "active", "active"]})
+
+        assert df.nunique("status") == 1
+
+    def test_nunique_with_none(self) -> None:
+        """nunique counts None as a unique value."""
+        df = DataFrame.from_dict({"values": [1, None, 1, None, 2]})
+
+        assert df.nunique("values") == 3
+
+    def test_nunique_single_value(self) -> None:
+        """nunique with single row."""
+        df = DataFrame.from_dict({"value": [42]})
+
+        assert df.nunique("value") == 1
+
+    def test_nunique_empty(self) -> None:
+        """nunique with empty column."""
+        df = DataFrame.from_dict({"value": []})
+
+        assert df.nunique("value") == 0
+
+    def test_nunique_nonexistent_column(self) -> None:
+        """nunique raises KeyError for nonexistent column."""
+        df = DataFrame.from_dict({"a": [1, 2, 3]})
+
+        with pytest.raises(KeyError, match="Column 'b' not found"):
+            df.nunique("b")

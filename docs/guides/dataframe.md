@@ -530,6 +530,107 @@ for df in dfs[1:]:
     result = result.concat(df)
 ```
 
+## Missing Data Operations
+
+### Detecting Missing Values
+
+```python
+# Check for None values (returns DataFrame of booleans)
+is_null = df.isna()
+print(is_null.data)  # [[False, True], [True, False], ...]
+
+# Check for non-None values
+not_null = df.notna()
+
+# Check if columns have None values
+nulls = df.has_nulls()
+print(nulls)  # {'age': False, 'email': True}
+```
+
+### Removing Missing Values
+
+```python
+# Drop rows with any None values (default)
+clean_df = df.dropna()
+
+# Drop rows only if all values are None
+df.dropna(axis=0, how='all')
+
+# Drop columns with any None values
+df.dropna(axis=1, how='any')
+
+# Drop columns only if all values are None
+df.dropna(axis=1, how='all')
+```
+
+### Filling Missing Values
+
+```python
+# Fill all None with a single value
+df.fillna(0)
+
+# Fill with column-specific values
+df.fillna({
+    'age': 0,
+    'name': 'Unknown',
+    'score': -1
+})
+```
+
+### Complete Data Cleaning Pipeline
+
+```python
+# Clean data by removing bad rows and filling missing values
+clean_df = (
+    df.dropna(axis=1, how='all')     # Remove empty columns
+    .fillna({'age': 0, 'name': ''})  # Fill remaining None
+    .filter(lambda row: row['age'] >= 0)  # Remove invalid rows
+)
+```
+
+## DataFrame Utilities
+
+### Comparing DataFrames
+
+```python
+# Check if two DataFrames are identical
+df1 = DataFrame.from_dict({'a': [1, 2], 'b': [3, 4]})
+df2 = DataFrame.from_dict({'a': [1, 2], 'b': [3, 4]})
+
+assert df1.equals(df2)  # True
+
+# Order matters
+df3 = DataFrame.from_dict({'a': [2, 1], 'b': [4, 3]})
+assert not df1.equals(df3)  # False
+```
+
+### Copying DataFrames
+
+```python
+# Create independent copy
+df_copy = df.deepcopy()
+
+# Modifications to copy don't affect original
+df_copy.data[0][0] = 'modified'
+assert df.data[0][0] != 'modified'
+```
+
+### Counting Unique Values
+
+```python
+# Count unique values in a column
+unique_count = df.nunique('category')
+print(f"Found {unique_count} unique categories")
+
+# Get the actual unique values
+unique_values = df.unique('category')
+print(f"Categories: {unique_values}")
+
+# Count occurrences of each value
+value_counts = df.value_counts('status')
+print(value_counts)  # {'active': 10, 'inactive': 5}
+```
+
 ## Statistical Analysis
 
 ### Summary Statistics

@@ -174,3 +174,97 @@ print(f"  After processing: {df_processed.shape[0]} rows")
 print("\nFinal results:")
 for row in df_processed:
     print(f"  {row['name']}: age {row['age']}, score {row['score']}")
+
+print("\n=== Missing Data Detection ===")
+# Create data with missing values
+df_missing_data = DataFrame.from_dict(
+    {
+        "employee": ["Alice", "Bob", "Charlie", "Dave"],
+        "department": ["Sales", None, "Engineering", "Sales"],
+        "salary": [50000, 60000, None, 55000],
+        "bonus": [None, 5000, None, 3000],
+    }
+)
+
+print("Original data:")
+for row in df_missing_data:
+    print(f"  {row}")
+
+# Detect missing values
+print("\nMissing value detection (isna):")
+is_null = df_missing_data.isna()
+for i, row in enumerate(is_null):
+    print(f"  Row {i}: {row}")
+
+# Check which columns have nulls
+print("\nColumns with missing values:")
+nulls = df_missing_data.has_nulls()
+for col, has_null in nulls.items():
+    print(f"  {col}: {'Yes' if has_null else 'No'}")
+
+print("\n=== Missing Data Cleaning ===")
+# Drop rows with any None values
+clean_data = df_missing_data.dropna(axis=0, how="any")
+print(f"After dropna (rows with any None): {clean_data.shape[0]} rows")
+for row in clean_data:
+    print(f"  {row}")
+
+# Drop columns with any None values
+no_null_cols = df_missing_data.dropna(axis=1, how="any")
+print(f"\nAfter dropna (columns with any None): {no_null_cols.columns}")
+
+# Fill missing values
+filled_data = df_missing_data.fillna({"department": "Unknown", "salary": 0, "bonus": 0})
+print("\nAfter filling missing values:")
+for row in filled_data:
+    print(f"  {row}")
+
+print("\n=== DataFrame Comparison ===")
+# Compare DataFrames
+df1 = DataFrame.from_dict({"name": ["Alice", "Bob"], "age": [25, 30]})
+df2 = DataFrame.from_dict({"name": ["Alice", "Bob"], "age": [25, 30]})
+df3 = DataFrame.from_dict({"name": ["Bob", "Alice"], "age": [30, 25]})
+
+print("df1 equals df2:", df1.equals(df2))
+print("df1 equals df3 (different order):", df1.equals(df3))
+
+print("\n=== DataFrame Copying ===")
+# Demonstrate copy independence
+original = DataFrame.from_dict({"name": ["Alice"], "value": [100]})
+copied = original.deepcopy()
+
+print("Original before modification:")
+print(f"  {original.data}")
+
+# Modify copy
+copied.data[0][1] = 999
+
+print("Original after modifying copy:")
+print(f"  {original.data}")
+print("Copy after modification:")
+print(f"  {copied.data}")
+
+print("\n=== Unique Value Counting ===")
+# Count unique values
+df_categories = DataFrame.from_dict(
+    {
+        "product": ["Widget", "Gadget", "Widget", "Tool", "Widget", "Gadget"],
+        "status": ["active", "active", "inactive", "active", "active", "inactive"],
+    }
+)
+
+print("Data:")
+for row in df_categories:
+    print(f"  {row}")
+
+print(f"\nUnique products: {df_categories.nunique('product')}")
+print(f"Unique statuses: {df_categories.nunique('status')}")
+
+print("\nActual unique values:")
+print(f"  Products: {df_categories.unique('product')}")
+print(f"  Statuses: {df_categories.unique('status')}")
+
+print("\nValue counts:")
+product_counts = df_categories.value_counts("product")
+for product, count in product_counts.items():
+    print(f"  {product}: {count}")
