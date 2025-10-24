@@ -10,19 +10,12 @@ Example:
     >>> schema = DataFrame.from_pandas(df)
     >>> schema.to_polars()  # Convert to Polars
     >>> schema.to_dict()  # Convert to dict
-
-Backwards compatibility:
-    >>> from servicekit.data import PandasDataFrame  # Still works
 """
 
 # ruff: noqa: F401
 
 from .dataframe import DataFrame
 
-# Backwards compatibility alias
-PandasDataFrame = DataFrame
-
 __all__ = [
     "DataFrame",
-    "PandasDataFrame",
 ]

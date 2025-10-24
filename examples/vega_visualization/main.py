@@ -1,7 +1,7 @@
 """Vega-Lite visualization service demo.
 
 This example demonstrates:
-- Custom Router for data transformation (PandasDataFrame → Vega-Lite spec)
+- Custom Router for data transformation (DataFrame → Vega-Lite spec)
 - Multiple chart types (line, bar, scatter, heatmap, aggregations)
 - Data processing (filtering, aggregation, pivoting)
 - RESTful API design with $ prefix for operations
@@ -63,7 +63,7 @@ class VegaResponse(BaseModel):
 
 
 class VegaRouter(Router):
-    """Router for generating Vega-Lite visualizations from PandasDataFrame."""
+    """Router for generating Vega-Lite visualizations from DataFrame."""
 
     def _register_routes(self) -> None:
         """Register Vega visualization endpoints."""
@@ -73,7 +73,7 @@ class VegaRouter(Router):
             response_model=None,
             status_code=status.HTTP_200_OK,
             summary="Generate Vega-Lite spec or rendered image",
-            description="Transform PandasDataFrame to Vega-Lite specification or rendered format (json/png/svg/html)",
+            description="Transform DataFrame to Vega-Lite specification or rendered format (json/png/svg/html)",
         )
         async def generate_vega(request: VegaGenerateRequest) -> VegaResponse | Response:
             """Generate Vega-Lite specification or rendered image from data."""
@@ -121,7 +121,7 @@ class VegaRouter(Router):
             response_model=None,
             status_code=status.HTTP_200_OK,
             summary="Aggregate and visualize",
-            description="Aggregate PandasDataFrame and generate visualization in specified format",
+            description="Aggregate DataFrame and generate visualization in specified format",
         )
         async def aggregate_and_visualize(request: VegaAggregateRequest) -> VegaResponse | Response:
             """Aggregate data and generate visualization."""
@@ -312,9 +312,9 @@ app = (
         info=ServiceInfo(
             display_name="Vega Visualization Service",
             version="1.0.0",
-            summary="Transform PandasDataFrame to Vega-Lite specifications",
+            summary="Transform DataFrame to Vega-Lite specifications",
             description="Proof of concept for Phase 5.1 Transformation Service Pattern. "
-            "Accepts PandasDataFrame input and generates Vega-Lite grammar for various chart types. "
+            "Accepts DataFrame input and generates Vega-Lite grammar for various chart types. "
             "Supports data processing including aggregation, filtering, and transformations.",
         )
     )

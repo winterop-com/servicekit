@@ -1,7 +1,7 @@
 [project]
 name = "servicekit-demo-vega-visualization"
 version = "0.1.0"
-description = "Vega-Lite visualization service transforming PandasDataFrame to Vega grammar"
+description = "Vega-Lite visualization service transforming DataFrame to Vega grammar"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [

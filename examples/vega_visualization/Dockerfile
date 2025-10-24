@@ -36,7 +36,7 @@ FROM python:3.13-slim AS runtime
 
 # OCI labels for container metadata
 LABEL org.opencontainers.image.title="Servicekit Vega Visualization Service"
-LABEL org.opencontainers.image.description="Transform PandasDataFrame to Vega-Lite specifications"
+LABEL org.opencontainers.image.description="Transform DataFrame to Vega-Lite specifications"
 LABEL org.opencontainers.image.vendor="Servicekit"
 LABEL org.opencontainers.image.source="https://github.com/winterop-com/servicekit"
 

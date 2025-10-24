@@ -122,15 +122,6 @@ See `examples/dataframe_usage/` for simple standalone examples:
 - `polars_example.py` - Polars conversion
 - `xarray_example.py` - xarray conversion
 
-## Backwards Compatibility
-
-The old `PandasDataFrame` name is still available as an alias:
-
-```python
-from servicekit.data import PandasDataFrame  # Works
-from servicekit.data import DataFrame        # Preferred
-```
-
 ## Design Philosophy
 
 The `DataFrame` schema uses a simple `columns` + `data` representation that is:

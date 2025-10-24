@@ -1,6 +1,6 @@
 # Vega Visualization Service
 
-A proof-of-concept visualization service that transforms PandasDataFrame data to Vega-Lite specifications. This demonstrates the **Transformation Service Pattern** (Phase 5.1 from the enhancement roadmap).
+A proof-of-concept visualization service that transforms DataFrame data to Vega-Lite specifications. This demonstrates the **Transformation Service Pattern** (Phase 5.1 from the enhancement roadmap).
 
 ## Features
 
@@ -19,7 +19,7 @@ A proof-of-concept visualization service that transforms PandasDataFrame data to
 This example follows the **Transformation Router Pattern**:
 
 ```
-Input (PandasDataFrame) → Router → Processing → Output (Vega-Lite Spec)
+Input (DataFrame) → Router → Processing → Output (Vega-Lite Spec)
 ```
 
 Key components:
@@ -407,11 +407,11 @@ This follows servicekit conventions:
 ### Data Flow
 
 ```
-1. Client sends PandasDataFrame + parameters
+1. Client sends DataFrame + parameters
    ↓
 2. Pydantic validates request schema
    ↓
-3. Router converts PandasDataFrame → pandas.DataFrame
+3. Router converts DataFrame → pandas.DataFrame
    ↓
 4. Data processing (optional aggregation)
    ↓
@@ -468,7 +468,7 @@ This example demonstrates **Phase 5.1: Transformation Service Pattern** from the
 
 This service can be used as a **visualization extension** for chap-core:
 
-1. **ML Service generates predictions** (PandasDataFrame)
+1. **ML Service generates predictions** (DataFrame)
 2. **Sends data to Vega service** (POST /$generate)
 3. **Receives Vega-Lite spec** (ready for frontend rendering)
 4. **Optionally stores spec as artifact** (for reuse)
