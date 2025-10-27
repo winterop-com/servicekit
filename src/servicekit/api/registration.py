@@ -12,6 +12,11 @@ from servicekit.logging import get_logger
 
 logger = get_logger(__name__)
 
+# Global references for keepalive management
+_keepalive_task: asyncio.Task | None = None
+_service_id: str | None = None
+_ping_url: str | None = None
+
 
 async def register_service(
     *,
@@ -26,8 +31,8 @@ async def register_service(
     retry_delay: float = 2.0,
     fail_on_error: bool = False,
     timeout: float = 10.0,
-) -> None:
-    """Register service with orchestrator for service discovery."""
+) -> dict[str, Any] | None:
+    """Register service with orchestrator for service discovery and return registration info."""
     # Resolve orchestrator URL
     resolved_orchestrator_url = orchestrator_url or os.getenv(orchestrator_url_env)
     if not resolved_orchestrator_url:
@@ -36,7 +41,7 @@ async def register_service(
         if fail_on_error:
             raise ValueError(error_msg)
         logger.warning("registration.skipped", reason="missing orchestrator URL")
-        return
+        return None
 
     # Resolve host (parameter → auto-detect → env var)
     resolved_host: str | None = None
@@ -65,7 +70,7 @@ async def register_service(
         if fail_on_error:
             raise ValueError(error_msg)
         logger.warning("registration.skipped", reason="missing host")
-        return
+        return None
 
     # Resolve port (parameter → env var → default)
     resolved_port: int = 8000
@@ -131,8 +136,21 @@ async def register_service(
                 if service_id:
                     log_context["service_id"] = service_id
 
+                # Store global references for keepalive
+                global _service_id, _ping_url
+                _service_id = service_id
+                _ping_url = response_data.get("ping_url")
+
                 logger.info("registration.success", **log_context)
-                return
+
+                # Return registration info for keepalive setup
+                return {
+                    "service_id": service_id,
+                    "service_url": service_url,
+                    "orchestrator_url": resolved_orchestrator_url,
+                    "ttl_seconds": response_data.get("ttl_seconds"),
+                    "ping_url": _ping_url,
+                }
 
         except Exception as e:
             last_error = e
@@ -165,3 +183,105 @@ async def register_service(
 
     if fail_on_error:
         raise RuntimeError(f"Failed to register service after {max_retries} attempts: {last_error}") from last_error
+
+    return None
+
+
+async def _keepalive_loop(ping_url: str, interval: float, timeout: float) -> None:
+    """Background task to periodically ping the orchestrator."""
+    logger.info("keepalive.started", ping_url=ping_url, interval_seconds=interval)
+
+    while True:
+        try:
+            await asyncio.sleep(interval)
+
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                response = await client.put(ping_url)
+                response.raise_for_status()
+
+                response_data = response.json()
+                logger.debug(
+                    "keepalive.ping_success",
+                    service_id=_service_id,
+                    last_ping_at=response_data.get("last_ping_at"),
+                    expires_at=response_data.get("expires_at"),
+                )
+
+        except asyncio.CancelledError:
+            logger.info("keepalive.cancelled", service_id=_service_id)
+            raise
+
+        except Exception as e:
+            logger.warning(
+                "keepalive.ping_failed",
+                service_id=_service_id,
+                ping_url=ping_url,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
+
+
+async def start_keepalive(
+    *,
+    ping_url: str,
+    interval: float = 10.0,
+    timeout: float = 10.0,
+) -> None:
+    """Start background keepalive task to ping orchestrator."""
+    global _keepalive_task
+
+    if _keepalive_task:
+        logger.warning("keepalive.already_running")
+        return
+
+    _keepalive_task = asyncio.create_task(_keepalive_loop(ping_url, interval, timeout))
+    logger.info("keepalive.task_started", ping_url=ping_url, interval_seconds=interval)
+
+
+async def stop_keepalive() -> None:
+    """Stop the background keepalive task."""
+    global _keepalive_task
+
+    if _keepalive_task:
+        _keepalive_task.cancel()
+        try:
+            await _keepalive_task
+        except asyncio.CancelledError:
+            pass
+        _keepalive_task = None
+        logger.info("keepalive.task_stopped", service_id=_service_id)
+
+
+async def deregister_service(
+    *,
+    service_id: str,
+    orchestrator_url: str,
+    timeout: float = 10.0,
+) -> None:
+    """Explicitly deregister service from orchestrator."""
+    # Build deregister URL from orchestrator base URL
+    # orchestrator_url is like "http://orchestrator:9000/services/$register"
+    # we need "http://orchestrator:9000/services/{service_id}"
+    base_url = orchestrator_url.replace("/$register", "")
+    deregister_url = f"{base_url}/{service_id}"
+
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            response = await client.delete(deregister_url)
+            response.raise_for_status()
+
+            logger.info(
+                "deregistration.success",
+                service_id=service_id,
+                deregister_url=deregister_url,
+                status_code=response.status_code,
+            )
+
+    except Exception as e:
+        logger.warning(
+            "deregistration.failed",
+            service_id=service_id,
+            deregister_url=deregister_url,
+            error=str(e),
+            error_type=type(e).__name__,
+        )

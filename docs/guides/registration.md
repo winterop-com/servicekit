@@ -91,6 +91,9 @@ The `.with_registration()` method accepts these parameters:
     retry_delay=2.0,                    # Seconds between retries
     fail_on_error=False,                # Abort startup on failure
     timeout=10.0,                       # HTTP request timeout
+    enable_keepalive=True,              # Enable periodic ping to keep service alive
+    keepalive_interval=10.0,            # Seconds between keepalive pings
+    auto_deregister=True,               # Automatically deregister on shutdown
 )
 ```
 
@@ -106,6 +109,9 @@ The `.with_registration()` method accepts these parameters:
 - **retry_delay** (`float`): Delay in seconds between retry attempts. Default: 2.0.
 - **fail_on_error** (`bool`): If True, raise exception and abort startup on registration failure. If False, log warning and continue. Default: False.
 - **timeout** (`float`): HTTP request timeout in seconds. Default: 10.0.
+- **enable_keepalive** (`bool`): Enable periodic pings to keep service registered. Default: True.
+- **keepalive_interval** (`float`): Seconds between keepalive pings. Default: 10.0.
+- **auto_deregister** (`bool`): Automatically deregister service on shutdown. Default: True.
 
 ---
 
@@ -120,7 +126,51 @@ The `.with_registration()` method accepts these parameters:
 5. **Payload Creation**: Serializes ServiceInfo to JSON (supports custom subclasses)
 6. **Registration Request**: Sends POST to orchestrator endpoint
 7. **Retry on Failure**: Retries with delay if request fails
-8. **Logging**: Logs all attempts and final outcome
+8. **Keepalive Started**: If enabled, background task starts pinging orchestrator
+9. **Service Runs**: Service handles requests while staying alive via pings
+10. **Shutdown**: On graceful shutdown, stops keepalive and optionally deregisters
+11. **Logging**: Logs all registration, ping, and deregistration events
+
+### Keepalive and TTL
+
+Services can be configured to send periodic "ping" requests to the orchestrator to indicate they're still alive. The orchestrator tracks a Time-To-Live (TTL) for each service and automatically removes services that haven't pinged within the TTL window.
+
+**How it works:**
+
+1. **Initial Registration**: Service registers and receives response with:
+   - `id`: Unique ULID identifier for this service
+   - `ttl_seconds`: How long until service expires (default: 30 seconds)
+   - `ping_url`: Endpoint to send keepalive pings (automatically provided by orchestrator)
+
+2. **Keepalive Loop**: Background task automatically sends PUT requests to `ping_url` every N seconds:
+   - Default interval: 10 seconds (configurable via `keepalive_interval`)
+   - Each ping resets the service's expiration time
+   - Failures are logged but don't crash the service
+
+3. **TTL Expiration**: Orchestrator runs cleanup every 5 seconds:
+   - Removes services that haven't pinged within TTL window
+   - Logs expired services for monitoring
+
+4. **Graceful Shutdown**: On service shutdown:
+   - Keepalive task stops (no more pings)
+   - Service explicitly deregisters (if `auto_deregister=True`)
+   - Immediate removal from registry
+
+**Configuration examples:**
+
+```python
+# Default: keepalive enabled, auto-deregister on shutdown
+.with_registration()
+
+# Disable keepalive (rely on manual health checks)
+.with_registration(enable_keepalive=False)
+
+# Custom keepalive interval (faster pings)
+.with_registration(keepalive_interval=5.0)
+
+# Don't deregister on shutdown (let TTL expire naturally)
+.with_registration(auto_deregister=False)
+```
 
 ### Registration Payload
 
@@ -153,6 +203,28 @@ For custom ServiceInfo subclasses:
   }
 }
 ```
+
+### Registration Response
+
+The orchestrator responds with registration details, including the ping endpoint:
+
+```json
+{
+  "id": "01K83B5V85PQZ1HTH4DQ7NC9JM",
+  "status": "registered",
+  "service_url": "http://my-service:8000",
+  "message": "Service registered successfully",
+  "ttl_seconds": 30,
+  "ping_url": "http://orchestrator:9000/services/01K83B5V85PQZ1HTH4DQ7NC9JM/$ping"
+}
+```
+
+**Key fields:**
+- `id`: Unique ULID identifier assigned by orchestrator
+- `ttl_seconds`: Time-to-live in seconds (service must ping within this window)
+- `ping_url`: Endpoint for keepalive pings (automatically used by the service)
+
+**Important**: The `ping_url` is provided by the orchestrator - services don't need to configure it. The service automatically uses this URL for keepalive pings when `enable_keepalive=True`.
 
 ### Hostname Resolution
 

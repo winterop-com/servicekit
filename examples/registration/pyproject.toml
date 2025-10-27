@@ -1,0 +1,13 @@
+[project]
+name = "servicekit-demo-registration"
+version = "0.1.0"
+description = "Service registration demo with orchestrator and TTL-based keepalive using Valkey"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "servicekit",
+    "valkey>=6.1.1",
+]
+
+[tool.uv.sources]
+servicekit = { path = "../..", editable = true }

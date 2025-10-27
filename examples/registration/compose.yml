@@ -1,4 +1,16 @@
 services:
+    valkey:
+        image: valkey/valkey:8
+        ports:
+            - "6379:6379"
+        restart: unless-stopped
+        healthcheck:
+            test: ["CMD", "valkey-cli", "ping"]
+            interval: 5s
+            timeout: 3s
+            retries: 5
+            start_period: 10s
+
     orchestrator:
         build:
             context: ../..
@@ -10,6 +22,10 @@ services:
             LOG_FORMAT: json
             LOG_LEVEL: INFO
             WORKERS: 1
+            VALKEY_URL: redis://valkey:6379
+        depends_on:
+            valkey:
+                condition: service_healthy
         restart: unless-stopped
         healthcheck:
             test:

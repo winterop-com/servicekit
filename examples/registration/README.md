@@ -10,15 +10,24 @@ Demonstrates automatic service registration with an orchestrator for service dis
 - **Custom Metadata**: Support for ServiceInfo subclasses with additional fields
 - **Mock Orchestrator**: Simple orchestrator for testing and development
 - **Multi-Service Setup**: Example with multiple services (svca, svcb)
+- **Keepalive & TTL**: Services send periodic pings to stay registered (30s TTL, 10s interval)
+- **Auto-Deregistration**: Services gracefully deregister on shutdown
+- **Valkey-based Storage**: TTL and expiration handled by Valkey (no manual cleanup needed)
 
 ## Quick Start
 
 ### Local Development
 
+**Prerequisites**: Valkey or Redis running on localhost:6379
+
 #### Run Orchestrator
 
 ```bash
+# Start Valkey (using Docker)
+docker run -d -p 6379:6379 valkey/valkey:8
+
 # Install dependencies
+cd examples/registration
 uv sync
 
 # Run the mock orchestrator
@@ -63,10 +72,10 @@ docker compose down
 ## Architecture
 
 ```
-┌─────────────┐
-│ Orchestrator│  ← Registration endpoint at :9000/services/$register
-│   (port 9000)│
-└──────▲──────┘
+┌─────────────┐     ┌────────┐
+│ Orchestrator│────→│ Valkey │  TTL-based service expiration
+│   (port 9000)│     │  :6379 │
+└──────▲──────┘     └────────┘
        │
        │ HTTP POST on startup
        │
@@ -90,7 +99,8 @@ docker compose down
 
 ### Orchestrator Endpoints
 
-- `POST /services/$register` - Register a service (called by services on startup)
+- `POST /services/$register` - Register a service (returns service_id, ttl_seconds, ping_url)
+- `PUT /services/{id}/$ping` - Send keepalive ping to extend TTL
 - `GET /services` - List all registered services
 - `GET /services/{id}` - Get specific service details by ULID
 - `DELETE /services/{id}` - Deregister a service by ULID
@@ -119,11 +129,70 @@ docker compose down
      "id": "01K83B5V85PQZ1HTH4DQ7NC9JM",
      "status": "registered",
      "service_url": "http://svca:8000",
-     "message": "..."
+     "message": "...",
+     "ttl_seconds": 30,
+     "ping_url": "http://orchestrator:9000/services/01K83B5V85PQZ1HTH4DQ7NC9JM/$ping"
    }
    ```
-7. **Retry on Failure**: Retries up to 5 times with 2-second delay
-8. **Success/Failure Logging**: Logs outcome with service ID via structured logging
+7. **Keepalive Started**: Background task starts sending pings every 10 seconds to `ping_url`
+8. **Service Runs**: Service handles requests while keepalive maintains registration
+9. **Retry on Failure**: Initial registration retries up to 5 times with 2-second delay
+10. **Graceful Shutdown**: On shutdown, service stops keepalive and deregisters explicitly
+11. **Success/Failure Logging**: Logs all registration, ping, and deregistration events
+
+## Keepalive and TTL
+
+### How It Works
+
+The orchestrator uses Valkey's built-in TTL mechanism for automatic service expiration:
+
+- **TTL**: 30 seconds (configurable in `orchestrator.py`)
+- **Ping Interval**: 10 seconds (services send keepalive every 10s)
+- **Expiration**: Handled automatically by Valkey (no manual cleanup task needed)
+
+**Timeline Example:**
+- `T+0s`: Service registers, Valkey stores with `EX 30` (expires at T+30s)
+- `T+10s`: Service pings, Valkey resets TTL to 30s (expires at T+40s)
+- `T+20s`: Service pings, Valkey resets TTL to 30s (expires at T+50s)
+- `T+30s`: Service pings, Valkey resets TTL to 30s (expires at T+60s)
+- If service crashes at `T+35s` and stops pinging:
+  - `T+65s`: Valkey automatically removes the key (30s after last ping)
+  - Service no longer appears in registry
+
+### Ping Endpoint
+
+**Request:**
+```bash
+PUT /services/{service_id}/$ping
+```
+
+**Response:**
+```json
+{
+  "id": "01K83B5V85PQZ1HTH4DQ7NC9JM",
+  "status": "alive",
+  "last_ping_at": "2025-10-27T12:00:30.000Z",
+  "expires_at": "2025-10-27T12:01:00.000Z"
+}
+```
+
+### Configuration Options
+
+Services can configure keepalive behavior:
+
+```python
+# Default: keepalive enabled, 10s interval, auto-deregister on shutdown
+.with_registration()
+
+# Disable keepalive (service expires after 30s if not manually pinged)
+.with_registration(enable_keepalive=False)
+
+# Custom ping interval (faster keepalive)
+.with_registration(keepalive_interval=5.0)
+
+# Don't deregister on shutdown (let TTL expire naturally)
+.with_registration(auto_deregister=False)
+```
 
 ## Configuration
 

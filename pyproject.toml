@@ -1,6 +1,6 @@
 [project]
 name = "servicekit"
-version = "0.3.4"
+version = "0.3.5"
 description = "Async SQLAlchemy framework with FastAPI integration - reusable foundation for building data services"
 readme = "README.md"
 authors = [{ name = "Morten Hansen", email = "morten@winterop.com" }]
@@ -141,6 +141,7 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = "examples.*"
 ignore_missing_imports = true
+disallow_untyped_defs = false
 
 [tool.pyright]
 include = ["src", "tests", "examples"]

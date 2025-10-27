@@ -1,12 +1,13 @@
 """Tests for service registration with orchestrator."""
 
+import asyncio
 import os
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
 
-from servicekit.api.registration import register_service
+from servicekit.api.registration import deregister_service, register_service, start_keepalive, stop_keepalive
 from servicekit.api.service_builder import ServiceInfo
 
 
@@ -455,3 +456,189 @@ async def test_timeout_parameter():
 
         # Verify AsyncClient was called with timeout
         assert mock_client.call_args[1]["timeout"] == 5.0
+
+
+@pytest.mark.asyncio
+async def test_registration_returns_info():
+    """Test that successful registration returns registration info."""
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.raise_for_status = MagicMock()
+    mock_response.json = MagicMock(
+        return_value={
+            "id": "01K83B5V85PQZ1HTH4DQ7NC9JM",
+            "status": "registered",
+            "service_url": "http://test-service:8000",
+            "message": "Service registered successfully",
+            "ttl_seconds": 30,
+            "ping_url": "http://orchestrator:9000/services/01K83B5V85PQZ1HTH4DQ7NC9JM/$ping",
+        }
+    )
+
+    with patch("httpx.AsyncClient") as mock_client:
+        mock_client.return_value.__aenter__.return_value.post = AsyncMock(return_value=mock_response)
+
+        info = ServiceInfo(display_name="Test Service", version="1.0.0")
+
+        result = await register_service(
+            orchestrator_url="http://orchestrator:9000/services/$register",
+            host="test-service",
+            port=8000,
+            info=info,
+        )
+
+        assert result is not None
+        assert result["service_id"] == "01K83B5V85PQZ1HTH4DQ7NC9JM"
+        assert result["service_url"] == "http://test-service:8000"
+        assert result["ttl_seconds"] == 30
+        assert result["ping_url"] == "http://orchestrator:9000/services/01K83B5V85PQZ1HTH4DQ7NC9JM/$ping"
+
+
+@pytest.mark.asyncio
+async def test_registration_returns_none_on_failure():
+    """Test that failed registration returns None."""
+    with patch.dict(os.environ, {}, clear=True):
+        info = ServiceInfo(display_name="Test Service")
+
+        result = await register_service(
+            orchestrator_url=None,  # Missing URL
+            host="test-service",
+            port=8000,
+            info=info,
+            fail_on_error=False,
+        )
+
+        assert result is None
+
+
+@pytest.mark.asyncio
+async def test_start_keepalive():
+    """Test starting keepalive background task."""
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.raise_for_status = MagicMock()
+    mock_response.json = MagicMock(
+        return_value={
+            "id": "01K83B5V85PQZ1HTH4DQ7NC9JM",
+            "status": "alive",
+            "last_ping_at": "2025-10-27T12:00:00Z",
+            "expires_at": "2025-10-27T12:00:30Z",
+        }
+    )
+
+    with patch("httpx.AsyncClient") as mock_client:
+        mock_client.return_value.__aenter__.return_value.put = AsyncMock(return_value=mock_response)
+
+        # Start keepalive with short interval for testing
+        await start_keepalive(
+            ping_url="http://orchestrator:9000/services/01K83B5V85PQZ1HTH4DQ7NC9JM/$ping",
+            interval=0.1,
+            timeout=5.0,
+        )
+
+        # Give it time for at least one ping
+        await asyncio.sleep(0.15)
+
+        # Verify PUT was called
+        assert mock_client.return_value.__aenter__.return_value.put.call_count >= 1
+
+        # Clean up
+        await stop_keepalive()
+
+
+@pytest.mark.asyncio
+async def test_stop_keepalive():
+    """Test stopping keepalive background task."""
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.raise_for_status = MagicMock()
+    mock_response.json = MagicMock(return_value={"status": "alive"})
+
+    with patch("httpx.AsyncClient") as mock_client:
+        mock_client.return_value.__aenter__.return_value.put = AsyncMock(return_value=mock_response)
+
+        # Start keepalive
+        await start_keepalive(
+            ping_url="http://orchestrator:9000/services/test/$ping",
+            interval=0.1,
+            timeout=5.0,
+        )
+
+        # Stop it immediately
+        await stop_keepalive()
+
+        # Give it time to ensure it doesn't ping again
+        initial_count = mock_client.return_value.__aenter__.return_value.put.call_count
+        await asyncio.sleep(0.2)
+        final_count = mock_client.return_value.__aenter__.return_value.put.call_count
+
+        # Call count should not increase after stop
+        assert final_count == initial_count
+
+
+@pytest.mark.asyncio
+async def test_keepalive_handles_errors_gracefully():
+    """Test that keepalive task handles ping failures without crashing."""
+    mock_response = MagicMock()
+    mock_response.raise_for_status = MagicMock(
+        side_effect=httpx.HTTPStatusError("500 error", request=MagicMock(), response=MagicMock())
+    )
+
+    with patch("httpx.AsyncClient") as mock_client:
+        mock_client.return_value.__aenter__.return_value.put = AsyncMock(return_value=mock_response)
+
+        # Start keepalive - should not crash despite errors
+        await start_keepalive(
+            ping_url="http://orchestrator:9000/services/test/$ping",
+            interval=0.1,
+            timeout=5.0,
+        )
+
+        # Wait for at least one ping attempt
+        await asyncio.sleep(0.15)
+
+        # Task should still be running despite error
+        assert mock_client.return_value.__aenter__.return_value.put.call_count >= 1
+
+        # Clean up
+        await stop_keepalive()
+
+
+@pytest.mark.asyncio
+async def test_deregister_service_success():
+    """Test successful service deregistration."""
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.raise_for_status = MagicMock()
+
+    with patch("httpx.AsyncClient") as mock_client:
+        mock_client.return_value.__aenter__.return_value.delete = AsyncMock(return_value=mock_response)
+
+        await deregister_service(
+            service_id="01K83B5V85PQZ1HTH4DQ7NC9JM",
+            orchestrator_url="http://orchestrator:9000/services/$register",
+            timeout=5.0,
+        )
+
+        # Verify DELETE was called with correct URL
+        call_args = mock_client.return_value.__aenter__.return_value.delete.call_args
+        assert call_args[0][0] == "http://orchestrator:9000/services/01K83B5V85PQZ1HTH4DQ7NC9JM"
+
+
+@pytest.mark.asyncio
+async def test_deregister_service_handles_errors():
+    """Test that deregister_service handles errors gracefully."""
+    mock_response = MagicMock()
+    mock_response.raise_for_status = MagicMock(
+        side_effect=httpx.HTTPStatusError("404 error", request=MagicMock(), response=MagicMock())
+    )
+
+    with patch("httpx.AsyncClient") as mock_client:
+        mock_client.return_value.__aenter__.return_value.delete = AsyncMock(return_value=mock_response)
+
+        # Should not raise exception, just log warning
+        await deregister_service(
+            service_id="01K83B5V85PQZ1HTH4DQ7NC9JM",
+            orchestrator_url="http://orchestrator:9000/services/$register",
+            timeout=5.0,
+        )
