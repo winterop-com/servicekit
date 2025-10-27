@@ -2,22 +2,13 @@
 
 # ruff: noqa: F401
 
-from importlib.metadata import PackageNotFoundError, version
-
+# Read version from package metadata - must be before internal imports
 try:
-    __version__ = version("servicekit")
-except PackageNotFoundError:
-    # Fallback: read from pyproject.toml during development
-    import tomllib
-    from pathlib import Path
+    from importlib.metadata import version as _get_version
 
-    try:
-        pyproject_path = Path(__file__).parent.parent.parent / "pyproject.toml"
-        with open(pyproject_path, "rb") as f:
-            data = tomllib.load(f)
-        __version__ = data["project"]["version"]
-    except Exception:
-        __version__ = "unknown"
+    __version__ = _get_version("servicekit")
+except Exception:
+    __version__ = "unknown"
 
 # Base infrastructure (framework-agnostic)
 from .database import Database, SqliteDatabase, SqliteDatabaseBuilder
