@@ -137,12 +137,12 @@ Services can be configured to send periodic "ping" requests to the orchestrator 
 
 **How it works:**
 
-1. **Initial Registration**: Service registers and receives:
-   - `service_id`: Unique ULID identifier
+1. **Initial Registration**: Service registers and receives response with:
+   - `id`: Unique ULID identifier for this service
    - `ttl_seconds`: How long until service expires (default: 30 seconds)
-   - `ping_url`: Endpoint to send keepalive pings
+   - `ping_url`: Endpoint to send keepalive pings (automatically provided by orchestrator)
 
-2. **Keepalive Loop**: Background task sends PUT requests to `ping_url` every N seconds:
+2. **Keepalive Loop**: Background task automatically sends PUT requests to `ping_url` every N seconds:
    - Default interval: 10 seconds (configurable via `keepalive_interval`)
    - Each ping resets the service's expiration time
    - Failures are logged but don't crash the service
@@ -203,6 +203,28 @@ For custom ServiceInfo subclasses:
   }
 }
 ```
+
+### Registration Response
+
+The orchestrator responds with registration details, including the ping endpoint:
+
+```json
+{
+  "id": "01K83B5V85PQZ1HTH4DQ7NC9JM",
+  "status": "registered",
+  "service_url": "http://my-service:8000",
+  "message": "Service registered successfully",
+  "ttl_seconds": 30,
+  "ping_url": "http://orchestrator:9000/services/01K83B5V85PQZ1HTH4DQ7NC9JM/$ping"
+}
+```
+
+**Key fields:**
+- `id`: Unique ULID identifier assigned by orchestrator
+- `ttl_seconds`: Time-to-live in seconds (service must ping within this window)
+- `ping_url`: Endpoint for keepalive pings (automatically used by the service)
+
+**Important**: The `ping_url` is provided by the orchestrator - services don't need to configure it. The service automatically uses this URL for keepalive pings when `enable_keepalive=True`.
 
 ### Hostname Resolution
 
