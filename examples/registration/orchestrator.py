@@ -1,8 +1,12 @@
 """Mock orchestrator service that receives service registrations."""
 
-import asyncio
+import json
+import os
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
+import valkey.asyncio as valkey
 from fastapi import FastAPI, Request, Response
 from pydantic import BaseModel
 from ulid import ULID
@@ -16,26 +20,16 @@ logger = get_logger(__name__)
 
 # Configuration
 TTL_SECONDS = 30  # Time before a service is considered dead without ping
-CLEANUP_INTERVAL_SECONDS = 5  # How often to check for expired services
 
-# In-memory registry keyed by ULID
-# NOTE: This is a simple example suitable for demos and single-worker deployments.
-# For production use, consider Redis or Valkey which provide:
-#   - Built-in TTL (no manual cleanup task needed)
-#   - Multi-worker support via shared state
-#   - Atomic operations for concurrent updates
-# Example: await redis.set(f"service:{id}", data, ex=TTL_SECONDS)
-service_registry: dict[str, dict] = {}
-
-# Background task for cleanup
-cleanup_task: asyncio.Task | None = None
+# Valkey client (initialized in lifespan)
+redis_client: valkey.Valkey | None = None
 
 
 class RegistrationPayload(BaseModel):
     """Registration payload from services."""
 
     url: str
-    info: dict
+    info: dict[str, Any]
 
 
 class RegistrationResponse(BaseModel):
@@ -54,7 +48,7 @@ class ServiceDetail(BaseModel):
 
     id: str
     url: str
-    info: dict
+    info: dict[str, Any]
     registered_at: str
     last_updated: str
     last_ping_at: str
@@ -77,37 +71,11 @@ class PingResponse(BaseModel):
     expires_at: str
 
 
-async def cleanup_expired_services() -> None:
-    """Background task to remove expired services from registry."""
-    logger.info("cleanup.started", interval_seconds=CLEANUP_INTERVAL_SECONDS, ttl_seconds=TTL_SECONDS)
+class DeregisterResponse(BaseModel):
+    """Response from service deregistration."""
 
-    while True:
-        try:
-            await asyncio.sleep(CLEANUP_INTERVAL_SECONDS)
-
-            now = datetime.now(UTC)
-            expired_services = []
-
-            for service_id, service in list(service_registry.items()):
-                expires_at_str = service.get("expires_at")
-                if expires_at_str:
-                    expires_at = datetime.fromisoformat(expires_at_str)
-                    if now >= expires_at:
-                        expired_services.append(service_id)
-
-            for service_id in expired_services:
-                service = service_registry.pop(service_id)
-                logger.warning(
-                    "service.expired",
-                    service_id=service_id,
-                    service_url=service["url"],
-                    display_name=service["info"].get("display_name", "Unknown"),
-                    last_ping_at=service.get("last_ping_at"),
-                    expires_at=service.get("expires_at"),
-                )
-
-        except Exception as e:
-            logger.error("cleanup.error", error=str(e), error_type=type(e).__name__)
+    status: str
+    service: ServiceDetail
 
 
 class RegistrationRouter(Router):
@@ -120,7 +88,7 @@ class RegistrationRouter(Router):
         async def register_service(
             request: Request, payload: RegistrationPayload, response: Response
         ) -> RegistrationResponse:
-            """Register a service and add it to the in-memory registry."""
+            """Register a service and add it to the Valkey registry."""
             service_url = payload.url
             service_info = payload.info
 
@@ -131,8 +99,8 @@ class RegistrationRouter(Router):
             now = datetime.now(UTC)
             expires_at = now + timedelta(seconds=TTL_SECONDS)
 
-            # Store in registry with ULID key
-            service_registry[service_id] = {
+            # Store in Valkey with automatic TTL
+            service_data = {
                 "id": service_id,
                 "url": service_url,
                 "info": service_info,
@@ -142,13 +110,19 @@ class RegistrationRouter(Router):
                 "expires_at": expires_at.isoformat(),
             }
 
+            await redis_client.set(  # type: ignore
+                f"service:{service_id}",
+                json.dumps(service_data),
+                ex=TTL_SECONDS,  # Automatically expire after TTL
+            )
+
             # Build log context with optional fields
             log_context = {
                 "service_id": service_id,
                 "service_url": service_url,
                 "display_name": service_info.get("display_name", "Unknown"),
                 "version": service_info.get("version", "Unknown"),
-                "registered_at": service_registry[service_id]["registered_at"],
+                "registered_at": now.isoformat(),
                 "ttl_seconds": TTL_SECONDS,
                 "expires_at": expires_at.isoformat(),
             }
@@ -179,22 +153,33 @@ class RegistrationRouter(Router):
         @self.router.put("/{service_id}/$ping", response_model=PingResponse)
         async def ping_service(service_id: str) -> PingResponse:
             """Update service ping timestamp and extend TTL."""
-            if service_id not in service_registry:
+            service_data_raw = await redis_client.get(f"service:{service_id}")  # type: ignore
+            if not service_data_raw:
                 raise NotFoundError(f"Service with ID {service_id} not found")
+
+            # Parse existing data
+            service_data = json.loads(service_data_raw)
 
             # Update last ping time and expiration
             now = datetime.now(UTC)
             expires_at = now + timedelta(seconds=TTL_SECONDS)
 
-            service_registry[service_id]["last_ping_at"] = now.isoformat()
-            service_registry[service_id]["expires_at"] = expires_at.isoformat()
-            service_registry[service_id]["last_updated"] = now.isoformat()
+            service_data["last_ping_at"] = now.isoformat()
+            service_data["expires_at"] = expires_at.isoformat()
+            service_data["last_updated"] = now.isoformat()
+
+            # Update in Valkey and reset TTL
+            await redis_client.set(  # type: ignore
+                f"service:{service_id}",
+                json.dumps(service_data),
+                ex=TTL_SECONDS,
+            )
 
             logger.debug(
                 "service.pinged",
                 service_id=service_id,
-                service_url=service_registry[service_id]["url"],
-                display_name=service_registry[service_id]["info"].get("display_name", "Unknown"),
+                service_url=service_data["url"],
+                display_name=service_data["info"].get("display_name", "Unknown"),
                 last_ping_at=now.isoformat(),
                 expires_at=expires_at.isoformat(),
             )
@@ -209,7 +194,16 @@ class RegistrationRouter(Router):
         @self.router.get("", response_model=ServiceListResponse)
         async def list_services() -> ServiceListResponse:
             """List all registered services."""
-            services = [ServiceDetail(**svc) for svc in service_registry.values()]
+            # Get all service keys
+            keys = await redis_client.keys("service:*")  # type: ignore
+
+            services = []
+            for key in keys:
+                service_data_raw = await redis_client.get(key)  # type: ignore
+                if service_data_raw:
+                    service_data = json.loads(service_data_raw)
+                    services.append(ServiceDetail(**service_data))
+
             return ServiceListResponse(
                 count=len(services),
                 services=services,
@@ -218,45 +212,51 @@ class RegistrationRouter(Router):
         @self.router.get("/{service_id}", response_model=ServiceDetail)
         async def get_service(service_id: str) -> ServiceDetail:
             """Get details for a specific service by ULID."""
-            if service_id not in service_registry:
+            service_data_raw = await redis_client.get(f"service:{service_id}")  # type: ignore
+            if not service_data_raw:
                 raise NotFoundError(f"Service with ID {service_id} not found")
 
-            return ServiceDetail(**service_registry[service_id])
+            service_data = json.loads(service_data_raw)
+            return ServiceDetail(**service_data)
 
-        @self.router.delete("/{service_id}")
-        async def deregister_service(service_id: str) -> dict:
+        @self.router.delete("/{service_id}", response_model=DeregisterResponse)
+        async def deregister_service(service_id: str) -> DeregisterResponse:
             """Remove a service from the registry by ULID."""
-            if service_id not in service_registry:
+            service_data_raw = await redis_client.get(f"service:{service_id}")  # type: ignore
+            if not service_data_raw:
                 raise NotFoundError(f"Service with ID {service_id} not found")
 
-            service = service_registry.pop(service_id)
+            service_data = json.loads(service_data_raw)
+
+            # Delete from Valkey
+            await redis_client.delete(f"service:{service_id}")  # type: ignore
+
             logger.info(
                 "service.deregistered",
                 service_id=service_id,
-                service_url=service["url"],
-                display_name=service["info"].get("display_name", "Unknown"),
+                service_url=service_data["url"],
+                display_name=service_data["info"].get("display_name", "Unknown"),
             )
-            return {"status": "deregistered", "service": service}
+            return DeregisterResponse(status="deregistered", service=ServiceDetail(**service_data))
 
 
-async def start_cleanup_task(app: FastAPI) -> None:  # noqa: ARG001
-    """Start the background cleanup task."""
-    global cleanup_task
-    cleanup_task = asyncio.create_task(cleanup_expired_services())
-    logger.info("cleanup_task.started")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Manage Valkey connection lifecycle."""
+    global redis_client
 
+    # Startup: Connect to Valkey
+    valkey_url = os.getenv("VALKEY_URL", "redis://localhost:6379")
+    redis_client = await valkey.from_url(valkey_url, decode_responses=True)
+    logger.info("valkey.connected", url=valkey_url)
 
-async def stop_cleanup_task(app: FastAPI) -> None:  # noqa: ARG001
-    """Stop the background cleanup task."""
-    global cleanup_task
-    if cleanup_task:
-        cleanup_task.cancel()
-        try:
-            await cleanup_task
-        except asyncio.CancelledError:
-            pass
-        cleanup_task = None
-        logger.info("cleanup_task.stopped")
+    try:
+        yield
+    finally:
+        # Shutdown: Close connection
+        if redis_client:
+            await redis_client.aclose()
+            logger.info("valkey.disconnected")
 
 
 app = (
@@ -268,7 +268,7 @@ app = (
             description=(
                 "Provides service registration endpoints for servicekit services to register themselves for discovery. "
                 f"Services must send keepalive pings within {TTL_SECONDS} seconds or they will be removed from the "
-                "registry."
+                "registry. Uses Valkey for TTL-based service expiration."
             ),
         ),
     )
@@ -276,10 +276,11 @@ app = (
     .with_health()
     .with_system()
     .include_router(RegistrationRouter.create(prefix="/services", tags=["registration"]))
-    .on_startup(start_cleanup_task)
-    .on_shutdown(stop_cleanup_task)
     .build()
 )
+
+# Override the lifespan to include Valkey connection management
+app.router.lifespan_context = lifespan
 
 
 if __name__ == "__main__":

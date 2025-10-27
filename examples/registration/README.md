@@ -12,16 +12,22 @@ Demonstrates automatic service registration with an orchestrator for service dis
 - **Multi-Service Setup**: Example with multiple services (svca, svcb)
 - **Keepalive & TTL**: Services send periodic pings to stay registered (30s TTL, 10s interval)
 - **Auto-Deregistration**: Services gracefully deregister on shutdown
-- **Automatic Cleanup**: Orchestrator removes services that stop pinging
+- **Valkey-based Storage**: TTL and expiration handled by Valkey (no manual cleanup needed)
 
 ## Quick Start
 
 ### Local Development
 
+**Prerequisites**: Valkey or Redis running on localhost:6379
+
 #### Run Orchestrator
 
 ```bash
+# Start Valkey (using Docker)
+docker run -d -p 6379:6379 valkey/valkey:7
+
 # Install dependencies
+cd examples/registration
 uv sync
 
 # Run the mock orchestrator
@@ -66,10 +72,10 @@ docker compose down
 ## Architecture
 
 ```
-┌─────────────┐
-│ Orchestrator│  ← Registration endpoint at :9000/services/$register
-│   (port 9000)│
-└──────▲──────┘
+┌─────────────┐     ┌────────┐
+│ Orchestrator│────→│ Valkey │  TTL-based service expiration
+│   (port 9000)│     │  :6379 │
+└──────▲──────┘     └────────┘
        │
        │ HTTP POST on startup
        │
@@ -138,20 +144,20 @@ docker compose down
 
 ### How It Works
 
-The orchestrator tracks service liveliness using a Time-To-Live (TTL) mechanism:
+The orchestrator uses Valkey's built-in TTL mechanism for automatic service expiration:
 
 - **TTL**: 30 seconds (configurable in `orchestrator.py`)
 - **Ping Interval**: 10 seconds (services send keepalive every 10s)
-- **Cleanup Interval**: 5 seconds (orchestrator checks for expired services every 5s)
+- **Expiration**: Handled automatically by Valkey (no manual cleanup task needed)
 
 **Timeline Example:**
-- `T+0s`: Service registers, `expires_at = T+30s`
-- `T+10s`: Service pings, `expires_at = T+40s` (resets)
-- `T+20s`: Service pings, `expires_at = T+50s`
-- `T+30s`: Service pings, `expires_at = T+60s`
+- `T+0s`: Service registers, Valkey stores with `EX 30` (expires at T+30s)
+- `T+10s`: Service pings, Valkey resets TTL to 30s (expires at T+40s)
+- `T+20s`: Service pings, Valkey resets TTL to 30s (expires at T+50s)
+- `T+30s`: Service pings, Valkey resets TTL to 30s (expires at T+60s)
 - If service crashes at `T+35s` and stops pinging:
-  - `T+40s`: Cleanup detects service expired at `T+30s` (last ping)
-  - Service removed from registry
+  - `T+65s`: Valkey automatically removes the key (30s after last ping)
+  - Service no longer appears in registry
 
 ### Ping Endpoint
 

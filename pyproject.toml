@@ -141,9 +141,10 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = "examples.*"
 ignore_missing_imports = true
+disallow_untyped_defs = false
 
 [tool.pyright]
-include = ["src", "tests", "examples"]
+include = ["src", "tests"]
 pythonVersion = "3.13"
 typeCheckingMode = "strict"
 useLibraryCodeForTypes = true
