@@ -84,6 +84,7 @@ clean:
 	@rm -rf .pytype/
 	@rm -rf dist/ build/ *.egg-info
 	@rm -f examples/*/uv.lock
+	@find examples -type d -name ".venv" -exec rm -rf {} + 2>/dev/null || true
 
 # ==============================================================================
 # Default
