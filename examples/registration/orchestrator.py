@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-import valkey.asyncio as valkey
+import valkey.asyncio as valkey  # type: ignore[import-not-found]
 from fastapi import FastAPI, Request, Response
 from pydantic import BaseModel
 from ulid import ULID
@@ -22,7 +22,7 @@ logger = get_logger(__name__)
 TTL_SECONDS = 30  # Time before a service is considered dead without ping
 
 # Valkey client (initialized in lifespan)
-redis_client: valkey.Valkey | None = None
+redis_client: valkey.Valkey | None = None  # type: ignore[no-any-unimported]
 
 
 class RegistrationPayload(BaseModel):
