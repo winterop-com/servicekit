@@ -28,15 +28,31 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{orchestratorUrl}}/services/01K83B5V85PQZ1HTH4DQ7NC9JM",
+							"raw": "{{orchestratorUrl}}/services/{{serviceId}}",
 							"host": ["{{orchestratorUrl}}"],
-							"path": ["services", "01K83B5V85PQZ1HTH4DQ7NC9JM"]
+							"path": ["services", "{{serviceId}}"]
 						}
 					},
 					"response": []
 				},
 				{
 					"name": "Register Service (Manual)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Save the service ID from registration response",
+									"const response = pm.response.json();",
+									"if (response.id) {",
+									"    pm.collectionVariables.set('serviceId', response.id);",
+									"    console.log('Service registered with ID: ' + response.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "POST",
 						"header": [
@@ -63,9 +79,9 @@
 						"method": "PUT",
 						"header": [],
 						"url": {
-							"raw": "{{orchestratorUrl}}/services/01K83B5V85PQZ1HTH4DQ7NC9JM/$ping",
+							"raw": "{{orchestratorUrl}}/services/{{serviceId}}/$ping",
 							"host": ["{{orchestratorUrl}}"],
-							"path": ["services", "01K83B5V85PQZ1HTH4DQ7NC9JM", "$ping"]
+							"path": ["services", "{{serviceId}}", "$ping"]
 						}
 					},
 					"response": []
@@ -76,9 +92,9 @@
 						"method": "DELETE",
 						"header": [],
 						"url": {
-							"raw": "{{orchestratorUrl}}/services/01K83B5V85PQZ1HTH4DQ7NC9JM",
+							"raw": "{{orchestratorUrl}}/services/{{serviceId}}",
 							"host": ["{{orchestratorUrl}}"],
-							"path": ["services", "01K83B5V85PQZ1HTH4DQ7NC9JM"]
+							"path": ["services", "{{serviceId}}"]
 						}
 					},
 					"response": []
@@ -201,6 +217,11 @@
 		{
 			"key": "svcbUrl",
 			"value": "http://127.0.0.1:8001",
+			"type": "string"
+		},
+		{
+			"key": "serviceId",
+			"value": "",
 			"type": "string"
 		}
 	]
