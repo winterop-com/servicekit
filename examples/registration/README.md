@@ -24,7 +24,7 @@ Demonstrates automatic service registration with an orchestrator for service dis
 
 ```bash
 # Start Valkey (using Docker)
-docker run -d -p 6379:6379 valkey/valkey:7
+docker run -d -p 6379:6379 valkey/valkey:8
 
 # Install dependencies
 cd examples/registration
