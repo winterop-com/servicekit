@@ -1,8 +1,9 @@
 """Mock orchestrator service that receives service registrations."""
 
-from datetime import UTC, datetime
+import asyncio
+from datetime import UTC, datetime, timedelta
 
-from fastapi import Request, Response
+from fastapi import FastAPI, Request, Response
 from pydantic import BaseModel
 from ulid import ULID
 
@@ -13,10 +14,17 @@ from servicekit.logging import get_logger
 
 logger = get_logger(__name__)
 
+# Configuration
+TTL_SECONDS = 30  # Time before a service is considered dead without ping
+CLEANUP_INTERVAL_SECONDS = 5  # How often to check for expired services
+
 # In-memory registry keyed by ULID
 # NOTE: This uses an in-memory dict which only works with a single worker.
 # For production use with multiple workers, use a shared data store (Redis, database, etc.)
 service_registry: dict[str, dict] = {}
+
+# Background task for cleanup
+cleanup_task: asyncio.Task | None = None
 
 
 class RegistrationPayload(BaseModel):
@@ -33,6 +41,8 @@ class RegistrationResponse(BaseModel):
     status: str
     service_url: str
     message: str
+    ttl_seconds: int
+    ping_url: str
 
 
 class ServiceDetail(BaseModel):
@@ -43,6 +53,8 @@ class ServiceDetail(BaseModel):
     info: dict
     registered_at: str
     last_updated: str
+    last_ping_at: str
+    expires_at: str
 
 
 class ServiceListResponse(BaseModel):
@@ -50,6 +62,48 @@ class ServiceListResponse(BaseModel):
 
     count: int
     services: list[ServiceDetail]
+
+
+class PingResponse(BaseModel):
+    """Response from service ping."""
+
+    id: str
+    status: str
+    last_ping_at: str
+    expires_at: str
+
+
+async def cleanup_expired_services() -> None:
+    """Background task to remove expired services from registry."""
+    logger.info("cleanup.started", interval_seconds=CLEANUP_INTERVAL_SECONDS, ttl_seconds=TTL_SECONDS)
+
+    while True:
+        try:
+            await asyncio.sleep(CLEANUP_INTERVAL_SECONDS)
+
+            now = datetime.now(UTC)
+            expired_services = []
+
+            for service_id, service in list(service_registry.items()):
+                expires_at_str = service.get("expires_at")
+                if expires_at_str:
+                    expires_at = datetime.fromisoformat(expires_at_str)
+                    if now >= expires_at:
+                        expired_services.append(service_id)
+
+            for service_id in expired_services:
+                service = service_registry.pop(service_id)
+                logger.warning(
+                    "service.expired",
+                    service_id=service_id,
+                    service_url=service["url"],
+                    display_name=service["info"].get("display_name", "Unknown"),
+                    last_ping_at=service.get("last_ping_at"),
+                    expires_at=service.get("expires_at"),
+                )
+
+        except Exception as e:
+            logger.error("cleanup.error", error=str(e), error_type=type(e).__name__)
 
 
 class RegistrationRouter(Router):
@@ -69,13 +123,19 @@ class RegistrationRouter(Router):
             # Generate ULID for this service
             service_id = str(ULID())
 
+            # Calculate expiration time
+            now = datetime.now(UTC)
+            expires_at = now + timedelta(seconds=TTL_SECONDS)
+
             # Store in registry with ULID key
             service_registry[service_id] = {
                 "id": service_id,
                 "url": service_url,
                 "info": service_info,
-                "registered_at": datetime.now(UTC).isoformat(),
-                "last_updated": datetime.now(UTC).isoformat(),
+                "registered_at": now.isoformat(),
+                "last_updated": now.isoformat(),
+                "last_ping_at": now.isoformat(),
+                "expires_at": expires_at.isoformat(),
             }
 
             # Build log context with optional fields
@@ -85,6 +145,8 @@ class RegistrationRouter(Router):
                 "display_name": service_info.get("display_name", "Unknown"),
                 "version": service_info.get("version", "Unknown"),
                 "registered_at": service_registry[service_id]["registered_at"],
+                "ttl_seconds": TTL_SECONDS,
+                "expires_at": expires_at.isoformat(),
             }
             if "deployment_env" in service_info:
                 log_context["deployment_env"] = service_info["deployment_env"]
@@ -98,11 +160,46 @@ class RegistrationRouter(Router):
             # Set Location header to the created resource
             response.headers["Location"] = build_location_url(request, f"/services/{service_id}")
 
+            # Build ping URL
+            ping_url = build_location_url(request, f"/services/{service_id}/$ping")
+
             return RegistrationResponse(
                 id=service_id,
                 status="registered",
                 service_url=service_url,
                 message=f"Service {service_info.get('display_name', 'Unknown')} registered successfully",
+                ttl_seconds=TTL_SECONDS,
+                ping_url=ping_url,
+            )
+
+        @self.router.put("/{service_id}/$ping", response_model=PingResponse)
+        async def ping_service(service_id: str) -> PingResponse:
+            """Update service ping timestamp and extend TTL."""
+            if service_id not in service_registry:
+                raise NotFoundError(f"Service with ID {service_id} not found")
+
+            # Update last ping time and expiration
+            now = datetime.now(UTC)
+            expires_at = now + timedelta(seconds=TTL_SECONDS)
+
+            service_registry[service_id]["last_ping_at"] = now.isoformat()
+            service_registry[service_id]["expires_at"] = expires_at.isoformat()
+            service_registry[service_id]["last_updated"] = now.isoformat()
+
+            logger.debug(
+                "service.pinged",
+                service_id=service_id,
+                service_url=service_registry[service_id]["url"],
+                display_name=service_registry[service_id]["info"].get("display_name", "Unknown"),
+                last_ping_at=now.isoformat(),
+                expires_at=expires_at.isoformat(),
+            )
+
+            return PingResponse(
+                id=service_id,
+                status="alive",
+                last_ping_at=now.isoformat(),
+                expires_at=expires_at.isoformat(),
             )
 
         @self.router.get("", response_model=ServiceListResponse)
@@ -138,6 +235,26 @@ class RegistrationRouter(Router):
             return {"status": "deregistered", "service": service}
 
 
+async def start_cleanup_task(app: FastAPI) -> None:  # noqa: ARG001
+    """Start the background cleanup task."""
+    global cleanup_task
+    cleanup_task = asyncio.create_task(cleanup_expired_services())
+    logger.info("cleanup_task.started")
+
+
+async def stop_cleanup_task(app: FastAPI) -> None:  # noqa: ARG001
+    """Stop the background cleanup task."""
+    global cleanup_task
+    if cleanup_task:
+        cleanup_task.cancel()
+        try:
+            await cleanup_task
+        except asyncio.CancelledError:
+            pass
+        cleanup_task = None
+        logger.info("cleanup_task.stopped")
+
+
 app = (
     BaseServiceBuilder(
         info=ServiceInfo(
@@ -145,7 +262,9 @@ app = (
             version="1.0.0",
             summary="Simple orchestrator for testing service registration",
             description=(
-                "Provides service registration endpoints for servicekit services to register themselves for discovery."
+                "Provides service registration endpoints for servicekit services to register themselves for discovery. "
+                f"Services must send keepalive pings within {TTL_SECONDS} seconds or they will be removed from the "
+                "registry."
             ),
         ),
     )
@@ -153,6 +272,8 @@ app = (
     .with_health()
     .with_system()
     .include_router(RegistrationRouter.create(prefix="/services", tags=["registration"]))
+    .on_startup(start_cleanup_task)
+    .on_shutdown(stop_cleanup_task)
     .build()
 )
 

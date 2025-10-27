@@ -90,6 +90,9 @@ class _RegistrationOptions:
     retry_delay: float
     fail_on_error: bool
     timeout: float
+    enable_keepalive: bool
+    keepalive_interval: float
+    auto_deregister: bool
 
 
 class ServiceInfo(BaseModel):
@@ -315,6 +318,9 @@ class BaseServiceBuilder:
         retry_delay: float = 2.0,
         fail_on_error: bool = False,
         timeout: float = 10.0,
+        enable_keepalive: bool = True,
+        keepalive_interval: float = 10.0,
+        auto_deregister: bool = True,
     ) -> Self:
         """Enable service registration with orchestrator for service discovery."""
         self._registration_options = _RegistrationOptions(
@@ -328,6 +334,9 @@ class BaseServiceBuilder:
             retry_delay=retry_delay,
             fail_on_error=fail_on_error,
             timeout=timeout,
+            enable_keepalive=enable_keepalive,
+            keepalive_interval=keepalive_interval,
+            auto_deregister=auto_deregister,
         )
         return self
 
@@ -641,10 +650,11 @@ class BaseServiceBuilder:
                 await hook(app)
 
             # Register with orchestrator if enabled
+            registration_info = None
             if registration_options is not None:
-                from .registration import register_service
+                from .registration import register_service, start_keepalive
 
-                await register_service(
+                registration_info = await register_service(
                     orchestrator_url=registration_options.orchestrator_url,
                     host=registration_options.host,
                     port=registration_options.port,
@@ -658,9 +668,38 @@ class BaseServiceBuilder:
                     timeout=registration_options.timeout,
                 )
 
+                # Start keepalive if registration succeeded and enabled
+                if registration_info and registration_options.enable_keepalive:
+                    ping_url = registration_info.get("ping_url")
+                    if ping_url:
+                        await start_keepalive(
+                            ping_url=ping_url,
+                            interval=registration_options.keepalive_interval,
+                            timeout=registration_options.timeout,
+                        )
+
             try:
                 yield
             finally:
+                # Stop keepalive and deregister service if enabled
+                if registration_options is not None and registration_info:
+                    from .registration import deregister_service, stop_keepalive
+
+                    # Stop keepalive task
+                    if registration_options.enable_keepalive:
+                        await stop_keepalive()
+
+                    # Deregister from orchestrator
+                    if registration_options.auto_deregister:
+                        service_id = registration_info.get("service_id")
+                        orchestrator_url = registration_info.get("orchestrator_url")
+                        if service_id and orchestrator_url:
+                            await deregister_service(
+                                service_id=service_id,
+                                orchestrator_url=orchestrator_url,
+                                timeout=registration_options.timeout,
+                            )
+
                 for hook in shutdown_hooks:
                     await hook(app)
                 app.state.database = None

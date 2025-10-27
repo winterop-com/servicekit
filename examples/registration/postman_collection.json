@@ -58,6 +58,19 @@
 					"response": []
 				},
 				{
+					"name": "Ping Service (Keepalive)",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"url": {
+							"raw": "{{orchestratorUrl}}/services/01K83B5V85PQZ1HTH4DQ7NC9JM/$ping",
+							"host": ["{{orchestratorUrl}}"],
+							"path": ["services", "01K83B5V85PQZ1HTH4DQ7NC9JM", "$ping"]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Deregister Service",
 					"request": {
 						"method": "DELETE",
