@@ -19,8 +19,12 @@ TTL_SECONDS = 30  # Time before a service is considered dead without ping
 CLEANUP_INTERVAL_SECONDS = 5  # How often to check for expired services
 
 # In-memory registry keyed by ULID
-# NOTE: This uses an in-memory dict which only works with a single worker.
-# For production use with multiple workers, use a shared data store (Redis, database, etc.)
+# NOTE: This is a simple example suitable for demos and single-worker deployments.
+# For production use, consider Redis or Valkey which provide:
+#   - Built-in TTL (no manual cleanup task needed)
+#   - Multi-worker support via shared state
+#   - Atomic operations for concurrent updates
+# Example: await redis.set(f"service:{id}", data, ex=TTL_SECONDS)
 service_registry: dict[str, dict] = {}
 
 # Background task for cleanup
