@@ -34,7 +34,6 @@ nav:
   - Guides:
       - Authentication: guides/authentication.md
       - App Hosting: guides/app-hosting.md
-      - DataFrame: guides/dataframe.md
       - Health Checks: guides/health-checks.md
       - Job Scheduler: guides/job-scheduler.md
       - Monitoring: guides/monitoring.md
