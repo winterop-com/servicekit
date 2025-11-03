@@ -42,18 +42,6 @@ Framework-agnostic infrastructure components.
 
 ::: servicekit.logging
 
-## Data Interchange
-
-Universal data schemas for HTTP APIs.
-
-### DataFrame
-
-::: servicekit.data.DataFrame
-
-### GroupBy
-
-::: servicekit.data.GroupBy
-
 ## FastAPI Layer
 
 FastAPI-specific components for building web services.
