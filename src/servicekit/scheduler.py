@@ -19,7 +19,7 @@ type JobTarget = Callable[..., Any] | Callable[..., Awaitable[Any]] | Awaitable[
 type JobExecutor = Callable[[], Awaitable[Any]]
 
 
-class JobScheduler(BaseModel, ABC):
+class Scheduler(BaseModel, ABC):
     """Abstract job scheduler interface for async task management."""
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -71,10 +71,10 @@ class JobScheduler(BaseModel, ABC):
         ...
 
 
-class AIOJobScheduler(JobScheduler):
+class InMemoryScheduler(Scheduler):
     """In-memory asyncio scheduler. Sync callables run in thread pool, concurrency controlled via semaphore."""
 
-    name: str = Field(default="chap")
+    name: str = Field(default="servicekit")
     max_concurrency: int | None = Field(default=None)
 
     _records: dict[ULID, JobRecord] = PrivateAttr(default_factory=dict)

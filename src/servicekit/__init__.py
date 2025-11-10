@@ -27,7 +27,7 @@ from .logging import add_request_context, clear_request_context, configure_loggi
 from .manager import BaseManager, LifecycleHooks, Manager
 from .models import Base, Entity
 from .repository import BaseRepository, Repository
-from .scheduler import AIOJobScheduler, JobScheduler
+from .scheduler import InMemoryScheduler, Scheduler
 from .schemas import (
     BulkOperationError,
     BulkOperationResult,
@@ -67,8 +67,8 @@ __all__ = [
     "JobRecord",
     "JobStatus",
     # Job scheduling
-    "JobScheduler",
-    "AIOJobScheduler",
+    "Scheduler",
+    "InMemoryScheduler",
     # Exceptions
     "ErrorType",
     "ServicekitException",

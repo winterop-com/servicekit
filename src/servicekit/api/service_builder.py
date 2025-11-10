@@ -615,9 +615,9 @@ class BaseServiceBuilder:
 
             # Initialize scheduler if jobs are enabled
             if job_options is not None:
-                from servicekit.scheduler import AIOJobScheduler
+                from servicekit.scheduler import InMemoryScheduler
 
-                scheduler = AIOJobScheduler(max_concurrency=job_options.max_concurrency)
+                scheduler = InMemoryScheduler(max_concurrency=job_options.max_concurrency)
                 set_scheduler(scheduler)
                 app.state.scheduler = scheduler
 

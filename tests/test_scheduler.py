@@ -5,18 +5,18 @@ import asyncio
 import pytest
 import ulid
 
-from servicekit import AIOJobScheduler, JobStatus
+from servicekit import InMemoryScheduler, JobStatus
 
 ULID = ulid.ULID
 
 
-class TestAIOJobScheduler:
-    """Test AIOJobScheduler functionality."""
+class TestInMemoryScheduler:
+    """Test InMemoryScheduler functionality."""
 
     @pytest.mark.asyncio
     async def test_add_simple_async_job(self) -> None:
         """Test adding and executing a simple async job."""
-        scheduler = AIOJobScheduler()
+        scheduler = InMemoryScheduler()
 
         async def simple_task():
             await asyncio.sleep(0.01)
@@ -38,7 +38,7 @@ class TestAIOJobScheduler:
     @pytest.mark.asyncio
     async def test_add_sync_job(self) -> None:
         """Test adding a synchronous callable (runs in thread pool)."""
-        scheduler = AIOJobScheduler()
+        scheduler = InMemoryScheduler()
 
         def sync_task():
             return 42
@@ -52,7 +52,7 @@ class TestAIOJobScheduler:
     @pytest.mark.asyncio
     async def test_job_with_args_kwargs(self) -> None:
         """Test job with positional and keyword arguments."""
-        scheduler = AIOJobScheduler()
+        scheduler = InMemoryScheduler()
 
         async def task_with_args(a: int, b: int, c: int = 10) -> int:
             return a + b + c
@@ -66,7 +66,7 @@ class TestAIOJobScheduler:
     @pytest.mark.asyncio
     async def test_job_lifecycle_states(self) -> None:
         """Test job progresses through states: pending -> running -> completed."""
-        scheduler = AIOJobScheduler()
+        scheduler = InMemoryScheduler()
 
         async def slow_task():
             await asyncio.sleep(0.05)
@@ -90,7 +90,7 @@ class TestAIOJobScheduler:
     @pytest.mark.asyncio
     async def test_job_failure_with_traceback(self) -> None:
         """Test job failure captures error traceback."""
-        scheduler = AIOJobScheduler()
+        scheduler = InMemoryScheduler()
 
         async def failing_task():
             raise ValueError("Something went wrong")
@@ -117,7 +117,7 @@ class TestAIOJobScheduler:
     @pytest.mark.asyncio
     async def test_cancel_running_job(self) -> None:
         """Test canceling a running job."""
-        scheduler = AIOJobScheduler()
+        scheduler = InMemoryScheduler()
 
         async def long_task():
             await asyncio.sleep(10)  # Long enough to cancel
@@ -137,7 +137,7 @@ class TestAIOJobScheduler:
     @pytest.mark.asyncio
     async def test_cancel_completed_job_returns_false(self) -> None:
         """Test canceling already completed job returns False."""
-        scheduler = AIOJobScheduler()
+        scheduler = InMemoryScheduler()
 
         async def quick_task():
             return "done"
@@ -152,7 +152,7 @@ class TestAIOJobScheduler:
     @pytest.mark.asyncio
     async def test_delete_job(self) -> None:
         """Test deleting a job removes all records."""
-        scheduler = AIOJobScheduler()
+        scheduler = InMemoryScheduler()
 
         async def task():
             return "result"
@@ -170,7 +170,7 @@ class TestAIOJobScheduler:
     @pytest.mark.asyncio
     async def test_delete_running_job_cancels_it(self) -> None:
         """Test deleting running job cancels it first."""
-        scheduler = AIOJobScheduler()
+        scheduler = InMemoryScheduler()
 
         async def long_task():
             await asyncio.sleep(10)
@@ -189,7 +189,7 @@ class TestAIOJobScheduler:
     @pytest.mark.asyncio
     async def test_get_all_records_sorted_newest_first(self) -> None:
         """Test get_all_records returns jobs sorted by submission time."""
-        scheduler = AIOJobScheduler()
+        scheduler = InMemoryScheduler()
 
         async def task():
             return "done"
@@ -211,7 +211,7 @@ class TestAIOJobScheduler:
     @pytest.mark.asyncio
     async def test_max_concurrency_limits_parallel_execution(self) -> None:
         """Test max_concurrency limits concurrent job execution."""
-        scheduler = AIOJobScheduler(max_concurrency=2)
+        scheduler = InMemoryScheduler(max_concurrency=2)
 
         running_count = 0
         max_concurrent = 0
@@ -236,7 +236,7 @@ class TestAIOJobScheduler:
     @pytest.mark.asyncio
     async def test_set_max_concurrency_runtime(self) -> None:
         """Test changing max_concurrency at runtime."""
-        scheduler = AIOJobScheduler(max_concurrency=1)
+        scheduler = InMemoryScheduler(max_concurrency=1)
         assert scheduler.max_concurrency == 1
 
         await scheduler.set_max_concurrency(5)
@@ -248,7 +248,7 @@ class TestAIOJobScheduler:
     @pytest.mark.asyncio
     async def test_job_not_found_raises_key_error(self) -> None:
         """Test accessing non-existent job raises KeyError."""
-        scheduler = AIOJobScheduler()
+        scheduler = InMemoryScheduler()
         fake_id = ULID()
 
         with pytest.raises(KeyError):
@@ -269,7 +269,7 @@ class TestAIOJobScheduler:
     @pytest.mark.asyncio
     async def test_get_result_before_completion_raises(self) -> None:
         """Test get_result raises if job not finished."""
-        scheduler = AIOJobScheduler()
+        scheduler = InMemoryScheduler()
 
         async def slow_task():
             await asyncio.sleep(1)
@@ -287,7 +287,7 @@ class TestAIOJobScheduler:
     @pytest.mark.asyncio
     async def test_wait_timeout(self) -> None:
         """Test wait with timeout raises asyncio.TimeoutError."""
-        scheduler = AIOJobScheduler()
+        scheduler = InMemoryScheduler()
 
         async def long_task():
             await asyncio.sleep(10)
@@ -304,7 +304,7 @@ class TestAIOJobScheduler:
     @pytest.mark.asyncio
     async def test_awaitable_target(self) -> None:
         """Test passing an already-created awaitable as target."""
-        scheduler = AIOJobScheduler()
+        scheduler = InMemoryScheduler()
 
         async def task():
             return "result"
@@ -321,7 +321,7 @@ class TestAIOJobScheduler:
     @pytest.mark.asyncio
     async def test_awaitable_target_rejects_args(self) -> None:
         """Test awaitable target raises TypeError if args/kwargs provided."""
-        scheduler = AIOJobScheduler()
+        scheduler = InMemoryScheduler()
 
         async def task():
             return "result"

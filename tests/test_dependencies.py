@@ -16,7 +16,7 @@ from servicekit.api.dependencies import (
     set_database,
     set_scheduler,
 )
-from servicekit.scheduler import JobScheduler
+from servicekit.scheduler import Scheduler
 
 
 @pytest.fixture(autouse=True)
@@ -53,7 +53,7 @@ def test_get_scheduler_raises_when_not_initialized():
 
 def test_get_scheduler_returns_set_scheduler():
     """Test that get_scheduler returns the scheduler after set_scheduler."""
-    mock_scheduler = MagicMock(spec=JobScheduler)
+    mock_scheduler = MagicMock(spec=Scheduler)
     set_scheduler(mock_scheduler)
     assert get_scheduler() is mock_scheduler
 

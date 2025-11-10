@@ -13,7 +13,7 @@ from pydantic import TypeAdapter
 
 from servicekit.api.router import Router
 from servicekit.api.sse import SSE_HEADERS, format_sse_model_event
-from servicekit.scheduler import JobScheduler
+from servicekit.scheduler import Scheduler
 from servicekit.schemas import JobRecord, JobStatus
 
 ULID = ulid.ULID
@@ -26,7 +26,7 @@ class JobRouter(Router):
         self,
         prefix: str,
         tags: list[str],
-        scheduler_factory: Callable[[], JobScheduler],
+        scheduler_factory: Callable[[], Scheduler],
         **kwargs: object,
     ) -> None:
         """Initialize job router with scheduler factory."""
@@ -39,7 +39,7 @@ class JobRouter(Router):
 
         @self.router.get("", summary="List all jobs", response_model=list[JobRecord])
         async def get_jobs(
-            scheduler: JobScheduler = scheduler_dependency,
+            scheduler: Scheduler = scheduler_dependency,
             status_filter: JobStatus | None = None,
         ) -> list[JobRecord]:
             jobs = await scheduler.get_all_records()
@@ -55,7 +55,7 @@ class JobRouter(Router):
         @self.router.get("/{job_id}", summary="Get job by ID", response_model=JobRecord)
         async def get_job(
             job_id: str,
-            scheduler: JobScheduler = scheduler_dependency,
+            scheduler: Scheduler = scheduler_dependency,
         ) -> JobRecord:
             try:
                 ulid_id = ULID.from_str(job_id)
@@ -66,7 +66,7 @@ class JobRouter(Router):
         @self.router.delete("/{job_id}", summary="Cancel and delete job", status_code=status.HTTP_204_NO_CONTENT)
         async def delete_job(
             job_id: str,
-            scheduler: JobScheduler = scheduler_dependency,
+            scheduler: Scheduler = scheduler_dependency,
         ) -> Response:
             try:
                 ulid_id = ULID.from_str(job_id)
@@ -82,7 +82,7 @@ class JobRouter(Router):
         )
         async def stream_job_status(
             job_id: str,
-            scheduler: JobScheduler = scheduler_dependency,
+            scheduler: Scheduler = scheduler_dependency,
             poll_interval: float = 0.5,
         ) -> StreamingResponse:
             """Stream real-time job status updates using Server-Sent Events."""

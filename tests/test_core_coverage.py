@@ -154,9 +154,9 @@ async def test_scheduler_duplicate_job_error():
     """Test scheduler raises error when duplicate job ID exists."""
     from unittest.mock import patch
 
-    from servicekit.scheduler import AIOJobScheduler
+    from servicekit.scheduler import InMemoryScheduler
 
-    scheduler = AIOJobScheduler()
+    scheduler = InMemoryScheduler()
 
     # Create a job
     async def dummy_job():
@@ -174,9 +174,9 @@ async def test_scheduler_wait_job_not_found():
     """Test scheduler wait raises KeyError for non-existent job."""
     from ulid import ULID
 
-    from servicekit.scheduler import AIOJobScheduler
+    from servicekit.scheduler import InMemoryScheduler
 
-    scheduler = AIOJobScheduler()
+    scheduler = InMemoryScheduler()
 
     # Try to wait for a job that was never added
     fake_job_id = ULID()

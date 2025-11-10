@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 from servicekit.api import BaseServiceBuilder, Router, ServiceInfo, build_location_url
 from servicekit.api.dependencies import get_scheduler
 from servicekit.exceptions import NotFoundError
-from servicekit.scheduler import JobScheduler
+from servicekit.scheduler import Scheduler
 from servicekit.schemas import JobRecord
 
 ULID = ulid.ULID
@@ -63,7 +63,7 @@ class ComputeRouter(Router):
             compute_request: ComputeRequest,
             request: Request,
             response: Response,
-            scheduler: Annotated[JobScheduler, Depends(get_scheduler)],
+            scheduler: Annotated[Scheduler, Depends(get_scheduler)],
         ) -> ComputeResponse:
             """Submit a computation job to the scheduler.
 
@@ -90,7 +90,7 @@ class ComputeRouter(Router):
         @self.router.get("/compute/{job_id}/result", response_model=ComputeResultResponse)
         async def get_computation_result(  # pyright: ignore[reportUnusedFunction]
             job_id: str,
-            scheduler: Annotated[JobScheduler, Depends(get_scheduler)],
+            scheduler: Annotated[Scheduler, Depends(get_scheduler)],
         ) -> ComputeResultResponse:
             """Get the result or status of a computation job."""
             ulid_id = ULID.from_str(job_id)

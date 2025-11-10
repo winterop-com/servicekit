@@ -9,7 +9,7 @@ from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from servicekit import Database
-from servicekit.scheduler import JobScheduler
+from servicekit.scheduler import Scheduler
 
 if TYPE_CHECKING:
     from .app import AppManager
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 _database: Database | None = None
 
 # Global scheduler instance - should be initialized at app startup
-_scheduler: JobScheduler | None = None
+_scheduler: Scheduler | None = None
 
 
 def set_database(database: Database) -> None:
@@ -40,13 +40,13 @@ async def get_session(db: Annotated[Database, Depends(get_database)]) -> AsyncIt
         yield session
 
 
-def set_scheduler(scheduler: JobScheduler) -> None:
+def set_scheduler(scheduler: Scheduler) -> None:
     """Set the global scheduler instance."""
     global _scheduler
     _scheduler = scheduler
 
 
-def get_scheduler() -> JobScheduler:
+def get_scheduler() -> Scheduler:
     """Get the global scheduler instance."""
     if _scheduler is None:
         raise RuntimeError("Scheduler not initialized. Call set_scheduler() during app startup.")
