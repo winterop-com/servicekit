@@ -1,7 +1,5 @@
 """CRUD router base class for standard REST operations."""
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import Any, Callable
 
