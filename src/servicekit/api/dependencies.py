@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
-from typing import TYPE_CHECKING, Annotated
+from typing import Annotated
 
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,8 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from servicekit import Database
 from servicekit.scheduler import Scheduler
 
-if TYPE_CHECKING:
-    from .app import AppManager
+from .app import AppManager
 
 # Global database instance - should be initialized at app startup
 _database: Database | None = None
