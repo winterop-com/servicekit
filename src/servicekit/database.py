@@ -179,6 +179,16 @@ class SqliteDatabase(Database):
             # For file-based databases, use Alembic migrations
             await super().init()
 
+    async def dispose(self) -> None:
+        """Dispose database with WAL checkpoint for file-based databases."""
+        if not self.is_in_memory():
+            try:
+                async with self.engine.begin() as conn:
+                    await conn.exec_driver_sql("PRAGMA wal_checkpoint(TRUNCATE);")
+            except Exception:
+                pass  # Don't fail dispose on checkpoint error
+        await super().dispose()
+
 
 class SqliteDatabaseBuilder:
     """Builder for SQLite database configuration with fluent API."""

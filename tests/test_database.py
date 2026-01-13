@@ -346,3 +346,23 @@ class TestSqliteDatabaseBuilder:
         builder = SqliteDatabaseBuilder()
         with pytest.raises(ValueError, match="Database URL not configured"):
             builder.build()
+
+    async def test_dispose_checkpoints_wal(self, tmp_path: Path) -> None:
+        """Test that dispose checkpoints WAL for file-based databases."""
+        db_path = tmp_path / "test.db"
+        db = SqliteDatabaseBuilder.from_file(str(db_path)).build()
+        await db.init()
+
+        # Write some data to create WAL entries
+        async with db.session() as session:
+            await session.execute(text("CREATE TABLE test_wal (id INTEGER)"))
+            await session.execute(text("INSERT INTO test_wal VALUES (1)"))
+            await session.commit()
+
+        # WAL file path
+        wal_path = db_path.parent / f"{db_path.name}-wal"
+
+        await db.dispose()
+
+        # After dispose with TRUNCATE checkpoint, WAL should be empty or removed
+        assert not wal_path.exists() or wal_path.stat().st_size == 0
