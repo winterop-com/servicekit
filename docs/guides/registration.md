@@ -94,6 +94,8 @@ The `.with_registration()` method accepts these parameters:
     enable_keepalive=True,              # Enable periodic ping to keep service alive
     keepalive_interval=10.0,            # Seconds between keepalive pings
     auto_deregister=True,               # Automatically deregister on shutdown
+    service_key=None,                   # Service key for authentication
+    service_key_env="SERVICEKIT_REGISTRATION_KEY",  # Env var for service key
 )
 ```
 
@@ -112,6 +114,8 @@ The `.with_registration()` method accepts these parameters:
 - **enable_keepalive** (`bool`): Enable periodic pings to keep service registered. Default: True.
 - **keepalive_interval** (`float`): Seconds between keepalive pings. Default: 10.0.
 - **auto_deregister** (`bool`): Automatically deregister service on shutdown. Default: True.
+- **service_key** (`str | None`): Service key for authentication. If provided, sent as `X-Service-Key` header. Default: None.
+- **service_key_env** (`str`): Environment variable name for service key. Default: `SERVICEKIT_REGISTRATION_KEY`.
 
 ---
 
@@ -705,7 +709,29 @@ Adjust retries for production reliability:
 
 ### Security
 
-**Authentication**: Add API keys or tokens to registration requests (requires custom implementation)
+**Service Key Authentication**: Configure a service key to authenticate with the orchestrator. The key is sent as an `X-Service-Key` header with all registration requests (register, keepalive, deregister).
+
+```python
+# Using environment variable (recommended)
+.with_registration()  # Reads from SERVICEKIT_REGISTRATION_KEY
+
+# Using direct parameter (testing)
+.with_registration(service_key="my-secret-key")
+
+# Using custom environment variable
+.with_registration(service_key_env="MY_APP_REGISTRATION_KEY")
+```
+
+**Docker Compose with service key:**
+
+```yaml
+services:
+  my-service:
+    image: my-service:latest
+    environment:
+      SERVICEKIT_ORCHESTRATOR_URL: http://orchestrator:9000/services/$register
+      SERVICEKIT_REGISTRATION_KEY: ${REGISTRATION_SECRET}
+```
 
 **TLS**: Use HTTPS for orchestrator communication
 
