@@ -203,6 +203,7 @@ Services can configure keepalive behavior:
 | `SERVICEKIT_ORCHESTRATOR_URL` | (required) | Orchestrator registration endpoint |
 | `SERVICEKIT_HOST` | auto-detected | Service hostname (override auto-detection) |
 | `SERVICEKIT_PORT` | 8000 | Service port |
+| `SERVICEKIT_REGISTRATION_KEY` | (optional) | Service key for authenticated registration |
 
 ### Builder Configuration
 
@@ -218,8 +219,55 @@ Services can configure keepalive behavior:
     retry_delay=2.0,
     fail_on_error=False,               # Don't abort on failure
     timeout=10.0,
+    service_key=None,                   # Service key for authentication
+    service_key_env="SERVICEKIT_REGISTRATION_KEY",
 )
 ```
+
+### Service Key Authentication
+
+When registering with an orchestrator that requires authentication, you can configure a service key that will be sent as an `X-Service-Key` header with all registration requests (register, keepalive pings, deregister).
+
+**Using environment variable (recommended for production):**
+
+```yaml
+services:
+  my-service:
+    image: my-service:latest
+    environment:
+      SERVICEKIT_ORCHESTRATOR_URL: http://orchestrator:9000/services/$register
+      SERVICEKIT_REGISTRATION_KEY: ${REGISTRATION_SECRET}
+```
+
+**Using direct parameter (for testing):**
+
+```python
+app = (
+    BaseServiceBuilder(info=ServiceInfo(display_name="My Service"))
+    .with_registration(
+        orchestrator_url="http://orchestrator:9000/services/$register",
+        service_key="my-secret-key",
+    )
+    .build()
+)
+```
+
+**Using custom environment variable name:**
+
+```python
+app = (
+    BaseServiceBuilder(info=ServiceInfo(display_name="My Service"))
+    .with_registration(
+        service_key_env="MY_APP_REGISTRATION_KEY",
+    )
+    .build()
+)
+```
+
+The service key is included in:
+- Initial registration (`POST /services/$register`)
+- Keepalive pings (`PUT /services/{id}/$ping`)
+- Deregistration (`DELETE /services/{id}`)
 
 ## Examples
 

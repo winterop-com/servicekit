@@ -93,6 +93,8 @@ class _RegistrationOptions:
     enable_keepalive: bool
     keepalive_interval: float
     auto_deregister: bool
+    service_key: str | None
+    service_key_env: str
 
 
 class ServiceInfo(BaseModel):
@@ -321,6 +323,8 @@ class BaseServiceBuilder:
         enable_keepalive: bool = True,
         keepalive_interval: float = 10.0,
         auto_deregister: bool = True,
+        service_key: str | None = None,
+        service_key_env: str = "SERVICEKIT_REGISTRATION_KEY",
     ) -> Self:
         """Enable service registration with orchestrator for service discovery."""
         self._registration_options = _RegistrationOptions(
@@ -337,6 +341,8 @@ class BaseServiceBuilder:
             enable_keepalive=enable_keepalive,
             keepalive_interval=keepalive_interval,
             auto_deregister=auto_deregister,
+            service_key=service_key,
+            service_key_env=service_key_env,
         )
         return self
 
@@ -666,6 +672,8 @@ class BaseServiceBuilder:
                     retry_delay=registration_options.retry_delay,
                     fail_on_error=registration_options.fail_on_error,
                     timeout=registration_options.timeout,
+                    service_key=registration_options.service_key,
+                    service_key_env=registration_options.service_key_env,
                 )
 
                 # Start keepalive if registration succeeded and enabled
@@ -676,6 +684,8 @@ class BaseServiceBuilder:
                             ping_url=ping_url,
                             interval=registration_options.keepalive_interval,
                             timeout=registration_options.timeout,
+                            service_key=registration_options.service_key,
+                            service_key_env=registration_options.service_key_env,
                         )
 
             try:
@@ -698,6 +708,8 @@ class BaseServiceBuilder:
                                 service_id=service_id,
                                 orchestrator_url=orchestrator_url,
                                 timeout=registration_options.timeout,
+                                service_key=registration_options.service_key,
+                                service_key_env=registration_options.service_key_env,
                             )
 
                 for hook in shutdown_hooks:
