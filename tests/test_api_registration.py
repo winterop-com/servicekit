@@ -642,3 +642,205 @@ async def test_deregister_service_handles_errors():
             orchestrator_url="http://orchestrator:9000/services/$register",
             timeout=5.0,
         )
+
+
+@pytest.mark.asyncio
+async def test_registration_with_service_key_parameter():
+    """Test registration sends X-Service-Key header when service_key parameter is provided."""
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.raise_for_status = MagicMock()
+    mock_response.json = MagicMock(return_value={"id": "01K83B5V85PQZ1HTH4DQ7NC9JM", "status": "registered"})
+
+    with patch("httpx.AsyncClient") as mock_client:
+        mock_client.return_value.__aenter__.return_value.post = AsyncMock(return_value=mock_response)
+
+        info = ServiceInfo(display_name="Test Service", version="1.0.0")
+
+        await register_service(
+            orchestrator_url="http://orchestrator:9000/services/$register",
+            host="test-service",
+            port=8000,
+            info=info,
+            service_key="my-secret-key",
+        )
+
+        # Verify POST was called with X-Service-Key header
+        call_args = mock_client.return_value.__aenter__.return_value.post.call_args
+        headers = call_args[1].get("headers")
+        assert headers is not None
+        assert headers.get("X-Service-Key") == "my-secret-key"
+
+
+@pytest.mark.asyncio
+async def test_registration_with_service_key_from_env():
+    """Test registration sends X-Service-Key header from default environment variable."""
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.raise_for_status = MagicMock()
+    mock_response.json = MagicMock(return_value={"id": "01K83B5V85PQZ1HTH4DQ7NC9JM", "status": "registered"})
+
+    with (
+        patch("httpx.AsyncClient") as mock_client,
+        patch.dict(os.environ, {"SERVICEKIT_REGISTRATION_KEY": "env-secret-key"}),
+    ):
+        mock_client.return_value.__aenter__.return_value.post = AsyncMock(return_value=mock_response)
+
+        info = ServiceInfo(display_name="Test Service", version="1.0.0")
+
+        await register_service(
+            orchestrator_url="http://orchestrator:9000/services/$register",
+            host="test-service",
+            port=8000,
+            info=info,
+        )
+
+        # Verify POST was called with X-Service-Key header from env
+        call_args = mock_client.return_value.__aenter__.return_value.post.call_args
+        headers = call_args[1].get("headers")
+        assert headers is not None
+        assert headers.get("X-Service-Key") == "env-secret-key"
+
+
+@pytest.mark.asyncio
+async def test_registration_with_custom_service_key_env():
+    """Test registration uses custom environment variable name for service key."""
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.raise_for_status = MagicMock()
+    mock_response.json = MagicMock(return_value={"id": "01K83B5V85PQZ1HTH4DQ7NC9JM", "status": "registered"})
+
+    with (
+        patch("httpx.AsyncClient") as mock_client,
+        patch.dict(os.environ, {"MY_CUSTOM_SERVICE_KEY": "custom-env-key"}),
+    ):
+        mock_client.return_value.__aenter__.return_value.post = AsyncMock(return_value=mock_response)
+
+        info = ServiceInfo(display_name="Test Service", version="1.0.0")
+
+        await register_service(
+            orchestrator_url="http://orchestrator:9000/services/$register",
+            host="test-service",
+            port=8000,
+            info=info,
+            service_key_env="MY_CUSTOM_SERVICE_KEY",
+        )
+
+        # Verify POST was called with X-Service-Key header from custom env
+        call_args = mock_client.return_value.__aenter__.return_value.post.call_args
+        headers = call_args[1].get("headers")
+        assert headers is not None
+        assert headers.get("X-Service-Key") == "custom-env-key"
+
+
+@pytest.mark.asyncio
+async def test_registration_without_service_key():
+    """Test registration works without service key (backwards compatibility)."""
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.raise_for_status = MagicMock()
+    mock_response.json = MagicMock(return_value={"id": "01K83B5V85PQZ1HTH4DQ7NC9JM", "status": "registered"})
+
+    with patch("httpx.AsyncClient") as mock_client, patch.dict(os.environ, {}, clear=True):
+        mock_client.return_value.__aenter__.return_value.post = AsyncMock(return_value=mock_response)
+
+        info = ServiceInfo(display_name="Test Service", version="1.0.0")
+
+        await register_service(
+            orchestrator_url="http://orchestrator:9000/services/$register",
+            host="test-service",
+            port=8000,
+            info=info,
+        )
+
+        # Verify POST was called without headers (or with None)
+        call_args = mock_client.return_value.__aenter__.return_value.post.call_args
+        headers = call_args[1].get("headers")
+        assert headers is None
+
+
+@pytest.mark.asyncio
+async def test_service_key_parameter_overrides_env():
+    """Test that service_key parameter takes precedence over environment variable."""
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.raise_for_status = MagicMock()
+    mock_response.json = MagicMock(return_value={"id": "01K83B5V85PQZ1HTH4DQ7NC9JM", "status": "registered"})
+
+    with (
+        patch("httpx.AsyncClient") as mock_client,
+        patch.dict(os.environ, {"SERVICEKIT_REGISTRATION_KEY": "env-key"}),
+    ):
+        mock_client.return_value.__aenter__.return_value.post = AsyncMock(return_value=mock_response)
+
+        info = ServiceInfo(display_name="Test Service", version="1.0.0")
+
+        await register_service(
+            orchestrator_url="http://orchestrator:9000/services/$register",
+            host="test-service",
+            port=8000,
+            info=info,
+            service_key="param-key",  # Should override env
+        )
+
+        # Verify POST was called with parameter value, not env value
+        call_args = mock_client.return_value.__aenter__.return_value.post.call_args
+        headers = call_args[1].get("headers")
+        assert headers is not None
+        assert headers.get("X-Service-Key") == "param-key"
+
+
+@pytest.mark.asyncio
+async def test_keepalive_sends_service_key():
+    """Test that keepalive pings include X-Service-Key header."""
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.raise_for_status = MagicMock()
+    mock_response.json = MagicMock(return_value={"status": "alive", "last_ping_at": "2025-01-01T00:00:00Z"})
+
+    with patch("httpx.AsyncClient") as mock_client:
+        mock_client.return_value.__aenter__.return_value.put = AsyncMock(return_value=mock_response)
+
+        # Start keepalive with service key
+        await start_keepalive(
+            ping_url="http://orchestrator:9000/services/test/$ping",
+            interval=0.1,
+            timeout=5.0,
+            service_key="keepalive-secret-key",
+        )
+
+        # Wait for at least one ping
+        await asyncio.sleep(0.15)
+
+        # Verify PUT was called with X-Service-Key header
+        call_args = mock_client.return_value.__aenter__.return_value.put.call_args
+        headers = call_args[1].get("headers")
+        assert headers is not None
+        assert headers.get("X-Service-Key") == "keepalive-secret-key"
+
+        # Clean up
+        await stop_keepalive()
+
+
+@pytest.mark.asyncio
+async def test_deregister_sends_service_key():
+    """Test that deregistration includes X-Service-Key header."""
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.raise_for_status = MagicMock()
+
+    with patch("httpx.AsyncClient") as mock_client:
+        mock_client.return_value.__aenter__.return_value.delete = AsyncMock(return_value=mock_response)
+
+        await deregister_service(
+            service_id="01K83B5V85PQZ1HTH4DQ7NC9JM",
+            orchestrator_url="http://orchestrator:9000/services/$register",
+            timeout=5.0,
+            service_key="deregister-secret-key",
+        )
+
+        # Verify DELETE was called with X-Service-Key header
+        call_args = mock_client.return_value.__aenter__.return_value.delete.call_args
+        headers = call_args[1].get("headers")
+        assert headers is not None
+        assert headers.get("X-Service-Key") == "deregister-secret-key"

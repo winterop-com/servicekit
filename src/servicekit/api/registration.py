@@ -16,6 +16,14 @@ logger = get_logger(__name__)
 _keepalive_task: asyncio.Task | None = None
 _service_id: str | None = None
 _ping_url: str | None = None
+_service_key: str | None = None
+
+
+def _resolve_service_key(service_key: str | None, service_key_env: str) -> str | None:
+    """Resolve service key from parameter or environment variable."""
+    if service_key:
+        return service_key
+    return os.getenv(service_key_env)
 
 
 async def register_service(
@@ -31,8 +39,17 @@ async def register_service(
     retry_delay: float = 2.0,
     fail_on_error: bool = False,
     timeout: float = 10.0,
+    service_key: str | None = None,
+    service_key_env: str = "SERVICEKIT_REGISTRATION_KEY",
 ) -> dict[str, Any] | None:
     """Register service with orchestrator for service discovery and return registration info."""
+    # Resolve service key for authentication
+    resolved_service_key = _resolve_service_key(service_key, service_key_env)
+
+    # Store globally for keepalive
+    global _service_key
+    _service_key = resolved_service_key
+
     # Resolve orchestrator URL
     resolved_orchestrator_url = orchestrator_url or os.getenv(orchestrator_url_env)
     if not resolved_orchestrator_url:
@@ -114,12 +131,18 @@ async def register_service(
     # Registration with retry logic
     last_error: Exception | None = None
 
+    # Build headers with optional service key
+    headers: dict[str, str] = {}
+    if resolved_service_key:
+        headers["X-Service-Key"] = resolved_service_key
+
     for attempt in range(1, max_retries + 1):
         try:
             async with httpx.AsyncClient(timeout=timeout) as client:
                 response = await client.post(
                     resolved_orchestrator_url,
                     json=payload,
+                    headers=headers if headers else None,
                 )
                 response.raise_for_status()
 
@@ -187,16 +210,21 @@ async def register_service(
     return None
 
 
-async def _keepalive_loop(ping_url: str, interval: float, timeout: float) -> None:
+async def _keepalive_loop(ping_url: str, interval: float, timeout: float, service_key: str | None) -> None:
     """Background task to periodically ping the orchestrator."""
     logger.info("keepalive.started", ping_url=ping_url, interval_seconds=interval)
+
+    # Build headers with optional service key
+    headers: dict[str, str] = {}
+    if service_key:
+        headers["X-Service-Key"] = service_key
 
     while True:
         try:
             await asyncio.sleep(interval)
 
             async with httpx.AsyncClient(timeout=timeout) as client:
-                response = await client.put(ping_url)
+                response = await client.put(ping_url, headers=headers if headers else None)
                 response.raise_for_status()
 
                 response_data = response.json()
@@ -226,6 +254,8 @@ async def start_keepalive(
     ping_url: str,
     interval: float = 10.0,
     timeout: float = 10.0,
+    service_key: str | None = None,
+    service_key_env: str = "SERVICEKIT_REGISTRATION_KEY",
 ) -> None:
     """Start background keepalive task to ping orchestrator."""
     global _keepalive_task
@@ -234,7 +264,10 @@ async def start_keepalive(
         logger.warning("keepalive.already_running")
         return
 
-    _keepalive_task = asyncio.create_task(_keepalive_loop(ping_url, interval, timeout))
+    # Resolve service key (use global from registration if not provided)
+    resolved_service_key = _resolve_service_key(service_key, service_key_env) or _service_key
+
+    _keepalive_task = asyncio.create_task(_keepalive_loop(ping_url, interval, timeout, resolved_service_key))
     logger.info("keepalive.task_started", ping_url=ping_url, interval_seconds=interval)
 
 
@@ -257,6 +290,8 @@ async def deregister_service(
     service_id: str,
     orchestrator_url: str,
     timeout: float = 10.0,
+    service_key: str | None = None,
+    service_key_env: str = "SERVICEKIT_REGISTRATION_KEY",
 ) -> None:
     """Explicitly deregister service from orchestrator."""
     # Build deregister URL from orchestrator base URL
@@ -265,9 +300,17 @@ async def deregister_service(
     base_url = orchestrator_url.replace("/$register", "")
     deregister_url = f"{base_url}/{service_id}"
 
+    # Resolve service key (use global from registration if not provided)
+    resolved_service_key = _resolve_service_key(service_key, service_key_env) or _service_key
+
+    # Build headers with optional service key
+    headers: dict[str, str] = {}
+    if resolved_service_key:
+        headers["X-Service-Key"] = resolved_service_key
+
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
-            response = await client.delete(deregister_url)
+            response = await client.delete(deregister_url, headers=headers if headers else None)
             response.raise_for_status()
 
             logger.info(
