@@ -103,10 +103,7 @@ class ServiceInfo(BaseModel):
     id: str
     display_name: str
     version: str = "1.0.0"
-    summary: str | None = None
     description: str | None = None
-    contact: dict[str, str] | None = None
-    license_info: dict[str, str] | None = None
 
     model_config = ConfigDict(extra="forbid")
 
@@ -134,13 +131,9 @@ class BaseServiceBuilder:
         include_logging: bool = False,
     ) -> None:
         """Initialize base service builder with core options."""
-        if info.description is None and info.summary is not None:
-            # Preserve summary as description for FastAPI metadata if description missing
-            self.info = info.model_copy(update={"description": info.summary})
-        else:
-            self.info = info
+        self.info = info
         self._title = self.info.display_name
-        self._app_description = self.info.summary or self.info.description or ""
+        self._app_description = self.info.description or ""
         self._version = self.info.version
         self._database_url = database_url
         self._database_instance: Database | None = None

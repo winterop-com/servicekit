@@ -8,14 +8,11 @@ app = (
             id="auth-envvar-example",
             display_name="Production API with Environment Variable Auth",
             version="2.0.0",
-            summary="Production-ready API using environment variables for authentication",
             description=(
                 "Demonstrates the recommended approach for production deployments: "
                 "reading API keys from SERVICEKIT_API_KEYS environment variable. "
                 "Supports multiple keys for zero-downtime rotation."
             ),
-            contact={"email": "ops@example.com"},
-            license_info={"name": "MIT"},
         ),
     )
     .with_logging()

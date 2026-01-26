@@ -211,7 +211,6 @@ The service sends this payload to the orchestrator:
     "id": "my-service",
     "display_name": "My Service",
     "version": "1.0.0",
-    "summary": "Service description",
     ...
   }
 }

@@ -8,14 +8,11 @@ app = (
             id="registration-example",
             display_name="Registration Example Service",
             version="1.0.0",
-            summary="Demonstrates automatic service registration with orchestrator",
             description=(
                 "This service automatically registers itself with an orchestrator on startup. "
                 "The orchestrator can then discover and monitor this service. "
                 "Hostname is auto-detected from Docker container name."
             ),
-            contact={"email": "ops@example.com"},
-            license_info={"name": "MIT"},
         ),
     )
     .with_logging()

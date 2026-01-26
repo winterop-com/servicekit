@@ -8,7 +8,6 @@ app = (
             id="auth-basic-example",
             display_name="Authenticated API Example",
             version="1.0.0",
-            summary="Basic API key authentication example",
             description=(
                 "Demonstrates API key authentication with hardcoded keys for development. "
                 "Shows the simplest auth setup pattern using the with_auth() method with "

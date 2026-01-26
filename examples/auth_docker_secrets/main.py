@@ -8,14 +8,11 @@ app = (
             id="auth-docker-secrets-example",
             display_name="Secure API with Docker Secrets",
             version="2.0.0",
-            summary="Production API using Docker secrets file for authentication",
             description=(
                 "Demonstrates Docker secrets file authentication pattern. "
                 "API keys are read from a file mounted as a Docker secret at runtime. "
                 "Compatible with Docker Compose, Docker Swarm, and Kubernetes."
             ),
-            contact={"email": "security@example.com"},
-            license_info={"name": "MIT"},
         ),
     )
     .with_logging()

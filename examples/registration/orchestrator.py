@@ -265,7 +265,6 @@ app = (
             id="mock-orchestrator",
             display_name="Mock Orchestrator",
             version="1.0.0",
-            summary="Simple orchestrator for testing service registration",
             description=(
                 "Provides service registration endpoints for servicekit services to register themselves for discovery. "
                 f"Services must send keepalive pings within {TTL_SECONDS} seconds or they will be removed from the "

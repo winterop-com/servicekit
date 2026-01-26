@@ -100,33 +100,10 @@
                     <div class="info-value">${info.version}</div>
                 </div>`);
 
-                if (info.summary) {
-                    items.push(`<div class="info-item">
-                        <div class="info-label">Summary</div>
-                        <div class="info-value">${info.summary}</div>
-                    </div>`);
-                }
-
                 if (info.description) {
                     items.push(`<div class="info-item">
                         <div class="info-label">Description</div>
                         <div class="info-value">${info.description}</div>
-                    </div>`);
-                }
-
-                if (info.contact) {
-                    const contactJson = JSON.stringify(info.contact, null, 2);
-                    items.push(`<div class="info-item">
-                        <div class="info-label">Contact</div>
-                        <div class="info-value"><pre>${contactJson}</pre></div>
-                    </div>`);
-                }
-
-                if (info.license_info) {
-                    const licenseJson = JSON.stringify(info.license_info, null, 2);
-                    items.push(`<div class="info-item">
-                        <div class="info-label">License</div>
-                        <div class="info-value"><pre>${licenseJson}</pre></div>
                     </div>`);
                 }
 

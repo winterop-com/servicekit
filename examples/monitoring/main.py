@@ -8,7 +8,6 @@ app = (
             id="monitoring-example",
             display_name="Monitoring Example Service",
             version="1.0.0",
-            summary="Service with OpenTelemetry monitoring and Prometheus metrics",
             description="Demonstrates automatic instrumentation of FastAPI and SQLAlchemy "
             "with metrics exposed at /metrics endpoint. Includes health check endpoint.",
         )
