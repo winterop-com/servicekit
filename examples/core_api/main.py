@@ -164,7 +164,6 @@ app = (
             id="core-user-service",
             display_name="Core User Service",
             version="1.0.0",
-            summary="User management API using core-only features",
             description="Demonstrates BaseServiceBuilder with custom entities, "
             "CRUD operations, health checks, and job scheduling without module dependencies.",
         )

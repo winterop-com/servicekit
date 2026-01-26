@@ -8,14 +8,11 @@ app = (
             id="auth-custom-header-example",
             display_name="API with Custom Authentication Header",
             version="1.0.0",
-            summary="API using custom header name for authentication",
             description=(
                 "Demonstrates custom authentication header configuration. "
                 "Uses 'X-Custom-Auth-Token' instead of default 'X-API-Key'. "
                 "Useful for legacy system integration or compliance requirements."
             ),
-            contact={"email": "api@example.com"},
-            license_info={"name": "MIT"},
         ),
     )
     .with_logging()

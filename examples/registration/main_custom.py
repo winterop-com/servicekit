@@ -18,7 +18,6 @@ app = (
             id="custom-metadata-service",
             display_name="Custom Metadata Service",
             version="2.0.0",
-            summary="Demonstrates custom ServiceInfo with additional metadata",
             description=(
                 "This service uses a custom ServiceInfo subclass to include "
                 "additional metadata in the registration payload. The orchestrator "
