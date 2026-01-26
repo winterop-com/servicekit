@@ -119,7 +119,7 @@ disallow_any_unimported = true
 no_implicit_optional = true
 warn_unused_ignores = true
 strict_equality = true
-mypy_path = ["src", "typings"]
+mypy_path = ["src"]
 
 [[tool.mypy.overrides]]
 module = "tests.*"

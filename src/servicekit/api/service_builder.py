@@ -6,7 +6,7 @@ import re
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, AsyncContextManager, AsyncIterator, Awaitable, Callable, Dict, List, Self
+from typing import Any, AsyncContextManager, AsyncIterator, Awaitable, Callable, Self
 
 from fastapi import APIRouter, FastAPI
 from pydantic import BaseModel, ConfigDict, field_validator
@@ -35,7 +35,7 @@ class _HealthOptions:
     """Configuration for health check endpoints."""
 
     prefix: str
-    tags: List[str]
+    tags: list[str]
     checks: dict[str, HealthCheck]
 
 
@@ -44,7 +44,7 @@ class _SystemOptions:
     """Configuration for system info endpoints."""
 
     prefix: str
-    tags: List[str]
+    tags: list[str]
 
 
 @dataclass(frozen=True)
@@ -52,7 +52,7 @@ class _JobOptions:
     """Configuration for job scheduler endpoints."""
 
     prefix: str
-    tags: List[str]
+    tags: list[str]
     max_concurrency: int | None
 
 
@@ -71,7 +71,7 @@ class _MonitoringOptions:
     """Configuration for OpenTelemetry monitoring."""
 
     prefix: str
-    tags: List[str]
+    tags: list[str]
     service_name: str | None
     enable_traces: bool
 
@@ -149,11 +149,11 @@ class BaseServiceBuilder:
         self._auth_options: _AuthOptions | None = None
         self._monitoring_options: _MonitoringOptions | None = None
         self._registration_options: _RegistrationOptions | None = None
-        self._app_configs: List[App] = []
-        self._custom_routers: List[APIRouter] = []
-        self._dependency_overrides: Dict[DependencyOverride, DependencyOverride] = {}
-        self._startup_hooks: List[LifecycleHook] = []
-        self._shutdown_hooks: List[LifecycleHook] = []
+        self._app_configs: list[App] = []
+        self._custom_routers: list[APIRouter] = []
+        self._dependency_overrides: dict[DependencyOverride, DependencyOverride] = {}
+        self._startup_hooks: list[LifecycleHook] = []
+        self._shutdown_hooks: list[LifecycleHook] = []
 
     # --------------------------------------------------------------------- Fluent configuration
 
@@ -204,7 +204,7 @@ class BaseServiceBuilder:
         self,
         *,
         prefix: str = "/health",
-        tags: List[str] | None = None,
+        tags: list[str] | None = None,
         checks: dict[str, HealthCheck] | None = None,
         include_database_check: bool = True,
     ) -> Self:
@@ -225,7 +225,7 @@ class BaseServiceBuilder:
         self,
         *,
         prefix: str = "/api/v1/system",
-        tags: List[str] | None = None,
+        tags: list[str] | None = None,
     ) -> Self:
         """Add system info endpoint."""
         self._system_options = _SystemOptions(
@@ -238,7 +238,7 @@ class BaseServiceBuilder:
         self,
         *,
         prefix: str = "/api/v1/jobs",
-        tags: List[str] | None = None,
+        tags: list[str] | None = None,
         max_concurrency: int | None = None,
     ) -> Self:
         """Add job scheduler endpoints."""
@@ -252,11 +252,11 @@ class BaseServiceBuilder:
     def with_auth(
         self,
         *,
-        api_keys: List[str] | None = None,
+        api_keys: list[str] | None = None,
         api_key_file: str | None = None,
         env_var: str = "SERVICEKIT_API_KEYS",
         header_name: str = "X-API-Key",
-        unauthenticated_paths: List[str] | None = None,
+        unauthenticated_paths: list[str] | None = None,
     ) -> Self:
         """Enable API key authentication."""
         keys: set[str] = set()
@@ -299,7 +299,7 @@ class BaseServiceBuilder:
         self,
         *,
         prefix: str = "/metrics",
-        tags: List[str] | None = None,
+        tags: list[str] | None = None,
         service_name: str | None = None,
         enable_traces: bool = False,
     ) -> Self:
