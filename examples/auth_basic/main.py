@@ -5,6 +5,7 @@ from servicekit.api import BaseServiceBuilder, ServiceInfo
 app = (
     BaseServiceBuilder(
         info=ServiceInfo(
+            id="auth-basic-example",
             display_name="Authenticated API Example",
             version="1.0.0",
             summary="Basic API key authentication example",

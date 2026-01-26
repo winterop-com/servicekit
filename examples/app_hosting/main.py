@@ -6,6 +6,7 @@ from servicekit.api import BaseServiceBuilder, ServiceInfo
 app = (
     BaseServiceBuilder(
         info=ServiceInfo(
+            id="app-hosting-demo",
             display_name="App Hosting Demo",
             version="1.0.0",
             summary="Demonstrates hosting static web apps with servicekit",

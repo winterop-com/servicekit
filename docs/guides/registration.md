@@ -12,7 +12,7 @@ The simplest approach with auto-detected hostname:
 from servicekit.api import BaseServiceBuilder, ServiceInfo
 
 app = (
-    BaseServiceBuilder(info=ServiceInfo(display_name="My Service"))
+    BaseServiceBuilder(info=ServiceInfo(id="my-service", display_name="My Service"))
     .with_registration()  # Reads SERVICEKIT_ORCHESTRATOR_URL from environment
     .build()
 )
@@ -61,6 +61,7 @@ class CustomServiceInfo(ServiceInfo):
 app = (
     BaseServiceBuilder(
         info=CustomServiceInfo(
+            id="my-service",
             display_name="My Service",
             version="1.0.0",
             deployment_env="staging",
@@ -97,6 +98,28 @@ The `.with_registration()` method accepts these parameters:
     service_key=None,                   # Service key for authentication
     service_key_env="SERVICEKIT_REGISTRATION_KEY",  # Env var for service key
 )
+```
+
+### ServiceInfo ID Field
+
+The `id` field is **required** on `ServiceInfo` and must follow slug format:
+
+- Lowercase letters, numbers, and hyphens only
+- Must start with a letter
+- No consecutive hyphens
+- No trailing or leading hyphens
+
+**Valid examples:** `my-service`, `chap-ewars`, `prediction-service`, `service1`
+
+**Invalid examples:** `My-Service` (uppercase), `my_service` (underscore), `1-service` (starts with number)
+
+```python
+# Valid
+ServiceInfo(id="my-service", display_name="My Service")
+
+# Invalid - will raise ValidationError
+ServiceInfo(id="My-Service", display_name="My Service")  # uppercase
+ServiceInfo(id="my_service", display_name="My Service")  # underscore
 ```
 
 ### Parameters
@@ -182,8 +205,10 @@ The service sends this payload to the orchestrator:
 
 ```json
 {
+  "id": "my-service",
   "url": "http://my-service:8000",
   "info": {
+    "id": "my-service",
     "display_name": "My Service",
     "version": "1.0.0",
     "summary": "Service description",
@@ -196,8 +221,10 @@ For custom ServiceInfo subclasses:
 
 ```json
 {
+  "id": "ml-service",
   "url": "http://ml-service:8000",
   "info": {
+    "id": "ml-service",
     "display_name": "ML Service",
     "version": "2.0.0",
     "deployment_env": "production",
@@ -214,21 +241,21 @@ The orchestrator responds with registration details, including the ping endpoint
 
 ```json
 {
-  "id": "01K83B5V85PQZ1HTH4DQ7NC9JM",
+  "id": "my-service",
   "status": "registered",
   "service_url": "http://my-service:8000",
   "message": "Service registered successfully",
   "ttl_seconds": 30,
-  "ping_url": "http://orchestrator:9000/services/01K83B5V85PQZ1HTH4DQ7NC9JM/$ping"
+  "ping_url": "http://orchestrator:9000/services/my-service/$ping"
 }
 ```
 
 **Key fields:**
-- `id`: Unique ULID identifier assigned by orchestrator
+- `id`: Service identifier (matches the `id` field from ServiceInfo)
 - `ttl_seconds`: Time-to-live in seconds (service must ping within this window)
 - `ping_url`: Endpoint for keepalive pings (automatically used by the service)
 
-**Important**: The `ping_url` is provided by the orchestrator - services don't need to configure it. The service automatically uses this URL for keepalive pings when `enable_keepalive=True`.
+**Important**: The service ID is defined by the service itself via `ServiceInfo.id`, not assigned by the orchestrator. This makes registration idempotent - re-registering the same service updates the existing entry rather than creating a new one.
 
 ### Hostname Resolution
 
@@ -261,7 +288,7 @@ Priority order:
 from servicekit.api import BaseServiceBuilder, ServiceInfo
 
 app = (
-    BaseServiceBuilder(info=ServiceInfo(display_name="Production Service"))
+    BaseServiceBuilder(info=ServiceInfo(id="production-service", display_name="Production Service"))
     .with_logging()
     .with_health()
     .with_registration()  # Reads from environment
@@ -284,7 +311,7 @@ services:
 
 ```python
 app = (
-    BaseServiceBuilder(info=ServiceInfo(display_name="Test Service"))
+    BaseServiceBuilder(info=ServiceInfo(id="test-service", display_name="Test Service"))
     .with_registration(
         orchestrator_url="http://localhost:9000/services/$register",
         host="test-service",
@@ -298,7 +325,7 @@ app = (
 
 ```python
 app = (
-    BaseServiceBuilder(info=ServiceInfo(display_name="My Service"))
+    BaseServiceBuilder(info=ServiceInfo(id="my-service", display_name="My Service"))
     .with_registration(
         orchestrator_url_env="MY_APP_ORCHESTRATOR_URL",
         host_env="MY_APP_HOST",
@@ -321,7 +348,7 @@ For critical services that must register:
 
 ```python
 app = (
-    BaseServiceBuilder(info=ServiceInfo(display_name="Critical Service"))
+    BaseServiceBuilder(info=ServiceInfo(id="critical-service", display_name="Critical Service"))
     .with_registration(
         fail_on_error=True,  # Abort startup if registration fails
         max_retries=10,
@@ -335,7 +362,7 @@ app = (
 
 ```python
 app = (
-    BaseServiceBuilder(info=ServiceInfo(display_name="My Service"))
+    BaseServiceBuilder(info=ServiceInfo(id="my-service", display_name="My Service"))
     .with_registration(
         max_retries=10,      # More attempts
         retry_delay=1.0,     # Faster retries

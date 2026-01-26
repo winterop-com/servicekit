@@ -5,6 +5,7 @@ from servicekit.api import BaseServiceBuilder, ServiceInfo
 app = (
     BaseServiceBuilder(
         info=ServiceInfo(
+            id="auth-custom-header-example",
             display_name="API with Custom Authentication Header",
             version="1.0.0",
             summary="API using custom header name for authentication",

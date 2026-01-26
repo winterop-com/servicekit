@@ -5,6 +5,7 @@ from servicekit.api import BaseServiceBuilder, ServiceInfo
 app = (
     BaseServiceBuilder(
         info=ServiceInfo(
+            id="auth-envvar-example",
             display_name="Production API with Environment Variable Auth",
             version="2.0.0",
             summary="Production-ready API using environment variables for authentication",
