@@ -115,23 +115,25 @@ docker compose down
 5. **Registration Attempt**: Sends POST to orchestrator with payload:
    ```json
    {
+     "id": "registration-example",
      "url": "http://svca:8000",
      "info": {
+       "id": "registration-example",
        "display_name": "Registration Example Service",
        "version": "1.0.0",
        ...
      }
    }
    ```
-6. **ID Assignment**: Orchestrator assigns ULID and returns:
+6. **Registration Confirmed**: Orchestrator returns:
    ```json
    {
-     "id": "01K83B5V85PQZ1HTH4DQ7NC9JM",
+     "id": "registration-example",
      "status": "registered",
      "service_url": "http://svca:8000",
      "message": "...",
      "ttl_seconds": 30,
-     "ping_url": "http://orchestrator:9000/services/01K83B5V85PQZ1HTH4DQ7NC9JM/$ping"
+     "ping_url": "http://orchestrator:9000/services/registration-example/$ping"
    }
    ```
 7. **Keepalive Started**: Background task starts sending pings every 10 seconds to `ping_url`
@@ -243,7 +245,7 @@ services:
 
 ```python
 app = (
-    BaseServiceBuilder(info=ServiceInfo(display_name="My Service"))
+    BaseServiceBuilder(info=ServiceInfo(id="my-service", display_name="My Service"))
     .with_registration(
         orchestrator_url="http://orchestrator:9000/services/$register",
         service_key="my-secret-key",
@@ -256,7 +258,7 @@ app = (
 
 ```python
 app = (
-    BaseServiceBuilder(info=ServiceInfo(display_name="My Service"))
+    BaseServiceBuilder(info=ServiceInfo(id="my-service", display_name="My Service"))
     .with_registration(
         service_key_env="MY_APP_REGISTRATION_KEY",
     )
@@ -277,7 +279,7 @@ The service key is included in:
 from servicekit.api import BaseServiceBuilder, ServiceInfo
 
 app = (
-    BaseServiceBuilder(info=ServiceInfo(display_name="My Service"))
+    BaseServiceBuilder(info=ServiceInfo(id="my-service", display_name="My Service"))
     .with_logging()
     .with_health()
     .with_registration()  # Auto-detect hostname
@@ -297,6 +299,7 @@ class CustomServiceInfo(ServiceInfo):
 app = (
     BaseServiceBuilder(
         info=CustomServiceInfo(
+            id="custom-service",
             display_name="Custom Service",
             deployment_env="staging",
             team="data-science",
@@ -313,7 +316,7 @@ app = (
 
 ```python
 app = (
-    BaseServiceBuilder(info=ServiceInfo(display_name="My Service"))
+    BaseServiceBuilder(info=ServiceInfo(id="my-service", display_name="My Service"))
     .with_registration(
         orchestrator_url_env="MY_APP_ORCHESTRATOR_URL",
         host_env="MY_APP_HOST",
@@ -327,7 +330,7 @@ app = (
 
 ```python
 app = (
-    BaseServiceBuilder(info=ServiceInfo(display_name="My Service"))
+    BaseServiceBuilder(info=ServiceInfo(id="my-service", display_name="My Service"))
     .with_registration(
         orchestrator_url="http://orchestrator:9000/register",
         host="my-service",

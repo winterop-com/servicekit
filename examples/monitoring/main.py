@@ -5,6 +5,7 @@ from servicekit.api import BaseServiceBuilder, ServiceInfo
 app = (
     BaseServiceBuilder(
         info=ServiceInfo(
+            id="monitoring-example",
             display_name="Monitoring Example Service",
             version="1.0.0",
             summary="Service with OpenTelemetry monitoring and Prometheus metrics",

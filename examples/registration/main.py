@@ -5,6 +5,7 @@ from servicekit.api import BaseServiceBuilder, ServiceInfo
 app = (
     BaseServiceBuilder(
         info=ServiceInfo(
+            id="registration-example",
             display_name="Registration Example Service",
             version="1.0.0",
             summary="Demonstrates automatic service registration with orchestrator",

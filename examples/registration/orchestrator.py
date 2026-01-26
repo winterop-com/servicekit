@@ -262,6 +262,7 @@ async def lifespan(app: FastAPI):
 app = (
     BaseServiceBuilder(
         info=ServiceInfo(
+            id="mock-orchestrator",
             display_name="Mock Orchestrator",
             version="1.0.0",
             summary="Simple orchestrator for testing service registration",

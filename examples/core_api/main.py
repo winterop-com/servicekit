@@ -161,6 +161,7 @@ user_router = CrudRouter.create(
 app = (
     BaseServiceBuilder(
         info=ServiceInfo(
+            id="core-user-service",
             display_name="Core User Service",
             version="1.0.0",
             summary="User management API using core-only features",

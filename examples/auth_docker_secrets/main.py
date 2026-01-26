@@ -5,6 +5,7 @@ from servicekit.api import BaseServiceBuilder, ServiceInfo
 app = (
     BaseServiceBuilder(
         info=ServiceInfo(
+            id="auth-docker-secrets-example",
             display_name="Secure API with Docker Secrets",
             version="2.0.0",
             summary="Production API using Docker secrets file for authentication",

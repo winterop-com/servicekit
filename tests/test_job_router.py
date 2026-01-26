@@ -16,7 +16,7 @@ ULID = ulid.ULID
 @pytest.fixture
 async def app() -> AsyncGenerator[FastAPI, None]:
     """Create FastAPI app with job router and trigger lifespan."""
-    info = ServiceInfo(display_name="Test Service")
+    info = ServiceInfo(id="test-service", display_name="Test Service")
     app_instance = BaseServiceBuilder(info=info).with_jobs().build()
 
     # Manually trigger lifespan
@@ -400,7 +400,7 @@ class TestJobRouterIntegration:
     @pytest.mark.asyncio
     async def test_service_builder_with_jobs(self) -> None:
         """Test BaseServiceBuilder.with_jobs() creates functional job endpoints."""
-        info = ServiceInfo(display_name="Test Service")
+        info = ServiceInfo(id="test-service", display_name="Test Service")
         app = BaseServiceBuilder(info=info).with_jobs(prefix="/jobs", tags=["background"]).build()
 
         # Trigger lifespan to initialize scheduler
@@ -416,7 +416,7 @@ class TestJobRouterIntegration:
     @pytest.mark.asyncio
     async def test_service_builder_with_max_concurrency(self) -> None:
         """Test BaseServiceBuilder.with_jobs(max_concurrency=N) configures scheduler."""
-        info = ServiceInfo(display_name="Test Service")
+        info = ServiceInfo(id="test-service", display_name="Test Service")
         app = BaseServiceBuilder(info=info).with_jobs(max_concurrency=2).build()
 
         # Trigger lifespan to initialize scheduler
@@ -428,7 +428,7 @@ class TestJobRouterIntegration:
     @pytest.mark.asyncio
     async def test_job_endpoints_in_openapi_schema(self) -> None:
         """Test job endpoints appear in OpenAPI schema."""
-        info = ServiceInfo(display_name="Test Service")
+        info = ServiceInfo(id="test-service", display_name="Test Service")
         app = BaseServiceBuilder(info=info).with_jobs().build()
 
         async with AsyncClient(

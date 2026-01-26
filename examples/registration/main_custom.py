@@ -15,6 +15,7 @@ class CustomServiceInfo(ServiceInfo):
 app = (
     BaseServiceBuilder(
         info=CustomServiceInfo(
+            id="custom-metadata-service",
             display_name="Custom Metadata Service",
             version="2.0.0",
             summary="Demonstrates custom ServiceInfo with additional metadata",

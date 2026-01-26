@@ -113,8 +113,19 @@ async def register_service(
     # Build service URL
     service_url = f"http://{resolved_host}:{resolved_port}"
 
+    # Extract service ID from info (requires id attribute)
+    service_id = getattr(info, "id", None)
+    if not service_id:
+        error_msg = "ServiceInfo must have an 'id' attribute for registration"
+        logger.error("registration.missing_service_id")
+        if fail_on_error:
+            raise ValueError(error_msg)
+        logger.warning("registration.skipped", reason="missing service ID")
+        return None
+
     # Build registration payload
     payload: dict[str, Any] = {
+        "id": service_id,
         "url": service_url,
         "info": info.model_dump(mode="json"),
     }
@@ -146,18 +157,16 @@ async def register_service(
                 )
                 response.raise_for_status()
 
-                # Parse response to extract service ID
+                # Parse response for additional info (ping_url, ttl)
                 response_data = response.json()
-                service_id = response_data.get("id")
 
                 log_context = {
                     "orchestrator_url": resolved_orchestrator_url,
                     "service_url": service_url,
+                    "service_id": service_id,
                     "attempt": attempt,
                     "status_code": response.status_code,
                 }
-                if service_id:
-                    log_context["service_id"] = service_id
 
                 # Store global references for keepalive
                 global _service_id, _ping_url

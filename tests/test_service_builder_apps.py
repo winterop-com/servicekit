@@ -36,7 +36,7 @@ def app_directory(tmp_path: Path) -> Path:
 def test_service_builder_with_single_app(app_directory: Path):
     """Test mounting a single app."""
     app = (
-        BaseServiceBuilder(info=ServiceInfo(display_name="Test Service"))
+        BaseServiceBuilder(info=ServiceInfo(id="test-service", display_name="Test Service"))
         .with_app(str(app_directory / "dashboard"))
         .build()
     )
@@ -56,7 +56,7 @@ def test_service_builder_with_single_app(app_directory: Path):
 def test_service_builder_with_prefix_override(app_directory: Path):
     """Test mounting app with custom prefix."""
     app = (
-        BaseServiceBuilder(info=ServiceInfo(display_name="Test Service"))
+        BaseServiceBuilder(info=ServiceInfo(id="test-service", display_name="Test Service"))
         .with_app(str(app_directory / "dashboard"), prefix="/custom")
         .build()
     )
@@ -75,7 +75,7 @@ def test_service_builder_with_prefix_override(app_directory: Path):
 def test_service_builder_with_multiple_apps(app_directory: Path):
     """Test mounting multiple apps."""
     app = (
-        BaseServiceBuilder(info=ServiceInfo(display_name="Test Service"))
+        BaseServiceBuilder(info=ServiceInfo(id="test-service", display_name="Test Service"))
         .with_app(str(app_directory / "dashboard"))
         .with_app(str(app_directory / "admin"))
         .build()
@@ -94,7 +94,11 @@ def test_service_builder_with_multiple_apps(app_directory: Path):
 
 def test_service_builder_with_apps_autodiscovery(app_directory: Path):
     """Test auto-discovering apps from directory."""
-    app = BaseServiceBuilder(info=ServiceInfo(display_name="Test Service")).with_apps(str(app_directory)).build()
+    app = (
+        BaseServiceBuilder(info=ServiceInfo(id="test-service", display_name="Test Service"))
+        .with_apps(str(app_directory))
+        .build()
+    )
 
     with TestClient(app) as client:
         # Both discovered apps should be accessible
@@ -110,7 +114,7 @@ def test_service_builder_with_apps_autodiscovery(app_directory: Path):
 def test_service_builder_apps_with_api_routes(app_directory: Path):
     """Test that apps don't interfere with API routes."""
     app = (
-        BaseServiceBuilder(info=ServiceInfo(display_name="Test Service"))
+        BaseServiceBuilder(info=ServiceInfo(id="test-service", display_name="Test Service"))
         .with_health()
         .with_system()
         .with_app(str(app_directory / "dashboard"))
@@ -135,7 +139,7 @@ def test_service_builder_apps_override_semantics(app_directory: Path):
     """Test that duplicate prefixes use last-wins semantics."""
     # Mount dashboard twice - second should override first
     app = (
-        BaseServiceBuilder(info=ServiceInfo(display_name="Test Service"))
+        BaseServiceBuilder(info=ServiceInfo(id="test-service", display_name="Test Service"))
         .with_app(str(app_directory / "dashboard"))
         .with_app(str(app_directory / "admin"), prefix="/dashboard")  # Override with admin
         .build()
@@ -156,7 +160,9 @@ def test_service_builder_apps_api_prefix_blocked(app_directory: Path):
     (bad_app_dir / "index.html").write_text("<html>Bad</html>")
 
     with pytest.raises(ValueError, match="prefix cannot be '/api'"):
-        BaseServiceBuilder(info=ServiceInfo(display_name="Test Service")).with_app(str(bad_app_dir)).build()
+        BaseServiceBuilder(info=ServiceInfo(id="test-service", display_name="Test Service")).with_app(
+            str(bad_app_dir)
+        ).build()
 
 
 def test_service_builder_apps_root_mount_works(app_directory: Path):
@@ -173,7 +179,7 @@ def test_service_builder_apps_root_mount_works(app_directory: Path):
     (about_dir / "index.html").write_text("<html><body>About Page</body></html>")
 
     app = (
-        BaseServiceBuilder(info=ServiceInfo(display_name="Test Service"))
+        BaseServiceBuilder(info=ServiceInfo(id="test-service", display_name="Test Service"))
         .with_health()
         .with_system()
         .with_app(str(root_app_dir))
@@ -210,7 +216,7 @@ def test_service_builder_apps_root_override_landing_page(app_directory: Path):
     (root_app_dir / "index.html").write_text("<html><body>Custom Root App</body></html>")
 
     app = (
-        BaseServiceBuilder(info=ServiceInfo(display_name="Test Service"))
+        BaseServiceBuilder(info=ServiceInfo(id="test-service", display_name="Test Service"))
         .with_landing_page()  # Mount built-in landing page first
         .with_app(str(root_app_dir))  # Override with custom root app
         .build()
@@ -231,7 +237,11 @@ def test_service_builder_html_mode_serves_index_for_subdirs(app_directory: Path)
     subdir.mkdir()
     (subdir / "index.html").write_text("<html>Subdir Index</html>")
 
-    app = BaseServiceBuilder(info=ServiceInfo(display_name="Test Service")).with_app(str(dashboard_dir)).build()
+    app = (
+        BaseServiceBuilder(info=ServiceInfo(id="test-service", display_name="Test Service"))
+        .with_app(str(dashboard_dir))
+        .build()
+    )
 
     with TestClient(app) as client:
         # Requesting /dashboard/subdir/ should serve subdir/index.html
@@ -243,7 +253,7 @@ def test_service_builder_html_mode_serves_index_for_subdirs(app_directory: Path)
 def test_service_builder_apps_404_for_missing_files(app_directory: Path):
     """Test that missing files return 404."""
     app = (
-        BaseServiceBuilder(info=ServiceInfo(display_name="Test Service"))
+        BaseServiceBuilder(info=ServiceInfo(id="test-service", display_name="Test Service"))
         .with_app(str(app_directory / "dashboard"))
         .build()
     )
@@ -264,7 +274,7 @@ def test_service_builder_apps_mount_order(app_directory: Path):
     (api_like_app / "index.html").write_text("<html>App Status</html>")
 
     app = (
-        BaseServiceBuilder(info=ServiceInfo(display_name="Test Service"))
+        BaseServiceBuilder(info=ServiceInfo(id="test-service", display_name="Test Service"))
         .with_health(prefix="/status")  # Mount health at /status
         .with_app(str(api_like_app))  # Try to mount app at /status (should fail)
         .build()
@@ -289,7 +299,7 @@ def test_service_builder_apps_with_custom_routers(app_directory: Path):
         return {"message": "custom"}
 
     app = (
-        BaseServiceBuilder(info=ServiceInfo(display_name="Test Service"))
+        BaseServiceBuilder(info=ServiceInfo(id="test-service", display_name="Test Service"))
         .with_app(str(app_directory / "dashboard"))
         .include_router(custom_router)
         .build()
@@ -309,7 +319,7 @@ def test_service_builder_apps_with_custom_routers(app_directory: Path):
 
 def test_system_apps_endpoint_empty():
     """Test /api/v1/system/apps with no apps."""
-    app = BaseServiceBuilder(info=ServiceInfo(display_name="Test Service")).with_system().build()
+    app = BaseServiceBuilder(info=ServiceInfo(id="test-service", display_name="Test Service")).with_system().build()
 
     with TestClient(app) as client:
         response = client.get("/api/v1/system/apps")
@@ -320,7 +330,7 @@ def test_system_apps_endpoint_empty():
 def test_system_apps_endpoint_with_apps(app_directory: Path):
     """Test /api/v1/system/apps lists installed apps."""
     app = (
-        BaseServiceBuilder(info=ServiceInfo(display_name="Test Service"))
+        BaseServiceBuilder(info=ServiceInfo(id="test-service", display_name="Test Service"))
         .with_system()
         .with_app(str(app_directory / "dashboard"))
         .with_app(str(app_directory / "admin"))
@@ -350,7 +360,7 @@ def test_system_apps_endpoint_with_apps(app_directory: Path):
 def test_system_apps_endpoint_returns_correct_fields(app_directory: Path):
     """Test AppInfo fields match manifest."""
     app = (
-        BaseServiceBuilder(info=ServiceInfo(display_name="Test Service"))
+        BaseServiceBuilder(info=ServiceInfo(id="test-service", display_name="Test Service"))
         .with_system()
         .with_app(str(app_directory / "dashboard"))
         .build()
@@ -381,7 +391,7 @@ def test_system_apps_endpoint_returns_correct_fields(app_directory: Path):
 
 def test_system_apps_schema_endpoint():
     """Test /api/v1/system/apps/$schema returns JSON schema."""
-    app = BaseServiceBuilder(info=ServiceInfo(display_name="Test Service")).with_system().build()
+    app = BaseServiceBuilder(info=ServiceInfo(id="test-service", display_name="Test Service")).with_system().build()
 
     with TestClient(app) as client:
         response = client.get("/api/v1/system/apps/$schema")
@@ -448,7 +458,7 @@ def test_service_builder_with_apps_package_discovery(tmp_path: Path, monkeypatch
 
     # Build service with package app discovery
     app = (
-        BaseServiceBuilder(info=ServiceInfo(display_name="Test Service"))
+        BaseServiceBuilder(info=ServiceInfo(id="test-service", display_name="Test Service"))
         .with_apps(("test_app_package", "bundled_apps"))
         .build()
     )

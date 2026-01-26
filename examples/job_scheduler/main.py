@@ -119,6 +119,7 @@ class ComputeRouter(Router):
 
 
 info = ServiceInfo(
+    id="job-scheduler-demo",
     display_name="Job Scheduler Demo",
     summary="Demonstrates async job scheduling with polling and SSE streaming",
     version="1.0.0",

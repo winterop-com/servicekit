@@ -303,7 +303,7 @@ def test_service_builder_auth_logging_no_duplicates(capsys: pytest.CaptureFixtur
     from servicekit.api import BaseServiceBuilder, ServiceInfo
 
     # Build app with direct API keys (triggers warning)
-    info = ServiceInfo(display_name="Test Service")
+    info = ServiceInfo(id="test-service", display_name="Test Service")
     app = BaseServiceBuilder(info=info, include_logging=True).with_auth(api_keys=["sk_dev_test123"]).build()
 
     # Create test client (triggers startup)

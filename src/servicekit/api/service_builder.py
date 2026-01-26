@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any, AsyncContextManager, AsyncIterator, Awaitable, Callable, Dict, List, Self
 
 from fastapi import APIRouter, FastAPI
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 from sqlalchemy import text
 
 from servicekit import Database, SqliteDatabase
@@ -100,6 +100,7 @@ class _RegistrationOptions:
 class ServiceInfo(BaseModel):
     """Service metadata for FastAPI application."""
 
+    id: str
     display_name: str
     version: str = "1.0.0"
     summary: str | None = None
@@ -108,6 +109,17 @@ class ServiceInfo(BaseModel):
     license_info: dict[str, str] | None = None
 
     model_config = ConfigDict(extra="forbid")
+
+    @field_validator("id")
+    @classmethod
+    def validate_id(cls, v: str) -> str:
+        """Validate service ID follows slug format."""
+        if not re.match(r"^[a-z][a-z0-9]*(-[a-z0-9]+)*$", v):
+            raise ValueError(
+                "Service ID must be slug format: lowercase letters, numbers, "
+                "and hyphens (e.g., 'my-service', 'chap-ewars')"
+            )
+        return v
 
 
 class BaseServiceBuilder:

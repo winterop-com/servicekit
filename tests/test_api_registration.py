@@ -18,6 +18,114 @@ class CustomServiceInfo(ServiceInfo):
     priority: int = 1
 
 
+# --- ServiceInfo ID Validation Tests ---
+
+
+def test_service_info_valid_id():
+    """Test valid slug format IDs are accepted."""
+    valid_ids = [
+        "my-service",
+        "chap-ewars",
+        "prediction-service",
+        "service1",
+        "a",
+        "a1",
+        "my-service-v2",
+        "test123",
+    ]
+    for service_id in valid_ids:
+        info = ServiceInfo(id=service_id, display_name="Test")
+        assert info.id == service_id
+
+
+def test_service_info_invalid_id_uppercase():
+    """Test uppercase letters are rejected."""
+    with pytest.raises(ValueError, match="slug format"):
+        ServiceInfo(id="My-Service", display_name="Test")
+
+
+def test_service_info_invalid_id_spaces():
+    """Test spaces are rejected."""
+    with pytest.raises(ValueError, match="slug format"):
+        ServiceInfo(id="my service", display_name="Test")
+
+
+def test_service_info_invalid_id_special_chars():
+    """Test special characters are rejected."""
+    invalid_ids = ["my_service", "my.service", "my@service", "my/service"]
+    for service_id in invalid_ids:
+        with pytest.raises(ValueError, match="slug format"):
+            ServiceInfo(id=service_id, display_name="Test")
+
+
+def test_service_info_invalid_id_starts_with_number():
+    """Test IDs starting with number are rejected."""
+    with pytest.raises(ValueError, match="slug format"):
+        ServiceInfo(id="1-service", display_name="Test")
+
+
+def test_service_info_invalid_id_consecutive_hyphens():
+    """Test consecutive hyphens are rejected."""
+    with pytest.raises(ValueError, match="slug format"):
+        ServiceInfo(id="my--service", display_name="Test")
+
+
+def test_service_info_invalid_id_trailing_hyphen():
+    """Test trailing hyphen is rejected."""
+    with pytest.raises(ValueError, match="slug format"):
+        ServiceInfo(id="my-service-", display_name="Test")
+
+
+def test_service_info_invalid_id_leading_hyphen():
+    """Test leading hyphen is rejected."""
+    with pytest.raises(ValueError, match="slug format"):
+        ServiceInfo(id="-my-service", display_name="Test")
+
+
+def test_service_info_id_required():
+    """Test missing ID raises validation error."""
+    with pytest.raises(ValueError):
+        ServiceInfo(display_name="Test")  # type: ignore[call-arg]
+
+
+# --- Registration Tests ---
+
+
+@pytest.mark.asyncio
+async def test_registration_missing_service_id_fail_on_error():
+    """Test registration fails when info has no id attribute and fail_on_error=True."""
+    # Create a mock info object without 'id' attribute
+    mock_info = MagicMock(spec=[])  # Empty spec means no 'id' attribute
+    mock_info.model_dump = MagicMock(return_value={"display_name": "Test"})
+
+    with pytest.raises(ValueError, match="must have an 'id' attribute"):
+        await register_service(
+            orchestrator_url="http://orchestrator:9000/services/$register",
+            host="test-service",
+            port=8000,
+            info=mock_info,
+            fail_on_error=True,
+        )
+
+
+@pytest.mark.asyncio
+async def test_registration_missing_service_id_returns_none():
+    """Test registration returns None when info has no id attribute and fail_on_error=False."""
+    # Create a mock info object without 'id' attribute
+    mock_info = MagicMock(spec=[])  # Empty spec means no 'id' attribute
+    mock_info.model_dump = MagicMock(return_value={"display_name": "Test"})
+
+    result = await register_service(
+        orchestrator_url="http://orchestrator:9000/services/$register",
+        host="test-service",
+        port=8000,
+        info=mock_info,
+        fail_on_error=False,
+    )
+
+    assert result is None
+
+
 @pytest.mark.asyncio
 async def test_successful_registration():
     """Test successful service registration."""
@@ -36,7 +144,7 @@ async def test_successful_registration():
     with patch("httpx.AsyncClient") as mock_client:
         mock_client.return_value.__aenter__.return_value.post = AsyncMock(return_value=mock_response)
 
-        info = ServiceInfo(display_name="Test Service", version="1.0.0")
+        info = ServiceInfo(id="test-service", display_name="Test Service", version="1.0.0")
 
         await register_service(
             orchestrator_url="http://orchestrator:9000/services/$register",
@@ -49,6 +157,7 @@ async def test_successful_registration():
         call_args = mock_client.return_value.__aenter__.return_value.post.call_args
         assert call_args[0][0] == "http://orchestrator:9000/services/$register"
         payload = call_args[1]["json"]
+        assert payload["id"] == "test-service"
         assert payload["url"] == "http://test-service:8000"
         assert payload["info"]["display_name"] == "Test Service"
 
@@ -78,7 +187,7 @@ async def test_retry_logic_success_on_second_attempt():
             side_effect=[mock_response_fail, mock_response_success]
         )
 
-        info = ServiceInfo(display_name="Test Service")
+        info = ServiceInfo(id="test-service", display_name="Test Service")
 
         await register_service(
             orchestrator_url="http://orchestrator:9000/services/$register",
@@ -104,7 +213,7 @@ async def test_fail_on_error_true_raises_exception():
     with patch("httpx.AsyncClient") as mock_client:
         mock_client.return_value.__aenter__.return_value.post = AsyncMock(return_value=mock_response)
 
-        info = ServiceInfo(display_name="Test Service")
+        info = ServiceInfo(id="test-service", display_name="Test Service")
 
         with pytest.raises(RuntimeError, match="Failed to register service"):
             await register_service(
@@ -129,7 +238,7 @@ async def test_fail_on_error_false_continues():
     with patch("httpx.AsyncClient") as mock_client:
         mock_client.return_value.__aenter__.return_value.post = AsyncMock(return_value=mock_response)
 
-        info = ServiceInfo(display_name="Test Service")
+        info = ServiceInfo(id="test-service", display_name="Test Service")
 
         # Should not raise exception
         await register_service(
@@ -153,7 +262,7 @@ async def test_hostname_resolution_parameter():
     with patch("httpx.AsyncClient") as mock_client, patch.dict(os.environ, {}, clear=True):
         mock_client.return_value.__aenter__.return_value.post = AsyncMock(return_value=mock_response)
 
-        info = ServiceInfo(display_name="Test Service")
+        info = ServiceInfo(id="test-service", display_name="Test Service")
 
         await register_service(
             orchestrator_url="http://orchestrator:9000/services/$register",
@@ -180,7 +289,7 @@ async def test_hostname_resolution_auto_detect():
     ):
         mock_client.return_value.__aenter__.return_value.post = AsyncMock(return_value=mock_response)
 
-        info = ServiceInfo(display_name="Test Service")
+        info = ServiceInfo(id="test-service", display_name="Test Service")
 
         await register_service(
             orchestrator_url="http://orchestrator:9000/services/$register",
@@ -207,7 +316,7 @@ async def test_hostname_resolution_env_var():
     ):
         mock_client.return_value.__aenter__.return_value.post = AsyncMock(return_value=mock_response)
 
-        info = ServiceInfo(display_name="Test Service")
+        info = ServiceInfo(id="test-service", display_name="Test Service")
 
         await register_service(
             orchestrator_url="http://orchestrator:9000/services/$register",
@@ -224,7 +333,7 @@ async def test_hostname_resolution_env_var():
 async def test_hostname_missing_raises_with_fail_on_error():
     """Test missing hostname raises exception when fail_on_error=True."""
     with patch("socket.gethostname", side_effect=Exception("No hostname")), patch.dict(os.environ, {}, clear=True):
-        info = ServiceInfo(display_name="Test Service")
+        info = ServiceInfo(id="test-service", display_name="Test Service")
 
         # Should log warning and return early (no exception with fail_on_error=False)
         await register_service(
@@ -256,7 +365,7 @@ async def test_port_resolution_parameter():
     with patch("httpx.AsyncClient") as mock_client:
         mock_client.return_value.__aenter__.return_value.post = AsyncMock(return_value=mock_response)
 
-        info = ServiceInfo(display_name="Test Service")
+        info = ServiceInfo(id="test-service", display_name="Test Service")
 
         await register_service(
             orchestrator_url="http://orchestrator:9000/services/$register",
@@ -279,7 +388,7 @@ async def test_port_resolution_env_var():
     with patch("httpx.AsyncClient") as mock_client, patch.dict(os.environ, {"SERVICEKIT_PORT": "7777"}):
         mock_client.return_value.__aenter__.return_value.post = AsyncMock(return_value=mock_response)
 
-        info = ServiceInfo(display_name="Test Service")
+        info = ServiceInfo(id="test-service", display_name="Test Service")
 
         await register_service(
             orchestrator_url="http://orchestrator:9000/services/$register",
@@ -302,7 +411,7 @@ async def test_port_resolution_default():
     with patch("httpx.AsyncClient") as mock_client, patch.dict(os.environ, {}, clear=True):
         mock_client.return_value.__aenter__.return_value.post = AsyncMock(return_value=mock_response)
 
-        info = ServiceInfo(display_name="Test Service")
+        info = ServiceInfo(id="test-service", display_name="Test Service")
 
         await register_service(
             orchestrator_url="http://orchestrator:9000/services/$register",
@@ -336,7 +445,7 @@ async def test_custom_env_var_names():
     ):
         mock_client.return_value.__aenter__.return_value.post = AsyncMock(return_value=mock_response)
 
-        info = ServiceInfo(display_name="Test Service")
+        info = ServiceInfo(id="test-service", display_name="Test Service")
 
         await register_service(
             orchestrator_url=None,
@@ -365,6 +474,7 @@ async def test_custom_serviceinfo_serialization():
         mock_client.return_value.__aenter__.return_value.post = AsyncMock(return_value=mock_response)
 
         info = CustomServiceInfo(
+            id="custom-service",
             display_name="Custom Service",
             version="2.0.0",
             team="data-science",
@@ -389,7 +499,7 @@ async def test_custom_serviceinfo_serialization():
 async def test_missing_orchestrator_url():
     """Test missing orchestrator URL."""
     with patch.dict(os.environ, {}, clear=True):
-        info = ServiceInfo(display_name="Test Service")
+        info = ServiceInfo(id="test-service", display_name="Test Service")
 
         # Should log warning and return early (no exception with fail_on_error=False)
         await register_service(
@@ -421,7 +531,7 @@ async def test_url_construction():
     with patch("httpx.AsyncClient") as mock_client:
         mock_client.return_value.__aenter__.return_value.post = AsyncMock(return_value=mock_response)
 
-        info = ServiceInfo(display_name="Test Service")
+        info = ServiceInfo(id="test-service", display_name="Test Service")
 
         await register_service(
             orchestrator_url="http://orchestrator:9000/services/$register",
@@ -444,7 +554,7 @@ async def test_timeout_parameter():
     with patch("httpx.AsyncClient") as mock_client:
         mock_client.return_value.__aenter__.return_value.post = AsyncMock(return_value=mock_response)
 
-        info = ServiceInfo(display_name="Test Service")
+        info = ServiceInfo(id="test-service", display_name="Test Service")
 
         await register_service(
             orchestrator_url="http://orchestrator:9000/services/$register",
@@ -478,7 +588,7 @@ async def test_registration_returns_info():
     with patch("httpx.AsyncClient") as mock_client:
         mock_client.return_value.__aenter__.return_value.post = AsyncMock(return_value=mock_response)
 
-        info = ServiceInfo(display_name="Test Service", version="1.0.0")
+        info = ServiceInfo(id="test-service", display_name="Test Service", version="1.0.0")
 
         result = await register_service(
             orchestrator_url="http://orchestrator:9000/services/$register",
@@ -488,7 +598,7 @@ async def test_registration_returns_info():
         )
 
         assert result is not None
-        assert result["service_id"] == "01K83B5V85PQZ1HTH4DQ7NC9JM"
+        assert result["service_id"] == "test-service"
         assert result["service_url"] == "http://test-service:8000"
         assert result["ttl_seconds"] == 30
         assert result["ping_url"] == "http://orchestrator:9000/services/01K83B5V85PQZ1HTH4DQ7NC9JM/$ping"
@@ -498,7 +608,7 @@ async def test_registration_returns_info():
 async def test_registration_returns_none_on_failure():
     """Test that failed registration returns None."""
     with patch.dict(os.environ, {}, clear=True):
-        info = ServiceInfo(display_name="Test Service")
+        info = ServiceInfo(id="test-service", display_name="Test Service")
 
         result = await register_service(
             orchestrator_url=None,  # Missing URL
@@ -655,7 +765,7 @@ async def test_registration_with_service_key_parameter():
     with patch("httpx.AsyncClient") as mock_client:
         mock_client.return_value.__aenter__.return_value.post = AsyncMock(return_value=mock_response)
 
-        info = ServiceInfo(display_name="Test Service", version="1.0.0")
+        info = ServiceInfo(id="test-service", display_name="Test Service", version="1.0.0")
 
         await register_service(
             orchestrator_url="http://orchestrator:9000/services/$register",
@@ -686,7 +796,7 @@ async def test_registration_with_service_key_from_env():
     ):
         mock_client.return_value.__aenter__.return_value.post = AsyncMock(return_value=mock_response)
 
-        info = ServiceInfo(display_name="Test Service", version="1.0.0")
+        info = ServiceInfo(id="test-service", display_name="Test Service", version="1.0.0")
 
         await register_service(
             orchestrator_url="http://orchestrator:9000/services/$register",
@@ -716,7 +826,7 @@ async def test_registration_with_custom_service_key_env():
     ):
         mock_client.return_value.__aenter__.return_value.post = AsyncMock(return_value=mock_response)
 
-        info = ServiceInfo(display_name="Test Service", version="1.0.0")
+        info = ServiceInfo(id="test-service", display_name="Test Service", version="1.0.0")
 
         await register_service(
             orchestrator_url="http://orchestrator:9000/services/$register",
@@ -744,7 +854,7 @@ async def test_registration_without_service_key():
     with patch("httpx.AsyncClient") as mock_client, patch.dict(os.environ, {}, clear=True):
         mock_client.return_value.__aenter__.return_value.post = AsyncMock(return_value=mock_response)
 
-        info = ServiceInfo(display_name="Test Service", version="1.0.0")
+        info = ServiceInfo(id="test-service", display_name="Test Service", version="1.0.0")
 
         await register_service(
             orchestrator_url="http://orchestrator:9000/services/$register",
@@ -773,7 +883,7 @@ async def test_service_key_parameter_overrides_env():
     ):
         mock_client.return_value.__aenter__.return_value.post = AsyncMock(return_value=mock_response)
 
-        info = ServiceInfo(display_name="Test Service", version="1.0.0")
+        info = ServiceInfo(id="test-service", display_name="Test Service", version="1.0.0")
 
         await register_service(
             orchestrator_url="http://orchestrator:9000/services/$register",
