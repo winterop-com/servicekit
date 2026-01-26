@@ -92,6 +92,41 @@ def test_service_info_id_required():
 
 
 @pytest.mark.asyncio
+async def test_registration_missing_service_id_fail_on_error():
+    """Test registration fails when info has no id attribute and fail_on_error=True."""
+    # Create a mock info object without 'id' attribute
+    mock_info = MagicMock(spec=[])  # Empty spec means no 'id' attribute
+    mock_info.model_dump = MagicMock(return_value={"display_name": "Test"})
+
+    with pytest.raises(ValueError, match="must have an 'id' attribute"):
+        await register_service(
+            orchestrator_url="http://orchestrator:9000/services/$register",
+            host="test-service",
+            port=8000,
+            info=mock_info,
+            fail_on_error=True,
+        )
+
+
+@pytest.mark.asyncio
+async def test_registration_missing_service_id_returns_none():
+    """Test registration returns None when info has no id attribute and fail_on_error=False."""
+    # Create a mock info object without 'id' attribute
+    mock_info = MagicMock(spec=[])  # Empty spec means no 'id' attribute
+    mock_info.model_dump = MagicMock(return_value={"display_name": "Test"})
+
+    result = await register_service(
+        orchestrator_url="http://orchestrator:9000/services/$register",
+        host="test-service",
+        port=8000,
+        info=mock_info,
+        fail_on_error=False,
+    )
+
+    assert result is None
+
+
+@pytest.mark.asyncio
 async def test_successful_registration():
     """Test successful service registration."""
     mock_response = MagicMock()
