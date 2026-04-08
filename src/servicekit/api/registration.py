@@ -60,7 +60,7 @@ async def register_service(
         logger.warning("registration.skipped", reason="missing orchestrator URL")
         return None
 
-    # Resolve host (parameter → auto-detect → env var)
+    # Resolve host (parameter → env var → auto-detect)
     resolved_host: str | None = None
     host_source = "unknown"
 
@@ -68,18 +68,17 @@ async def register_service(
         resolved_host = host
         host_source = "parameter"
     else:
-        # Try auto-detection via socket.gethostname()
-        try:
-            resolved_host = socket.gethostname()
-            host_source = "auto-detected"
-        except Exception as e:
-            logger.debug("registration.hostname_detection_failed", error=str(e))
-
-        # Fallback to environment variable
-        if not resolved_host:
-            resolved_host = os.getenv(host_env)
-            if resolved_host:
-                host_source = f"env:{host_env}"
+        env_host = os.getenv(host_env)
+        if env_host:
+            resolved_host = env_host
+            host_source = f"env:{host_env}"
+        else:
+            # Fallback to auto-detection via socket.gethostname()
+            try:
+                resolved_host = socket.gethostname()
+                host_source = "auto-detected"
+            except Exception as e:
+                logger.debug("registration.hostname_detection_failed", error=str(e))
 
     if not resolved_host:
         error_msg = f"Host not provided via parameter, auto-detection, or {host_env} environment variable"
