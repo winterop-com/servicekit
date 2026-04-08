@@ -304,14 +304,14 @@ async def test_hostname_resolution_auto_detect():
 
 @pytest.mark.asyncio
 async def test_hostname_resolution_env_var():
-    """Test hostname resolution from environment variable."""
+    """Test hostname resolution from environment variable takes priority over auto-detect."""
     mock_response = MagicMock()
     mock_response.status_code = 200
     mock_response.raise_for_status = MagicMock()
 
     with (
         patch("httpx.AsyncClient") as mock_client,
-        patch("socket.gethostname", side_effect=Exception("No hostname")),
+        patch("socket.gethostname", return_value="auto-detected-host"),
         patch.dict(os.environ, {"SERVICEKIT_HOST": "env-hostname"}),
     ):
         mock_client.return_value.__aenter__.return_value.post = AsyncMock(return_value=mock_response)
