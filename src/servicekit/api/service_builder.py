@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+import os
 import re
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
@@ -663,81 +665,49 @@ class BaseServiceBuilder:
             for hook in startup_hooks:
                 await hook(app)
 
-            # Register with orchestrator if enabled
-            registration_info = None
+            # Deferred registration: wait for app to be ready before registering
+            registration_task: asyncio.Task[None] | None = None
             if registration_options is not None:
-                from .registration import register_service, start_keepalive
-
-                registration_info = await register_service(
-                    orchestrator_url=registration_options.orchestrator_url,
-                    host=registration_options.host,
-                    port=registration_options.port,
-                    info=info,
-                    orchestrator_url_env=registration_options.orchestrator_url_env,
-                    host_env=registration_options.host_env,
-                    port_env=registration_options.port_env,
-                    max_retries=registration_options.max_retries,
-                    retry_delay=registration_options.retry_delay,
-                    fail_on_error=registration_options.fail_on_error,
-                    timeout=registration_options.timeout,
-                    service_key=registration_options.service_key,
-                    service_key_env=registration_options.service_key_env,
+                registration_task = asyncio.create_task(
+                    _register_after_ready(registration_options, info),
+                    name="servicekit-deferred-registration",
                 )
-
-                # Start keepalive if registration succeeded and enabled
-                if registration_info and registration_options.enable_keepalive:
-                    ping_url = registration_info.get("ping_url")
-                    if ping_url:
-                        from .registration import RegistrationConfig
-
-                        registration_config = RegistrationConfig(
-                            orchestrator_url=registration_options.orchestrator_url,
-                            host=registration_options.host,
-                            port=registration_options.port,
-                            info=info,
-                            orchestrator_url_env=registration_options.orchestrator_url_env,
-                            host_env=registration_options.host_env,
-                            port_env=registration_options.port_env,
-                            max_retries=registration_options.max_retries,
-                            retry_delay=registration_options.retry_delay,
-                            fail_on_error=False,
-                            timeout=registration_options.timeout,
-                            service_key=registration_options.service_key,
-                            service_key_env=registration_options.service_key_env,
-                        )
-                        await start_keepalive(
-                            ping_url=ping_url,
-                            interval=registration_options.keepalive_interval,
-                            timeout=registration_options.timeout,
-                            service_key=registration_options.service_key,
-                            service_key_env=registration_options.service_key_env,
-                            registration_config=registration_config,
-                            re_register_grace_period=registration_options.re_register_grace_period,
-                        )
 
             try:
                 yield
             finally:
-                # Stop keepalive and deregister service if enabled
-                if registration_options is not None and registration_info:
-                    from .registration import deregister_service, stop_keepalive
+                # Cancel deferred registration if still pending
+                if registration_task is not None and not registration_task.done():
+                    registration_task.cancel()
+                    try:
+                        await registration_task
+                    except asyncio.CancelledError:
+                        pass
 
-                    # Stop keepalive task
-                    if registration_options.enable_keepalive:
-                        await stop_keepalive()
+                # Stop keepalive and deregister service if registration completed
+                if registration_options is not None:
+                    from .registration import (
+                        deregister_service,
+                        get_registration_info,
+                        stop_keepalive,
+                    )
 
-                    # Deregister from orchestrator
-                    if registration_options.auto_deregister:
-                        service_id = registration_info.get("service_id")
-                        orchestrator_url = registration_info.get("orchestrator_url")
-                        if service_id and orchestrator_url:
-                            await deregister_service(
-                                service_id=service_id,
-                                orchestrator_url=orchestrator_url,
-                                timeout=registration_options.timeout,
-                                service_key=registration_options.service_key,
-                                service_key_env=registration_options.service_key_env,
-                            )
+                    reg_info = get_registration_info()
+                    if reg_info:
+                        if registration_options.enable_keepalive:
+                            await stop_keepalive()
+
+                        if registration_options.auto_deregister:
+                            service_id = reg_info.get("service_id")
+                            orchestrator_url = reg_info.get("orchestrator_url")
+                            if service_id and orchestrator_url:
+                                await deregister_service(
+                                    service_id=service_id,
+                                    orchestrator_url=orchestrator_url,
+                                    timeout=registration_options.timeout,
+                                    service_key=registration_options.service_key,
+                                    service_key_env=registration_options.service_key_env,
+                                )
 
                 for hook in shutdown_hooks:
                     await hook(app)
@@ -830,3 +800,88 @@ class BaseServiceBuilder:
     def create(cls, *, info: ServiceInfo, **kwargs: Any) -> FastAPI:
         """Create and build a FastAPI application in one call."""
         return cls(info=info, **kwargs).build()
+
+
+async def _wait_until_ready(port: int, *, poll_interval: float = 0.5, timeout: float = 30.0) -> bool:
+    """Poll localhost health endpoint until the app is serving requests."""
+    import httpx
+
+    url = f"http://127.0.0.1:{port}/health"
+    deadline = asyncio.get_event_loop().time() + timeout
+    while asyncio.get_event_loop().time() < deadline:
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url, timeout=2.0)
+                if response.status_code == 200:
+                    return True
+        except Exception:
+            pass
+        await asyncio.sleep(poll_interval)
+    return False
+
+
+async def _register_after_ready(options: _RegistrationOptions, info: BaseModel) -> None:
+    """Wait for the app to be ready, then register with the orchestrator."""
+    from .registration import RegistrationConfig, register_service, start_keepalive
+
+    # Resolve port using the same logic as register_service
+    port = options.port
+    if port is None:
+        port_str = os.getenv(options.port_env)
+        if port_str:
+            try:
+                port = int(port_str)
+            except ValueError:
+                port = 8000
+        else:
+            port = 8000
+
+    ready = await _wait_until_ready(port)
+    if not ready:
+        logger.warning(
+            "registration.readiness_timeout", port=port, message="App did not become ready, registering anyway"
+        )
+
+    registration_info = await register_service(
+        orchestrator_url=options.orchestrator_url,
+        host=options.host,
+        port=options.port,
+        info=info,
+        orchestrator_url_env=options.orchestrator_url_env,
+        host_env=options.host_env,
+        port_env=options.port_env,
+        max_retries=options.max_retries,
+        retry_delay=options.retry_delay,
+        fail_on_error=options.fail_on_error,
+        timeout=options.timeout,
+        service_key=options.service_key,
+        service_key_env=options.service_key_env,
+    )
+
+    if registration_info and options.enable_keepalive:
+        ping_url = registration_info.get("ping_url")
+        if ping_url:
+            registration_config = RegistrationConfig(
+                orchestrator_url=options.orchestrator_url,
+                host=options.host,
+                port=options.port,
+                info=info,
+                orchestrator_url_env=options.orchestrator_url_env,
+                host_env=options.host_env,
+                port_env=options.port_env,
+                max_retries=options.max_retries,
+                retry_delay=options.retry_delay,
+                fail_on_error=False,
+                timeout=options.timeout,
+                service_key=options.service_key,
+                service_key_env=options.service_key_env,
+            )
+            await start_keepalive(
+                ping_url=ping_url,
+                interval=options.keepalive_interval,
+                timeout=options.timeout,
+                service_key=options.service_key,
+                service_key_env=options.service_key_env,
+                registration_config=registration_config,
+                re_register_grace_period=options.re_register_grace_period,
+            )
