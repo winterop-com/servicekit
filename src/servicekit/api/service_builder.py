@@ -666,35 +666,31 @@ class BaseServiceBuilder:
             for hook in startup_hooks:
                 await hook(app)
 
-            # Register with orchestrator if enabled
-            registration_info: dict[str, Any] | None = None
+            # Deferred registration: always wait for app to be ready before registering.
+            # The task is created now and runs after yield (once uvicorn is serving).
+            # For fail_on_error=True we await it immediately after yield so that
+            # exceptions still propagate (the app shuts down on the first request cycle).
             registration_task: asyncio.Task[None] | None = None
 
             if registration_options is not None:
-                if registration_options.fail_on_error:
-                    # Blocking registration: fail startup if registration fails
-                    registration_info = await _register_and_start_keepalive(registration_options, info)
-                else:
-                    # Deferred registration: wait for app to be ready before registering
-                    registration_task = asyncio.create_task(
-                        _register_after_ready(registration_options, info, app, health_path),
-                        name="servicekit-deferred-registration",
-                    )
+                registration_task = asyncio.create_task(
+                    _register_after_ready(registration_options, info, app, health_path),
+                    name="servicekit-deferred-registration",
+                )
 
             try:
                 yield
             finally:
-                # Cancel deferred registration if still pending
-                if registration_task is not None and not registration_task.done():
-                    registration_task.cancel()
+                if registration_task is not None:
+                    if not registration_task.done():
+                        registration_task.cancel()
                     try:
                         await registration_task
                     except asyncio.CancelledError:
                         pass
 
-                # Merge registration info from background task if it completed
-                if registration_info is None:
-                    registration_info = getattr(app.state, "registration_info", None)
+                # Read registration info stored by the background task
+                registration_info: dict[str, Any] | None = getattr(app.state, "registration_info", None)
 
                 # Stop keepalive and deregister service if registration completed
                 if registration_options is not None and registration_info:
@@ -918,6 +914,16 @@ async def _register_after_ready(
         )
         return
 
-    registration_info = await _register_and_start_keepalive(options, info)
+    # Shield registration from cancellation so that if the POST succeeds,
+    # app.state.registration_info is always written before the task exits.
+    # This prevents a leaked registration when shutdown cancels the task
+    # between the successful POST and the state assignment.
+    shielded = asyncio.ensure_future(_register_and_start_keepalive(options, info))
+    try:
+        registration_info = await asyncio.shield(shielded)
+    except asyncio.CancelledError:
+        # Shutdown cancelled us mid-registration. Wait for the shielded
+        # coroutine to finish so we can still store the result for cleanup.
+        registration_info = await shielded
     if registration_info:
         app.state.registration_info = registration_info
