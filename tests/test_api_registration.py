@@ -7,7 +7,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 
-from servicekit.api.registration import deregister_service, register_service, start_keepalive, stop_keepalive
+from servicekit.api.registration import (
+    RegistrationConfig,
+    deregister_service,
+    register_service,
+    start_keepalive,
+    stop_keepalive,
+)
 from servicekit.api.service_builder import ServiceInfo
 
 
@@ -954,3 +960,206 @@ async def test_deregister_sends_service_key():
         headers = call_args[1].get("headers")
         assert headers is not None
         assert headers.get("X-Service-Key") == "deregister-secret-key"
+
+
+# --- Keepalive Re-registration Tests ---
+
+
+def _make_registration_config() -> RegistrationConfig:
+    """Build registration config for testing re-registration."""
+    return RegistrationConfig(
+        orchestrator_url="http://orchestrator:9000/services/$register",
+        host="test-service",
+        port=8000,
+        info=ServiceInfo(id="test-service", display_name="Test Service", version="1.0.0"),
+        max_retries=3,
+        retry_delay=0.01,
+        fail_on_error=False,
+        timeout=5.0,
+    )
+
+
+def _make_404_response() -> MagicMock:
+    """Build a mock 404 response for HTTPStatusError."""
+    mock_response = MagicMock()
+    mock_response.status_code = 404
+    return mock_response
+
+
+@pytest.mark.asyncio
+async def test_keepalive_reregisters_on_404():
+    """Test that keepalive re-registers when ping returns 404."""
+    mock_404_response = _make_404_response()
+    error_404 = httpx.HTTPStatusError("404 Not Found", request=MagicMock(), response=mock_404_response)
+
+    # First ping returns 404, subsequent pings succeed after re-registration
+    mock_put_response = MagicMock()
+    mock_put_response.raise_for_status = MagicMock(side_effect=[error_404, None])
+    mock_put_response.json = MagicMock(return_value={"status": "alive"})
+
+    new_registration = {
+        "service_id": "test-service",
+        "service_url": "http://test-service:8000",
+        "orchestrator_url": "http://orchestrator:9000/services/$register",
+        "ping_url": "http://orchestrator:9000/services/test-service/$ping",
+        "ttl_seconds": 30,
+    }
+
+    with (
+        patch("httpx.AsyncClient") as mock_client,
+        patch("servicekit.api.registration.register_service", new_callable=AsyncMock) as mock_register,
+    ):
+        mock_client.return_value.__aenter__.return_value.put = AsyncMock(return_value=mock_put_response)
+        mock_register.return_value = new_registration
+
+        await start_keepalive(
+            ping_url="http://orchestrator:9000/services/test-service/$ping",
+            interval=0.05,
+            timeout=5.0,
+            registration_config=_make_registration_config(),
+            re_register_grace_period=0.1,
+        )
+
+        # Wait for 404 + grace period + re-registration
+        await asyncio.sleep(0.3)
+
+        # Verify register_service was called
+        assert mock_register.call_count >= 1
+
+        await stop_keepalive()
+
+
+@pytest.mark.asyncio
+async def test_keepalive_grace_period_respected():
+    """Test that re-registration waits for the grace period."""
+    mock_404_response = _make_404_response()
+    error_404 = httpx.HTTPStatusError("404 Not Found", request=MagicMock(), response=mock_404_response)
+
+    mock_put_response = MagicMock()
+    mock_put_response.raise_for_status = MagicMock(side_effect=error_404)
+
+    new_registration = {
+        "service_id": "test-service",
+        "service_url": "http://test-service:8000",
+        "orchestrator_url": "http://orchestrator:9000/services/$register",
+        "ping_url": "http://orchestrator:9000/services/test-service/$ping",
+        "ttl_seconds": 30,
+    }
+
+    with (
+        patch("httpx.AsyncClient") as mock_client,
+        patch("servicekit.api.registration.register_service", new_callable=AsyncMock) as mock_register,
+    ):
+        mock_client.return_value.__aenter__.return_value.put = AsyncMock(return_value=mock_put_response)
+        mock_register.return_value = new_registration
+
+        await start_keepalive(
+            ping_url="http://orchestrator:9000/services/test-service/$ping",
+            interval=0.05,
+            timeout=5.0,
+            registration_config=_make_registration_config(),
+            re_register_grace_period=0.3,
+        )
+
+        # Before grace period expires, register_service should not have been called
+        await asyncio.sleep(0.15)
+        assert mock_register.call_count == 0
+
+        # After grace period, it should have been called
+        await asyncio.sleep(0.25)
+        assert mock_register.call_count >= 1
+
+        await stop_keepalive()
+
+
+@pytest.mark.asyncio
+async def test_keepalive_reregistration_failure_retries():
+    """Test that failed re-registration retries on next 404 cycle."""
+    mock_404_response = _make_404_response()
+    error_404 = httpx.HTTPStatusError("404 Not Found", request=MagicMock(), response=mock_404_response)
+
+    mock_put_response = MagicMock()
+    mock_put_response.raise_for_status = MagicMock(side_effect=error_404)
+
+    with (
+        patch("httpx.AsyncClient") as mock_client,
+        patch("servicekit.api.registration.register_service", new_callable=AsyncMock) as mock_register,
+    ):
+        mock_client.return_value.__aenter__.return_value.put = AsyncMock(return_value=mock_put_response)
+        # Re-registration fails every time
+        mock_register.return_value = None
+
+        await start_keepalive(
+            ping_url="http://orchestrator:9000/services/test-service/$ping",
+            interval=0.05,
+            timeout=5.0,
+            registration_config=_make_registration_config(),
+            re_register_grace_period=0.05,
+        )
+
+        # Wait for multiple 404 + re-registration cycles
+        await asyncio.sleep(0.5)
+
+        # Should have retried re-registration multiple times
+        assert mock_register.call_count >= 2
+
+        await stop_keepalive()
+
+
+@pytest.mark.asyncio
+async def test_keepalive_non_404_does_not_reregister():
+    """Test that non-404 HTTP errors do not trigger re-registration."""
+    mock_500_response = MagicMock()
+    mock_500_response.status_code = 500
+    error_500 = httpx.HTTPStatusError("500 Error", request=MagicMock(), response=mock_500_response)
+
+    mock_put_response = MagicMock()
+    mock_put_response.raise_for_status = MagicMock(side_effect=error_500)
+
+    with (
+        patch("httpx.AsyncClient") as mock_client,
+        patch("servicekit.api.registration.register_service", new_callable=AsyncMock) as mock_register,
+    ):
+        mock_client.return_value.__aenter__.return_value.put = AsyncMock(return_value=mock_put_response)
+
+        await start_keepalive(
+            ping_url="http://orchestrator:9000/services/test-service/$ping",
+            interval=0.05,
+            timeout=5.0,
+            registration_config=_make_registration_config(),
+            re_register_grace_period=0.05,
+        )
+
+        await asyncio.sleep(0.2)
+
+        # register_service should never be called for non-404 errors
+        assert mock_register.call_count == 0
+
+        await stop_keepalive()
+
+
+@pytest.mark.asyncio
+async def test_keepalive_no_registration_kwargs_skips_reregistration():
+    """Test that 404 without registration_kwargs just logs a warning."""
+    mock_404_response = _make_404_response()
+    error_404 = httpx.HTTPStatusError("404 Not Found", request=MagicMock(), response=mock_404_response)
+
+    mock_put_response = MagicMock()
+    mock_put_response.raise_for_status = MagicMock(side_effect=error_404)
+
+    with patch("httpx.AsyncClient") as mock_client:
+        mock_client.return_value.__aenter__.return_value.put = AsyncMock(return_value=mock_put_response)
+
+        # Start without registration_kwargs -- backward compatible behavior
+        await start_keepalive(
+            ping_url="http://orchestrator:9000/services/test-service/$ping",
+            interval=0.05,
+            timeout=5.0,
+        )
+
+        await asyncio.sleep(0.15)
+
+        # Task should still be running (not crashed)
+        assert mock_client.return_value.__aenter__.return_value.put.call_count >= 1
+
+        await stop_keepalive()

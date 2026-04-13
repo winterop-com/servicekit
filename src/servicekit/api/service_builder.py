@@ -95,6 +95,7 @@ class _RegistrationOptions:
     auto_deregister: bool
     service_key: str | None
     service_key_env: str
+    re_register_grace_period: float
 
 
 class ServiceInfo(BaseModel):
@@ -330,6 +331,7 @@ class BaseServiceBuilder:
         auto_deregister: bool = True,
         service_key: str | None = None,
         service_key_env: str = "SERVICEKIT_REGISTRATION_KEY",
+        re_register_grace_period: float = 30.0,
     ) -> Self:
         """Enable service registration with orchestrator for service discovery."""
         self._registration_options = _RegistrationOptions(
@@ -348,6 +350,7 @@ class BaseServiceBuilder:
             auto_deregister=auto_deregister,
             service_key=service_key,
             service_key_env=service_key_env,
+            re_register_grace_period=re_register_grace_period,
         )
         return self
 
@@ -685,12 +688,31 @@ class BaseServiceBuilder:
                 if registration_info and registration_options.enable_keepalive:
                     ping_url = registration_info.get("ping_url")
                     if ping_url:
+                        from .registration import RegistrationConfig
+
+                        registration_config = RegistrationConfig(
+                            orchestrator_url=registration_options.orchestrator_url,
+                            host=registration_options.host,
+                            port=registration_options.port,
+                            info=info,
+                            orchestrator_url_env=registration_options.orchestrator_url_env,
+                            host_env=registration_options.host_env,
+                            port_env=registration_options.port_env,
+                            max_retries=registration_options.max_retries,
+                            retry_delay=registration_options.retry_delay,
+                            fail_on_error=False,
+                            timeout=registration_options.timeout,
+                            service_key=registration_options.service_key,
+                            service_key_env=registration_options.service_key_env,
+                        )
                         await start_keepalive(
                             ping_url=ping_url,
                             interval=registration_options.keepalive_interval,
                             timeout=registration_options.timeout,
                             service_key=registration_options.service_key,
                             service_key_env=registration_options.service_key_env,
+                            registration_config=registration_config,
+                            re_register_grace_period=registration_options.re_register_grace_period,
                         )
 
             try:
