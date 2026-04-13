@@ -909,7 +909,14 @@ async def _register_after_ready(
 ) -> None:
     """Wait for the app to be ready, then register with the orchestrator."""
     port = _resolve_port(options)
-    await _wait_until_ready(port, health_path=health_path)
+    ready = await _wait_until_ready(port, health_path=health_path)
+    if not ready:
+        logger.error(
+            "registration.aborted",
+            port=port,
+            message="App never became ready, skipping registration",
+        )
+        return
 
     registration_info = await _register_and_start_keepalive(options, info)
     if registration_info:
