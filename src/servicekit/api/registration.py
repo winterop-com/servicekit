@@ -17,7 +17,6 @@ _keepalive_task: asyncio.Task | None = None
 _service_id: str | None = None
 _ping_url: str | None = None
 _service_key: str | None = None
-_registration_info: dict[str, Any] | None = None
 
 
 class RegistrationConfig(BaseModel):
@@ -45,11 +44,6 @@ def _resolve_service_key(service_key: str | None, service_key_env: str) -> str |
     if service_key:
         return service_key
     return os.getenv(service_key_env)
-
-
-def get_registration_info() -> dict[str, Any] | None:
-    """Return the last successful registration info, or None."""
-    return _registration_info
 
 
 async def register_service(
@@ -194,21 +188,20 @@ async def register_service(
                 }
 
                 # Store global references for keepalive
-                global _service_id, _ping_url, _registration_info
+                global _service_id, _ping_url
                 _service_id = service_id
                 _ping_url = response_data.get("ping_url")
 
                 logger.info("registration.success", **log_context)
 
-                # Store and return registration info
-                _registration_info = {
+                # Return registration info for keepalive setup
+                return {
                     "service_id": service_id,
                     "service_url": service_url,
                     "orchestrator_url": resolved_orchestrator_url,
                     "ttl_seconds": response_data.get("ttl_seconds"),
                     "ping_url": _ping_url,
                 }
-                return _registration_info
 
         except Exception as e:
             last_error = e

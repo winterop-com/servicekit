@@ -589,6 +589,7 @@ class BaseServiceBuilder:
         job_options = self._job_options
         include_logging = self._include_logging
         registration_options = self._registration_options
+        health_path = self._health_options.prefix if self._health_options else None
         info = self.info
         startup_hooks = list(self._startup_hooks)
         shutdown_hooks = list(self._shutdown_hooks)
@@ -665,13 +666,20 @@ class BaseServiceBuilder:
             for hook in startup_hooks:
                 await hook(app)
 
-            # Deferred registration: wait for app to be ready before registering
+            # Register with orchestrator if enabled
+            registration_info: dict[str, Any] | None = None
             registration_task: asyncio.Task[None] | None = None
+
             if registration_options is not None:
-                registration_task = asyncio.create_task(
-                    _register_after_ready(registration_options, info),
-                    name="servicekit-deferred-registration",
-                )
+                if registration_options.fail_on_error:
+                    # Blocking registration: fail startup if registration fails
+                    registration_info = await _register_and_start_keepalive(registration_options, info)
+                else:
+                    # Deferred registration: wait for app to be ready before registering
+                    registration_task = asyncio.create_task(
+                        _register_after_ready(registration_options, info, app, health_path),
+                        name="servicekit-deferred-registration",
+                    )
 
             try:
                 yield
@@ -684,30 +692,28 @@ class BaseServiceBuilder:
                     except asyncio.CancelledError:
                         pass
 
+                # Merge registration info from background task if it completed
+                if registration_info is None:
+                    registration_info = getattr(app.state, "registration_info", None)
+
                 # Stop keepalive and deregister service if registration completed
-                if registration_options is not None:
-                    from .registration import (
-                        deregister_service,
-                        get_registration_info,
-                        stop_keepalive,
-                    )
+                if registration_options is not None and registration_info:
+                    from .registration import deregister_service, stop_keepalive
 
-                    reg_info = get_registration_info()
-                    if reg_info:
-                        if registration_options.enable_keepalive:
-                            await stop_keepalive()
+                    if registration_options.enable_keepalive:
+                        await stop_keepalive()
 
-                        if registration_options.auto_deregister:
-                            service_id = reg_info.get("service_id")
-                            orchestrator_url = reg_info.get("orchestrator_url")
-                            if service_id and orchestrator_url:
-                                await deregister_service(
-                                    service_id=service_id,
-                                    orchestrator_url=orchestrator_url,
-                                    timeout=registration_options.timeout,
-                                    service_key=registration_options.service_key,
-                                    service_key_env=registration_options.service_key_env,
-                                )
+                    if registration_options.auto_deregister:
+                        service_id = registration_info.get("service_id")
+                        orchestrator_url = registration_info.get("orchestrator_url")
+                        if service_id and orchestrator_url:
+                            await deregister_service(
+                                service_id=service_id,
+                                orchestrator_url=orchestrator_url,
+                                timeout=registration_options.timeout,
+                                service_key=registration_options.service_key,
+                                service_key_env=registration_options.service_key_env,
+                            )
 
                 for hook in shutdown_hooks:
                     await hook(app)
@@ -802,45 +808,54 @@ class BaseServiceBuilder:
         return cls(info=info, **kwargs).build()
 
 
-async def _wait_until_ready(port: int, *, poll_interval: float = 0.5, timeout: float = 30.0) -> bool:
-    """Poll localhost health endpoint until the app is serving requests."""
+def _resolve_port(options: _RegistrationOptions) -> int:
+    """Resolve port from options or environment, matching register_service logic."""
+    if options.port is not None:
+        return options.port
+    port_str = os.getenv(options.port_env)
+    if port_str:
+        try:
+            return int(port_str)
+        except ValueError:
+            return 8000
+    return 8000
+
+
+async def _wait_until_ready(
+    port: int, *, health_path: str | None = None, poll_interval: float = 0.5, timeout: float = 30.0
+) -> bool:
+    """Poll the local app until it is serving requests."""
     import httpx
 
-    url = f"http://127.0.0.1:{port}/health"
+    if health_path:
+        url = f"http://127.0.0.1:{port}{health_path}"
+        check_kind = "health"
+    else:
+        url = f"http://127.0.0.1:{port}/"
+        check_kind = "tcp"
+
     deadline = asyncio.get_event_loop().time() + timeout
     while asyncio.get_event_loop().time() < deadline:
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.get(url, timeout=2.0)
-                if response.status_code == 200:
+                if health_path:
+                    if response.status_code == 200:
+                        return True
+                else:
+                    # Any response means the server is accepting connections
                     return True
         except Exception:
             pass
         await asyncio.sleep(poll_interval)
+
+    logger.warning("registration.readiness_timeout", port=port, check=check_kind, timeout=timeout)
     return False
 
 
-async def _register_after_ready(options: _RegistrationOptions, info: BaseModel) -> None:
-    """Wait for the app to be ready, then register with the orchestrator."""
+async def _register_and_start_keepalive(options: _RegistrationOptions, info: BaseModel) -> dict[str, Any] | None:
+    """Register with orchestrator and start keepalive. Returns registration info."""
     from .registration import RegistrationConfig, register_service, start_keepalive
-
-    # Resolve port using the same logic as register_service
-    port = options.port
-    if port is None:
-        port_str = os.getenv(options.port_env)
-        if port_str:
-            try:
-                port = int(port_str)
-            except ValueError:
-                port = 8000
-        else:
-            port = 8000
-
-    ready = await _wait_until_ready(port)
-    if not ready:
-        logger.warning(
-            "registration.readiness_timeout", port=port, message="App did not become ready, registering anyway"
-        )
 
     registration_info = await register_service(
         orchestrator_url=options.orchestrator_url,
@@ -885,3 +900,17 @@ async def _register_after_ready(options: _RegistrationOptions, info: BaseModel) 
                 registration_config=registration_config,
                 re_register_grace_period=options.re_register_grace_period,
             )
+
+    return registration_info
+
+
+async def _register_after_ready(
+    options: _RegistrationOptions, info: BaseModel, app: FastAPI, health_path: str | None
+) -> None:
+    """Wait for the app to be ready, then register with the orchestrator."""
+    port = _resolve_port(options)
+    await _wait_until_ready(port, health_path=health_path)
+
+    registration_info = await _register_and_start_keepalive(options, info)
+    if registration_info:
+        app.state.registration_info = registration_info
