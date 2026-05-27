@@ -8,7 +8,7 @@ import re
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, AsyncContextManager, AsyncIterator, Awaitable, Callable, Self
+from typing import Any, AsyncContextManager, AsyncGenerator, Awaitable, Callable, Self
 
 from fastapi import APIRouter, FastAPI
 from pydantic import BaseModel, ConfigDict, field_validator
@@ -595,7 +595,7 @@ class BaseServiceBuilder:
         shutdown_hooks = list(self._shutdown_hooks)
 
         @asynccontextmanager
-        async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
             # Configure logging if enabled
             if include_logging:
                 configure_logging()

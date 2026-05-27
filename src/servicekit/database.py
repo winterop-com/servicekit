@@ -5,7 +5,7 @@ from __future__ import annotations
 import sqlite3
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import AsyncIterator, Self
+from typing import AsyncGenerator, Self
 
 from alembic.config import Config
 from sqlalchemy import event
@@ -103,7 +103,7 @@ class Database:
             await loop.run_in_executor(None, command.upgrade, alembic_cfg, "head")
 
     @asynccontextmanager
-    async def session(self) -> AsyncIterator[AsyncSession]:
+    async def session(self) -> AsyncGenerator[AsyncSession]:
         """Create a database session context manager."""
         async with self._session_factory() as s:
             yield s
