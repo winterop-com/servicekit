@@ -411,7 +411,7 @@ def test_entity_operation_supports_patch_method() -> None:
         for route in router.router.routes
         if isinstance(route, APIRoute) and route.path == "/items/{entity_id}/$partial-update"
     )
-    assert "PATCH" in route.methods
+    assert route.methods is not None and "PATCH" in route.methods
 
 
 def test_collection_operation_supports_patch_method() -> None:
@@ -453,4 +453,4 @@ def test_collection_operation_supports_patch_method() -> None:
     route = next(
         route for route in router.router.routes if isinstance(route, APIRoute) and route.path == "/items/$bulk-update"
     )
-    assert "PATCH" in route.methods
+    assert route.methods is not None and "PATCH" in route.methods
