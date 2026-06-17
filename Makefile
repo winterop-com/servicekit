@@ -51,11 +51,11 @@ coverage:
 
 docs-serve:
 	@echo ">>> Serving documentation at http://127.0.0.1:8000"
-	@$(UV) run mkdocs serve
+	@NO_MKDOCS_2_WARNING=true $(UV) run mkdocs serve
 
 docs-build:
 	@echo ">>> Building documentation site"
-	@$(UV) run mkdocs build
+	@NO_MKDOCS_2_WARNING=true $(UV) run mkdocs build
 
 docs: docs-serve
 

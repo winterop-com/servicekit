@@ -16,6 +16,8 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      NO_MKDOCS_2_WARNING: "true"
     steps:
       - uses: actions/checkout@v6
 
