@@ -2,7 +2,7 @@
 	"info": {
 		"_postman_id": "servicekit-auth-basic",
 		"name": "Servicekit - Authentication (Basic)",
-		"description": "API key authentication workflow demonstration.\n\n## Features\n- API key authentication (X-API-Key header)\n- Multiple key support for rotation\n- Authentication failure scenarios\n- Health check (public endpoint)\n- System info (protected endpoint)\n- RFC 9457 error responses\n\n## Quick Start\n1. Start service: `cd examples/auth_basic && uv run python main.py`\n2. Run `Check Service Health` (no auth required)\n3. Test authentication failures on protected endpoint\n4. Test authentication success with valid API key\n5. Test key rotation with multiple keys\n\n## Available API Keys\n- `sk_dev_abc123` (first key)\n- `sk_dev_xyz789` (second key, for rotation demo)",
+		"description": "API key authentication workflow demonstration.\n\n## Features\n- API key authentication (X-API-Key header)\n- Multiple key support for rotation\n- Authentication failure scenarios\n- Health check (public endpoint)\n- System info (protected endpoint)\n- RFC 9457 error responses\n\n## Quick Start\n1. Start service: `cd examples/auth && uv run python main.py`\n2. Run `Check Service Health` (no auth required)\n3. Test authentication failures on protected endpoint\n4. Test authentication success with valid API key\n5. Test key rotation with multiple keys\n\n## Available API Keys\n- `sk_dev_abc123` (first key)\n- `sk_dev_xyz789` (second key, for rotation demo)",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [

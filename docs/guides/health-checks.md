@@ -10,7 +10,7 @@ Enable health checks in your service:
 from servicekit.api import BaseServiceBuilder, ServiceInfo
 
 app = (
-    BaseServiceBuilder(info=ServiceInfo(display_name="My Service"))
+    BaseServiceBuilder(info=ServiceInfo(id="my-service", display_name="My Service"))
     .with_health()  # Enables /health endpoint
     .build()
 )
@@ -106,7 +106,7 @@ async def check_redis() -> tuple[HealthState, str | None]:
         return (HealthState.DEGRADED, f"Redis unavailable: {str(e)}")
 
 app = (
-    BaseServiceBuilder(info=ServiceInfo(display_name="My Service"))
+    BaseServiceBuilder(info=ServiceInfo(id="my-service", display_name="My Service"))
     .with_health(checks={
         "database": check_database,
         "redis": check_redis,
@@ -480,8 +480,8 @@ All operational endpoints use root-level paths for easy discovery.
 
 ## Examples
 
-- `examples/monitoring_api.py` - Service with health checks and monitoring
-- `examples/docs/monitoring_api.postman_collection.json` - Postman collection with health endpoints
+- `examples/monitoring/main.py` - Service with health checks and monitoring
+- `examples/monitoring/postman_collection.json` - Postman collection with health endpoints
 
 ## Next Steps
 

@@ -10,7 +10,7 @@ Servicekit enables hosting static web applications (HTML/JS/CSS) alongside your 
 from servicekit.api import BaseServiceBuilder, ServiceInfo
 
 app = (
-    BaseServiceBuilder(info=ServiceInfo(display_name="My Service"))
+    BaseServiceBuilder(info=ServiceInfo(id="my-service", display_name="My Service"))
     .with_health()
     .with_app("./apps/dashboard")  # Mount app from filesystem
     .build()
@@ -23,7 +23,7 @@ Your dashboard is now available at the prefix defined in `manifest.json` (e.g., 
 
 ```python
 app = (
-    BaseServiceBuilder(info=ServiceInfo(display_name="My Service"))
+    BaseServiceBuilder(info=ServiceInfo(id="my-service", display_name="My Service"))
     .with_health()
     .with_apps("./apps")  # Discovers all subdirectories with manifest.json
     .build()
@@ -146,7 +146,7 @@ myproject/
 **Usage in main.py:**
 ```python
 app = (
-    BaseServiceBuilder(info=ServiceInfo(display_name="My Service"))
+    BaseServiceBuilder(info=ServiceInfo(id="my-service", display_name="My Service"))
     .with_app("./apps/dashboard")      # Single app
     .with_apps("./apps")               # All apps
     .build()
@@ -713,7 +713,7 @@ fetch('/api/v1/configs')
 from servicekit.api import BaseServiceBuilder, ServiceInfo
 
 app = (
-    BaseServiceBuilder(info=ServiceInfo(display_name="Multi-App Service"))
+    BaseServiceBuilder(info=ServiceInfo(id="multi-app-service", display_name="Multi-App Service"))
     .with_health()
     .with_system()
     .with_landing_page()           # Built-in landing at /
@@ -741,7 +741,7 @@ app = (
 ## Further Reading
 
 For more examples, see:
-- `examples/app_hosting_api.py` - Complete app hosting example
+- `examples/app_hosting/main.py` - Complete app hosting example
 - `examples/apps/sample-dashboard/` - Sample dashboard app
 - `designs/app-system.md` - Technical design document
 - `CLAUDE.md` - Development guide with app system section

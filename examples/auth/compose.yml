@@ -2,10 +2,11 @@ services:
     api:
         build:
             context: ../..
-            dockerfile: examples/auth_basic/Dockerfile
+            dockerfile: examples/auth/Dockerfile
         ports:
             - "8000:8000"
         environment:
+            SERVICEKIT_API_KEYS: sk_dev_abc123,sk_dev_xyz789
             LOG_FORMAT: json
             LOG_LEVEL: INFO
             WORKERS: 1

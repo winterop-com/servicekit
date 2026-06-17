@@ -9,10 +9,10 @@ Servicekit provides simple API key authentication for service-to-service communi
 The simplest and most secure approach for production deployments:
 
 ```python
-from servicekit.api import BaseBaseServiceBuilder, ServiceInfo
+from servicekit.api import BaseServiceBuilder, ServiceInfo
 
 app = (
-    BaseBaseServiceBuilder(info=ServiceInfo(display_name="My Service"))
+    BaseServiceBuilder(info=ServiceInfo(id="my-service", display_name="My Service"))
     .with_auth()  # Reads from SERVICEKIT_API_KEYS environment variable
     .with_database("sqlite+aiosqlite:///./data.db")
     .build()
@@ -32,7 +32,7 @@ For Docker Swarm or Kubernetes deployments:
 
 ```python
 app = (
-    BaseServiceBuilder(info=ServiceInfo(display_name="My Service"))
+    BaseServiceBuilder(info=ServiceInfo(id="my-service", display_name="My Service"))
     .with_auth(api_key_file="/run/secrets/api_keys")
     .build()
 )
@@ -65,7 +65,7 @@ sk_prod_xyz789
 
 ```python
 app = (
-    BaseServiceBuilder(info=ServiceInfo(display_name="My Service"))
+    BaseServiceBuilder(info=ServiceInfo(id="my-service", display_name="My Service"))
     .with_auth(api_keys=["sk_dev_test123"])  # NOT for production
     .build()
 )
@@ -553,11 +553,10 @@ export SERVICEKIT_API_KEYS="sk_dev_test123"
 
 ## Next Steps
 
-- **ML Services:** Combine with `.with_ml()` for authenticated ML endpoints
 - **Rate Limiting:** See roadmap for per-key rate limiting (P2)
 - **Key Scoping:** See roadmap for endpoint-specific keys (P2)
 - **Monitoring:** Track authentication metrics with Prometheus (P1)
 
 For more examples, see:
-- `examples/auth_basic.py` - Basic authentication example
+- `examples/auth/main.py` - Basic authentication example
 - `CLAUDE.md` - Comprehensive development guide

@@ -245,7 +245,7 @@ SQLite in-memory databases are reset on restart. For persistent storage, use a f
 ## Related Examples
 
 - `monitoring/` - Full monitoring stack with Grafana
-- `auth_envvar/` - API key authentication
+- `auth/` - API key authentication
 - `job_scheduler/` - Advanced job scheduling patterns
 
 ## Postman Collection

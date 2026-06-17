@@ -782,7 +782,7 @@ Monitor registration health:
 - `examples/registration/` - Complete registration demo with orchestrator
 - `core_api/` - Basic CRUD service
 - `monitoring/` - Prometheus metrics
-- `auth_envvar/` - Environment-based authentication
+- `auth/` - Environment-based authentication
 
 ## See Also
 

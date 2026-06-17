@@ -37,7 +37,7 @@ pip install servicekit
 from servicekit.api import BaseServiceBuilder, ServiceInfo
 
 app = (
-    BaseServiceBuilder(info=ServiceInfo(display_name="My Service"))
+    BaseServiceBuilder(info=ServiceInfo(id="my-service", display_name="My Service"))
     .with_health()
     .with_database("sqlite+aiosqlite:///./data.db")
     .build()
@@ -74,7 +74,7 @@ servicekit/
 from servicekit.api import BaseServiceBuilder, ServiceInfo
 
 app = (
-    BaseServiceBuilder(info=ServiceInfo(display_name="My Service"))
+    BaseServiceBuilder(info=ServiceInfo(id="my-service", display_name="My Service"))
     .with_health()                    # Health check endpoint
     .with_database(url)               # Database configuration
     .with_jobs(max_concurrency=10)   # Job scheduler
@@ -122,11 +122,11 @@ router = CrudRouter.create(
 
 See the `examples/` directory for complete working examples:
 
-- `core_api.py` - Basic CRUD service
-- `job_scheduler_api.py` - Background job execution
-- `app_hosting_api.py` - Hosting static web apps
-- `auth_basic.py` - API key authentication
-- `monitoring_api.py` - Prometheus metrics
+- `core_api/main.py` - Basic CRUD service
+- `job_scheduler/main.py` - Background job execution
+- `app_hosting/main.py` - Hosting static web apps
+- `auth/main.py` - API key authentication
+- `monitoring/main.py` - Prometheus metrics
 
 ## Documentation
 

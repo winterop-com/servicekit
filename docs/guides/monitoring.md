@@ -10,7 +10,7 @@ Enable monitoring in your service with a single method call:
 from servicekit.api import BaseServiceBuilder, ServiceInfo
 
 app = (
-    BaseServiceBuilder(info=ServiceInfo(display_name="My Service"))
+    BaseServiceBuilder(info=ServiceInfo(id="my-service", display_name="My Service"))
     .with_monitoring()  # Enables OpenTelemetry + Prometheus endpoint
     .with_database()
     .with_health()
@@ -54,7 +54,7 @@ No manual instrumentation needed - Servicekit automatically:
 **Defaults:**
 - Metrics endpoint: `/metrics`
 - Service name: From `ServiceInfo.display_name`
-- Tags: `["monitoring"]`
+- Tags: `["Observability"]`
 
 ### Custom Configuration
 
@@ -69,7 +69,7 @@ No manual instrumentation needed - Servicekit automatically:
 ### Parameters
 
 - **prefix** (`str`): Metrics endpoint path. Default: `/metrics`
-- **tags** (`List[str]`): OpenAPI tags for metrics endpoint. Default: `["monitoring"]`
+- **tags** (`List[str]`): OpenAPI tags for metrics endpoint. Default: `["Observability"]`
 - **service_name** (`str | None`): Service name in metrics labels. Default: from `ServiceInfo`
 
 ## Metrics Endpoint
@@ -259,22 +259,6 @@ db_client_connections_limit
 rate(http_server_requests_total{http_status_code=~"5.."}[5m])
 ```
 
-**ML Training Job Rate:**
-```promql
-rate(ml_train_jobs_total{job="servicekit-services"}[5m])
-```
-
-**ML Prediction Job Rate:**
-```promql
-rate(ml_predict_jobs_total{job="servicekit-services"}[5m])
-```
-
-**Total ML Jobs (Train + Predict):**
-```promql
-sum(rate(ml_train_jobs_total{job="servicekit-services"}[5m])) +
-sum(rate(ml_predict_jobs_total{job="servicekit-services"}[5m]))
-```
-
 ## Available Metrics
 
 ### HTTP Metrics (FastAPI)
@@ -300,13 +284,6 @@ sum(rate(ml_predict_jobs_total{job="servicekit-services"}[5m]))
 - `python_info` - Python version info
 - `process_cpu_seconds_total` - CPU time
 - `process_resident_memory_bytes` - Memory usage
-
-### ML Metrics (when using `.with_ml()`)
-
-- `ml_train_jobs_total` - Total number of ML training jobs submitted
-- `ml_predict_jobs_total` - Total number of ML prediction jobs submitted
-
-**Labels**: `service_name`
 
 ## Best Practices
 
@@ -407,8 +384,8 @@ For detailed health check configuration and usage, see the [Health Checks Guide]
 
 ## Examples
 
-- `examples/monitoring_api.py` - Complete monitoring example
-- `examples/docs/monitoring_api.postman_collection.json` - Postman collection
+- `examples/monitoring/main.py` - Complete monitoring example
+- `examples/monitoring/postman_collection.json` - Postman collection
 
 For more details, see:
 - [Health Checks Guide](health-checks.md) - Health check configuration

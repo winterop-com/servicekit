@@ -619,7 +619,7 @@ environment:
 
 - `core_api/` - Basic CRUD service
 - `monitoring/` - Prometheus metrics
-- `auth_envvar/` - Environment-based authentication
+- `auth/` - Environment-based authentication
 - `job_scheduler/` - Background job execution
 
 ## Next Steps

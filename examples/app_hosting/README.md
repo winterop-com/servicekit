@@ -278,4 +278,4 @@ app = (
 
 - `core_api/` - Basic CRUD API service
 - `monitoring/` - Metrics and observability
-- `auth_envvar/` - API key authentication
+- `auth/` - API key authentication

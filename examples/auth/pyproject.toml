@@ -1,7 +1,7 @@
 [project]
-name = "servicekit-demo-auth_docker_secrets"
+name = "servicekit-demo-auth"
 version = "0.1.0"
-description = "auth docker secrets demo"
+description = "API key authentication demo"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
