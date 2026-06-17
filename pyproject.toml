@@ -44,10 +44,10 @@ dependencies = [
 [project.optional-dependencies]
 
 [project.urls]
-Homepage = "https://github.com/winterop-com/servicekit"
-Repository = "https://github.com/winterop-com/servicekit"
-Issues = "https://github.com/winterop-com/servicekit/issues"
-Documentation = "https://winterop-com.github.io/servicekit"
+Homepage = "https://github.com/dhis2-chap/servicekit"
+Repository = "https://github.com/dhis2-chap/servicekit"
+Issues = "https://github.com/dhis2-chap/servicekit/issues"
+Documentation = "https://dhis2-chap.github.io/servicekit"
 
 [dependency-groups]
 dev = [

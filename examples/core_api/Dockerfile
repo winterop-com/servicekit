@@ -36,7 +36,7 @@ FROM python:3.13-slim AS runtime
 LABEL org.opencontainers.image.title="Servicekit Core API Demo"
 LABEL org.opencontainers.image.description="Core API demo showcasing BaseServiceBuilder with custom User entity"
 LABEL org.opencontainers.image.vendor="Servicekit"
-LABEL org.opencontainers.image.source="https://github.com/winterop-com/servicekit"
+LABEL org.opencontainers.image.source="https://github.com/dhis2-chap/servicekit"
 
 WORKDIR /app
 

@@ -36,7 +36,7 @@ FROM python:3.13-slim AS runtime
 LABEL org.opencontainers.image.title="Servicekit Monitoring Demo"
 LABEL org.opencontainers.image.description="Monitoring demo with OpenTelemetry and Prometheus"
 LABEL org.opencontainers.image.vendor="Servicekit"
-LABEL org.opencontainers.image.source="https://github.com/winterop-com/servicekit"
+LABEL org.opencontainers.image.source="https://github.com/dhis2-chap/servicekit"
 
 WORKDIR /app
 
