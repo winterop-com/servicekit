@@ -2,7 +2,7 @@
 	"info": {
 		"_postman_id": "servicekit-monitoring-api",
 		"name": "Servicekit - Monitoring API",
-		"description": "Prometheus metrics and OpenTelemetry monitoring endpoints.\n\n## Features\n- Health checks\n- System information endpoint\n- Prometheus metrics endpoint (/metrics)\n- OpenTelemetry instrumentation\n- FastAPI and SQLAlchemy auto-instrumentation\n\n## Quick Start\n1. Start service: `fastapi dev examples/monitoring_api.py`\n2. Run `Check Service Health` to verify service is running\n3. Run `Get Prometheus Metrics` to view metrics\n4. Run `Get System Information` for service metadata\n\n## Metrics Available\n- HTTP request counters (by method, path, status)\n- HTTP request duration histograms\n- Database query metrics\n- System resource metrics",
+		"description": "Prometheus metrics and OpenTelemetry monitoring endpoints.\n\n## Features\n- Health checks\n- System information endpoint\n- Prometheus metrics endpoint (/metrics)\n- OpenTelemetry instrumentation\n- FastAPI and SQLAlchemy auto-instrumentation\n\n## Quick Start\n1. Start service: `cd examples/monitoring && uv run python main.py`\n2. Run `Check Service Health` to verify service is running\n3. Run `Get Prometheus Metrics` to view metrics\n4. Run `Get System Information` for service metadata\n\n## Metrics Available\n- HTTP request counters (by method, path, status)\n- HTTP request duration histograms\n- Database query metrics\n- System resource metrics",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [

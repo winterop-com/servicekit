@@ -15,7 +15,7 @@ from .dependencies import (
 from .middleware import add_error_handlers, add_logging_middleware, database_error_handler, validation_error_handler
 from .pagination import PaginationParams, create_paginated_response
 from .router import Router
-from .routers import HealthRouter, HealthState, HealthStatus, JobRouter, SystemInfo, SystemRouter
+from .routers import HealthRouter, HealthState, HealthStatus, JobRouter, MetricsRouter, SystemInfo, SystemRouter
 from .service_builder import BaseServiceBuilder, ServiceInfo
 from .sse import SSE_HEADERS, format_sse_event, format_sse_model_event
 from .utilities import build_location_url, run_app
@@ -60,6 +60,7 @@ __all__ = [
     "HealthState",
     "HealthStatus",
     "JobRouter",
+    "MetricsRouter",
     "SystemRouter",
     "SystemInfo",
     # SSE utilities

@@ -13,7 +13,7 @@ Async SQLAlchemy framework with FastAPI integration - reusable foundation for bu
 from servicekit.api import BaseServiceBuilder, ServiceInfo
 
 app = (
-    BaseServiceBuilder(info=ServiceInfo(display_name="My Service"))
+    BaseServiceBuilder(info=ServiceInfo(id="my-service", display_name="My Service"))
     .with_health()
     .with_database("sqlite+aiosqlite:///./data.db")
     .build()

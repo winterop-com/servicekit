@@ -8,7 +8,7 @@ Servicekit provides an async job scheduler for managing long-running tasks with 
 
 ```bash
 # Start the example service
-fastapi dev examples/job_scheduler_sse_api.py
+fastapi dev examples/job_scheduler/main.py
 
 # Submit a 30-second computation job and capture job ID
 JOB_ID=$(curl -s -X POST http://localhost:8000/api/v1/slow-compute \
@@ -171,13 +171,13 @@ The `requests` library buffers responses by default, making it unsuitable for SS
 
 ## Configuration
 
-### ServiceBuilder Setup
+### BaseServiceBuilder Setup
 
 ```python
-from servicekit.api import ServiceBuilder, ServiceInfo
+from servicekit.api import BaseServiceBuilder, ServiceInfo
 
 app = (
-    ServiceBuilder(info=ServiceInfo(display_name="My Service"))
+    BaseServiceBuilder(info=ServiceInfo(id="my-service", display_name="My Service"))
     .with_jobs(max_concurrency=5)  # Limit concurrent jobs
     .build()
 )
@@ -325,7 +325,7 @@ data: {"status": "deleted"}
 
 **Terminal 1: Start service**
 ```bash
-fastapi dev examples/job_scheduler_sse_api.py
+fastapi dev examples/job_scheduler/main.py
 ```
 
 **Terminal 2: Submit job and stream status**
@@ -585,11 +585,7 @@ onUnmounted(() => {
 
 ## Next Steps
 
-- **ML Workflows**: Combine with `.with_ml()` for training jobs
-- **Task Execution**: Use with `.with_tasks()` for script execution
 - **Artifact Storage**: Jobs can return ULIDs to link results
 
 For more examples:
-- `examples/job_scheduler_api.py` - Basic job scheduler
-- `examples/job_scheduler_sse_api.py` - SSE streaming (30s job)
-- `examples/task_execution_api.py` - Task execution with jobs
+- `examples/job_scheduler/main.py` - Job scheduler with SSE streaming

@@ -39,6 +39,6 @@ app = (
 
 
 if __name__ == "__main__":
-    import uvicorn
+    from servicekit.api import run_app
 
-    uvicorn.run("main_custom:app", host="0.0.0.0", port=8000, reload=True)
+    run_app(app)

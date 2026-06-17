@@ -186,5 +186,5 @@ if __name__ == "__main__":
 
     # Note: Reload is disabled for this example to avoid SQLAlchemy
     # table re-registration issues when defining custom entities.
-    # For reload support, use: fastapi dev examples/core_api.py
+    # For reload support, use: fastapi dev examples/core_api/main.py
     run_app(app, reload=False)

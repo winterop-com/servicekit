@@ -292,7 +292,7 @@ annotations:
 ## Related Examples
 
 - `core_api/` - Basic CRUD API service
-- `auth_envvar/` - API key authentication
+- `auth/` - API key authentication
 - `job_scheduler/` - Background job execution
 
 ## Postman Collection
