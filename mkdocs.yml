@@ -1,8 +1,8 @@
 site_name: Servicekit
 site_description: Async SQLAlchemy framework with FastAPI integration - reusable foundation for building data services
-site_url: https://winterop-com.github.io/servicekit
-repo_url: https://github.com/winterop-com/servicekit
-repo_name: winterop-com/servicekit
+site_url: https://dhis2-chap.github.io/servicekit
+repo_url: https://github.com/dhis2-chap/servicekit
+repo_name: dhis2-chap/servicekit
 
 theme:
   name: material
@@ -63,7 +63,7 @@ markdown_extensions:
   - pymdownx.keys
   - pymdownx.magiclink:
       repo_url_shorthand: true
-      user: winterop-com
+      user: dhis2-chap
       repo: servicekit
   - pymdownx.mark
   - pymdownx.smartsymbols
@@ -96,4 +96,4 @@ plugins:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/winterop-com/servicekit
+      link: https://github.com/dhis2-chap/servicekit

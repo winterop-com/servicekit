@@ -1,11 +1,11 @@
 # Servicekit
 
-[![CI](https://github.com/winterop-com/servicekit/actions/workflows/ci.yml/badge.svg)](https://github.com/winterop-com/servicekit/actions/workflows/ci.yml)
+[![CI](https://github.com/dhis2-chap/servicekit/actions/workflows/ci.yml/badge.svg)](https://github.com/dhis2-chap/servicekit/actions/workflows/ci.yml)
 [![PyPI version](https://img.shields.io/pypi/v/servicekit)](https://pypi.org/project/servicekit/)
-[![codecov](https://codecov.io/gh/winterop-com/servicekit/branch/main/graph/badge.svg)](https://codecov.io/gh/winterop-com/servicekit)
+[![codecov](https://codecov.io/gh/dhis2-chap/servicekit/branch/main/graph/badge.svg)](https://codecov.io/gh/dhis2-chap/servicekit)
 [![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
-[![Documentation](https://img.shields.io/badge/docs-mkdocs-blue.svg)](https://winterop-com.github.io/servicekit/)
+[![Documentation](https://img.shields.io/badge/docs-mkdocs-blue.svg)](https://dhis2-chap.github.io/servicekit/)
 
 > Async SQLAlchemy framework with FastAPI integration - reusable foundation for building data services
 

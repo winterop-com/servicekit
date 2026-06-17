@@ -1,7 +1,7 @@
 # Servicekit
 
-[![CI](https://img.shields.io/badge/CI-passing-brightgreen)](https://github.com/winterop-com/servicekit/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/winterop-com/servicekit/branch/main/graph/badge.svg)](https://codecov.io/gh/winterop-com/servicekit)
+[![CI](https://img.shields.io/badge/CI-passing-brightgreen)](https://github.com/dhis2-chap/servicekit/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/dhis2-chap/servicekit/branch/main/graph/badge.svg)](https://codecov.io/gh/dhis2-chap/servicekit)
 [![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
@@ -30,8 +30,8 @@ uv add servicekit
 
 ## Links
 
-- [Repository](https://github.com/winterop-com/servicekit)
-- [Issues](https://github.com/winterop-com/servicekit/issues)
+- [Repository](https://github.com/dhis2-chap/servicekit)
+- [Issues](https://github.com/dhis2-chap/servicekit/issues)
 - [API Reference](api-reference.md)
 - [Chapkit](https://github.com/dhis2-chap/chapkit) - ML and data service modules built on servicekit ([docs](https://dhis2-chap.github.io/chapkit))
 
