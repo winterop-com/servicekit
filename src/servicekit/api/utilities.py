@@ -41,7 +41,9 @@ def run_app(
     Args:
         app: FastAPI app instance OR string "module:app" path
         host: Server host (default: "127.0.0.1", env: HOST)
-        port: Server port (default: 8000, env: PORT)
+        port: Server port (default: 8000, env: PORT). The resolved value is also
+            exported as SERVICEKIT_PORT (unless already set) so service
+            registration advertises and probes the same port uvicorn binds.
         workers: Number of worker processes (default: 1, env: WORKERS)
         reload: Enable auto-reload (default: True for string, False for instance)
         log_level: Logging level (default: from LOG_LEVEL env var or "info")
@@ -67,6 +69,13 @@ def run_app(
     # Auto-reload is incompatible with multiple workers
     if resolved_workers > 1 and reload:
         reload = False
+
+    # Make the bind port visible to service registration, which runs inside the
+    # app lifespan and otherwise resolves its own port (SERVICEKIT_PORT, else
+    # 8000) with no knowledge of where uvicorn actually bound. setdefault means an
+    # explicitly set SERVICEKIT_PORT (e.g. an externally advertised port behind a
+    # proxy) still wins.
+    os.environ.setdefault("SERVICEKIT_PORT", str(resolved_port))
 
     uvicorn.run(
         app,

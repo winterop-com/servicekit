@@ -1,5 +1,6 @@
 """Tests for API utilities."""
 
+import os
 from unittest.mock import Mock, patch
 
 import pytest
@@ -151,6 +152,49 @@ def test_run_app_with_explicit_params(monkeypatch: pytest.MonkeyPatch) -> None:
     assert kwargs["port"] == 5000
     assert kwargs["workers"] == 2
     assert kwargs["log_level"] == "warning"
+
+
+def test_run_app_seeds_servicekit_port_from_resolved_port(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test run_app exports the resolved bind port as SERVICEKIT_PORT for registration."""
+    monkeypatch.delenv("SERVICEKIT_PORT", raising=False)
+
+    mock_run = Mock()
+    mock_configure = Mock()
+
+    with patch("uvicorn.run", mock_run):
+        with patch("servicekit.logging.configure_logging", mock_configure):
+            run_app("test:app", port=9090)
+
+    assert os.environ["SERVICEKIT_PORT"] == "9090"
+
+
+def test_run_app_seeds_servicekit_port_from_default(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test run_app exports the default port as SERVICEKIT_PORT when none is given."""
+    monkeypatch.delenv("SERVICEKIT_PORT", raising=False)
+    monkeypatch.delenv("PORT", raising=False)
+
+    mock_run = Mock()
+    mock_configure = Mock()
+
+    with patch("uvicorn.run", mock_run):
+        with patch("servicekit.logging.configure_logging", mock_configure):
+            run_app("test:app")
+
+    assert os.environ["SERVICEKIT_PORT"] == "8000"
+
+
+def test_run_app_respects_existing_servicekit_port(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test run_app leaves an explicitly set SERVICEKIT_PORT untouched (proxy/NAT case)."""
+    monkeypatch.setenv("SERVICEKIT_PORT", "443")
+
+    mock_run = Mock()
+    mock_configure = Mock()
+
+    with patch("uvicorn.run", mock_run):
+        with patch("servicekit.logging.configure_logging", mock_configure):
+            run_app("test:app", port=9090)
+
+    assert os.environ["SERVICEKIT_PORT"] == "443"
 
 
 def test_run_app_multiple_workers_disables_reload() -> None:
